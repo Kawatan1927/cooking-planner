@@ -67,7 +67,6 @@ API Gateway で JWT Authorizer を用いて検証する。
     "details": null
   }
 }
-````
 
 代表的なステータスコード：
 
