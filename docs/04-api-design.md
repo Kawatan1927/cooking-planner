@@ -1,11 +1,3 @@
-了解、じゃあ `04-api-design.md` と `05-architecture-notes.md` をまとめて出すね。
-どっちもそのまま `docs/` に置ける形で書いておく。
-
----
-
-### `docs/04-api-design.md`
-
-````md
 # 04. API Design
 
 このドキュメントでは、フロントエンド（SPA）から呼び出す  
