@@ -9,3 +9,9 @@ yarn-error.log*
 .pnp.js
 
 .vscode/*
+
+# Frontend build artifacts
+frontend/dist
+frontend/dist-ssr
+frontend/node_modules
+frontend/*.local
