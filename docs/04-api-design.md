@@ -499,4 +499,3 @@ POST `/recipes` と同じ構造：
 * `PantryItems` に関連するAPIの追加（常備品管理）
 * バリデーションエラー時の詳細な `details` 構造の設計
 
-````
