@@ -56,7 +56,6 @@ flowchart LR
   UI -->|HTTPS /api/* + Authorization: Bearer JWT| APIGW --> LAMBDA --> DDB
   UI -->|OIDC/OAuth| COG
   APIGW -->|JWT Authorizer| COG
-````
 
 ---
 
