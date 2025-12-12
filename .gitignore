@@ -15,3 +15,15 @@ frontend/dist
 frontend/dist-ssr
 frontend/node_modules
 frontend/*.local
+
+# CDK build artifacts
+infra/node_modules
+infra/cdk.out
+infra/*.js
+infra/*.d.ts
+infra/bin/*.js
+infra/bin/*.d.ts
+infra/lib/*.js
+infra/lib/*.d.ts
+infra/test/*.js
+infra/test/*.d.ts
