@@ -1,0 +1,59 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - name: Checkout リポジトリ
+      uses: actions/checkout@v4
+
+    - name: Node.js ${{ matrix.node-version }} のセットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: 依存関係のインストール
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: TypeScript 型チェック
+      working-directory: ./frontend
+      run: npx tsc -b
+
+    - name: ESLint の実行
+      working-directory: ./frontend
+      run: npm run lint
+
+    - name: Prettier のチェック
+      working-directory: ./frontend
+      run: npm run format:check
+
+    - name: ビルドの実行
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: ビルド成果物のアップロード
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-dist
+        path: frontend/dist
+        retention-days: 7
