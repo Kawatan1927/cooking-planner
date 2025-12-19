@@ -68,13 +68,32 @@ export async function apiFetch<T = unknown>(
   // ベース URL を取得
   const baseUrl = getApiBaseUrl();
 
-  // URL を構築（パスが / で始まらない場合は追加）
-  const url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  // URL を構築（末尾・先頭のスラッシュを適切に処理）
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${normalizedBase}${normalizedPath}`;
 
   // ヘッダを構築
-  const requestHeaders: Record<string, string> = {
-    ...(headers as Record<string, string>),
-  };
+  const requestHeaders: Record<string, string> = {};
+
+  // 既存のヘッダをコピー
+  if (headers) {
+    if (headers instanceof Headers) {
+      headers.forEach((value, key) => {
+        requestHeaders[key] = value;
+      });
+    } else if (Array.isArray(headers)) {
+      headers.forEach(([key, value]) => {
+        requestHeaders[key] = value;
+      });
+    } else {
+      Object.entries(headers).forEach(([key, value]) => {
+        if (value !== undefined) {
+          requestHeaders[key] = value;
+        }
+      });
+    }
+  }
 
   // Authorization ヘッダを追加（token が提供されている場合）
   if (token) {
@@ -101,12 +120,12 @@ export async function apiFetch<T = unknown>(
 
   // ステータスコードが 2xx の場合
   if (response.ok) {
-    // レスポンスボディがある場合は JSON パース
-    if (hasJsonContent) {
-      return (await response.json()) as T;
+    // 204 No Content など、レスポンスボディがない場合
+    if (response.status === 204 || !hasJsonContent) {
+      return null as T;
     }
-    // レスポンスボディがない場合（204 No Content など）
-    return undefined as T;
+    // レスポンスボディがある場合は JSON パース
+    return (await response.json()) as T;
   }
 
   // エラーレスポンスを処理
