@@ -56,7 +56,7 @@ function getApiBaseUrl(): string {
  *
  * @param path - API エンドポイントのパス（例: '/recipes', '/menus'）
  * @param options - fetch オプション（token, method, body など）
- * @returns Promise<T> - レスポンスボディ（JSON パース済み）
+ * @returns Promise<T> - レスポンスボディ（JSON パース済み）。204 No Content の場合は null を返します。
  * @throws ApiError - API エラーが発生した場合
  */
 export async function apiFetch<T = unknown>(
