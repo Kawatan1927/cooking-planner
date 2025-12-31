@@ -31,7 +31,7 @@ export const getRecipes = async (
       };
     }
 
-    console.log(`Fetching recipes for userId: ${userId}`);
+    console.log(`Fetching recipes for userId: ${userId.substring(0, 8)}...`);
 
     // Query DynamoDB for all recipes belonging to this user
     const result = await dynamoDbClient.send(
@@ -50,8 +50,8 @@ export const getRecipes = async (
     const response = recipes.map((recipe) => ({
       recipeId: recipe.recipeId,
       name: recipe.name,
-      sourceBook: recipe.sourceBook || null,
-      sourcePage: recipe.sourcePage || null,
+      sourceBook: recipe.sourceBook ?? null,
+      sourcePage: recipe.sourcePage ?? null,
       baseServings: recipe.baseServings,
       createdAt: recipe.createdAt,
       updatedAt: recipe.updatedAt,
