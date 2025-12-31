@@ -15,3 +15,7 @@ frontend/dist
 frontend/dist-ssr
 frontend/node_modules
 frontend/*.local
+
+# Lambda build artifacts
+infra/lambda/dist
+infra/lambda/node_modules
