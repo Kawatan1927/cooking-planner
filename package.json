@@ -10,7 +10,12 @@
     "frontend:preview": "cd frontend && npm run preview",
     "frontend:lint": "cd frontend && npm run lint",
     "frontend:format": "cd frontend && npm run format",
-    "frontend:format:check": "cd frontend && npm run format:check"
+    "frontend:format:check": "cd frontend && npm run format:check",
+    "lambda:install": "cd infra/lambda && npm install",
+    "lambda:build": "cd infra/lambda && npm run build",
+    "lambda:clean": "cd infra/lambda && npm run clean",
+    "lambda:rebuild": "cd infra/lambda && npm run rebuild",
+    "lambda:watch": "cd infra/lambda && npm run watch"
   },
   "dependencies": {},
   "devDependencies": {
