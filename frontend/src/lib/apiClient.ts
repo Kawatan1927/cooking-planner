@@ -1,0 +1,145 @@
+/**
+ * API クライアント共通処理
+ *
+ * VITE_API_BASE_URL と Authorization ヘッダを扱う共通 apiFetch 関数を提供します。
+ */
+
+/**
+ * API エラーレスポンスの型定義
+ */
+export interface ApiErrorResponse {
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+}
+
+/**
+ * API エラークラス
+ */
+export class ApiError extends Error {
+  statusCode: number;
+  code: string;
+  details?: unknown;
+
+  constructor(statusCode: number, code: string, message: string, details?: unknown) {
+    super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+    this.code = code;
+    this.details = details;
+  }
+}
+
+/**
+ * apiFetch のオプション
+ */
+export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
+  body?: unknown;
+  token?: string | null;
+}
+
+/**
+ * API ベース URL を取得
+ */
+function getApiBaseUrl(): string {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!baseUrl) {
+    throw new Error('VITE_API_BASE_URL が設定されていません');
+  }
+  return baseUrl;
+}
+
+/**
+ * 共通 API fetch 関数
+ *
+ * @param path - API エンドポイントのパス（例: '/recipes', '/menus'）
+ * @param options - fetch オプション（token, method, body など）
+ * @returns Promise<T> - レスポンスボディ（JSON パース済み）。204 No Content の場合は null を返します。
+ * @throws ApiError - API エラーが発生した場合
+ */
+export async function apiFetch<T = unknown>(
+  path: string,
+  options: ApiFetchOptions = {}
+): Promise<T> {
+  const { body, token, headers = {}, ...restOptions } = options;
+
+  // ベース URL を取得
+  const baseUrl = getApiBaseUrl();
+
+  // URL を構築（末尾・先頭のスラッシュを適切に処理）
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${normalizedBase}${normalizedPath}`;
+
+  // ヘッダを構築
+  const requestHeaders: Record<string, string> = {};
+
+  // 既存のヘッダをコピー
+  if (headers) {
+    if (headers instanceof Headers) {
+      headers.forEach((value, key) => {
+        requestHeaders[key] = value;
+      });
+    } else if (Array.isArray(headers)) {
+      headers.forEach(([key, value]) => {
+        requestHeaders[key] = value;
+      });
+    } else {
+      Object.entries(headers).forEach(([key, value]) => {
+        if (value !== undefined) {
+          requestHeaders[key] = value;
+        }
+      });
+    }
+  }
+
+  // Authorization ヘッダを追加（token が提供されている場合）
+  if (token) {
+    requestHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
+  // body がある場合は JSON.stringify して Content-Type を設定
+  let requestBody: string | undefined;
+  if (body !== undefined) {
+    requestHeaders['Content-Type'] = 'application/json';
+    requestBody = JSON.stringify(body);
+  }
+
+  // fetch を実行
+  const response = await fetch(url, {
+    ...restOptions,
+    headers: requestHeaders,
+    body: requestBody,
+  });
+
+  // レスポンスを処理
+  const contentType = response.headers.get('content-type');
+  const hasJsonContent = contentType?.includes('application/json');
+
+  // ステータスコードが 2xx の場合
+  if (response.ok) {
+    // 204 No Content など、レスポンスボディがない場合
+    if (response.status === 204 || !hasJsonContent) {
+      return null as T;
+    }
+    // レスポンスボディがある場合は JSON パース
+    return (await response.json()) as T;
+  }
+
+  // エラーレスポンスを処理
+  if (hasJsonContent) {
+    const errorData = (await response.json()) as ApiErrorResponse;
+    throw new ApiError(
+      response.status,
+      errorData.error.code,
+      errorData.error.message,
+      errorData.error.details
+    );
+  }
+
+  // JSON でないエラーレスポンスの場合
+  const errorText = await response.text();
+  throw new ApiError(response.status, 'UNKNOWN_ERROR', errorText || response.statusText);
+}
