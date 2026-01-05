@@ -1,28 +1,28 @@
-# GET /recipes Implementation
+# GET /recipes 実装
 
-## Overview
-This implementation handles the `GET /recipes` endpoint as specified in `docs/04-api-design.md`.
+## 概要
+この実装は `docs/04-api-design.md` で規定された `GET /recipes` エンドポイントを処理します。
 
-## Implementation Details
+## 実装詳細
 
-### Files Created
-- `infra/lambda/src/recipes/getRecipes.ts` - Main handler for GET /recipes
-- `infra/lambda/src/recipes/index.ts` - Export module for recipes handlers
+### 作成したファイル
+- `infra/lambda/src/recipes/getRecipes.ts` - GET /recipes のメインハンドラー
+- `infra/lambda/src/recipes/index.ts` - recipes ハンドラーのエクスポートモジュール
 
-### Files Modified
-- `infra/lambda/src/index.ts` - Added routing for GET /recipes endpoint
+### 変更したファイル
+- `infra/lambda/src/index.ts` - GET /recipes エンドポイントのルーティングを追加
 
-## How It Works
+## 動作仕様
 
-1. **Authentication**: Uses `APIGatewayProxyEventV2WithJWTAuthorizer` type to handle JWT authentication from Cognito
-2. **User Identification**: Extracts `userId` from `event.requestContext.authorizer.jwt.claims.sub`
-3. **Data Retrieval**: Queries DynamoDB `Recipes` table with `userId` as partition key
-4. **Response Formatting**: Maps DynamoDB items to match API specification format
-5. **Error Handling**: Returns appropriate HTTP status codes and error messages
+1. **認証**: Cognito の JWT 認証を処理するため `APIGatewayProxyEventV2WithJWTAuthorizer` 型を使用
+2. **ユーザー識別**: `event.requestContext.authorizer.jwt.claims.sub` から `userId` を抽出
+3. **データ取得**: `userId` をパーティションキーとして DynamoDB `Recipes` テーブルをクエリ
+4. **レスポンス整形**: DynamoDB のアイテムを API 仕様のフォーマットにマッピング
+5. **エラー処理**: 適切な HTTP ステータスコードとエラーメッセージを返却
 
-## Response Format
+## レスポンスフォーマット
 
-Success (200):
+成功時 (200):
 ```json
 [
   {
@@ -37,45 +37,45 @@ Success (200):
 ]
 ```
 
-Error responses follow the format specified in `docs/04-api-design.md`:
-- 401: Unauthorized (invalid/missing JWT)
+エラーレスポンスは `docs/04-api-design.md` で規定されたフォーマットに従います：
+- 401: Unauthorized (JWT が無効または欠如)
 - 500: Internal Server Error
 
-## Security Features
+## セキュリティ機能
 
-- **Privacy Protection**: User IDs are truncated in logs (first 8 chars only)
-- **Nullish Coalescing**: Uses `??` operator to properly handle falsy values
-- **User Isolation**: Queries are scoped to the authenticated user's data only
+- **プライバシー保護**: ユーザー ID はログ内で切り詰められます（最初の 8 文字のみ）
+- **Nullish Coalescing**: falsy な値を適切に処理するため `??` 演算子を使用
+- **ユーザー分離**: クエリは認証済みユーザーのデータのみにスコープされます
 
-## Testing
+## テスト方法
 
-To test this endpoint once deployed:
+デプロイ後にこのエンドポイントをテストするには：
 
-1. **Prerequisites**:
-   - DynamoDB `Recipes` table must be created with PK=userId, SK=recipeId
-   - API Gateway with JWT Authorizer configured
-   - Cognito User Pool with registered user
+1. **前提条件**:
+   - DynamoDB `Recipes` テーブルが PK=userId, SK=recipeId で作成されていること
+   - JWT Authorizer が設定された API Gateway
+   - ユーザーが登録された Cognito User Pool
 
-2. **Test Request**:
+2. **テストリクエスト**:
 ```bash
 curl -H "Authorization: Bearer <JWT_TOKEN>" \
      https://your-api-domain/recipes
 ```
 
-3. **Expected Behavior**:
-   - If no recipes exist for the user: Returns empty array `[]`
-   - If recipes exist: Returns array of recipe objects
-   - If JWT is invalid: Returns 401 error
+3. **期待される動作**:
+   - ユーザーにレシピが存在しない場合: 空の配列 `[]` を返す
+   - レシピが存在する場合: レシピオブジェクトの配列を返す
+   - JWT が無効な場合: 401 エラーを返す
 
-## Environment Variables Required
+## 必要な環境変数
 
-The Lambda function requires these environment variables (set via CDK):
-- `RECIPES_TABLE_NAME`: Name of the DynamoDB Recipes table
+Lambda 関数には以下の環境変数が必要です（CDK 経由で設定）：
+- `RECIPES_TABLE_NAME`: DynamoDB Recipes テーブルの名前
 
-## Next Steps
+## 今後の実装予定
 
-Future endpoints to implement:
-- POST /recipes - Create new recipe
-- GET /recipes/{recipeId} - Get recipe details
-- PUT /recipes/{recipeId} - Update recipe
-- DELETE /recipes/{recipeId} - Delete recipe
+実装予定の将来のエンドポイント：
+- POST /recipes - 新しいレシピを作成
+- GET /recipes/{recipeId} - レシピ詳細を取得
+- PUT /recipes/{recipeId} - レシピを更新
+- DELETE /recipes/{recipeId} - レシピを削除
