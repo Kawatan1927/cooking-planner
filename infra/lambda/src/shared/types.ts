@@ -23,6 +23,7 @@ export interface Recipe {
 }
 
 export interface RecipeIngredient {
+  userId: string;
   recipeId: string;
   ingredientName: string;
   quantity: number;
@@ -40,4 +41,25 @@ export interface Menu {
   memo?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Request/Response types for POST /recipes
+ */
+export interface CreateRecipeRequest {
+  name: string;
+  sourceBook?: string;
+  sourcePage?: number;
+  baseServings: number;
+  memo?: string;
+  ingredients: {
+    ingredientName: string;
+    quantity: number;
+    unit: string;
+    note?: string;
+  }[];
+}
+
+export interface CreateRecipeResponse {
+  recipeId: string;
 }

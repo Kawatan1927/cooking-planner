@@ -15,10 +15,12 @@
   "devDependencies": {
     "@types/aws-lambda": "^8.10.145",
     "@types/node": "^22.10.5",
+    "@types/uuid": "^10.0.0",
     "typescript": "^5.7.2"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.717.0",
-    "@aws-sdk/lib-dynamodb": "^3.717.0"
+    "@aws-sdk/lib-dynamodb": "^3.717.0",
+    "uuid": "^13.0.0"
   }
 }
