@@ -1,7 +1,7 @@
-import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
+import { APIGatewayProxyResultV2 } from 'aws-lambda';
 import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
-import { Recipe, RecipeIngredient } from '../shared/types';
+import { Recipe, RecipeIngredient, APIGatewayProxyEventV2WithAuthorizer } from '../shared/types';
 
 /**
  * Response type for GET /recipes/{recipeId}
@@ -11,36 +11,17 @@ interface RecipeDetailResponse extends Recipe {
 }
 
 /**
- * Extended type for API Gateway event with JWT authorizer
- * This includes the authorizer context which is not in the base type
- */
-interface APIGatewayProxyEventV2WithAuthorizer extends APIGatewayProxyEventV2 {
-  requestContext: APIGatewayProxyEventV2['requestContext'] & {
-    authorizer?: {
-      jwt?: {
-        claims?: {
-          sub?: string;
-          email?: string;
-          [key: string]: unknown;
-        };
-      };
-    };
-  };
-}
-
-/**
  * Get a single recipe with its ingredients
  * 
- * @param event API Gateway event
+ * @param event API Gateway event with JWT authorizer
  * @returns Recipe details with ingredients or error response
  */
 export const getRecipeById = async (
-  event: APIGatewayProxyEventV2
+  event: APIGatewayProxyEventV2WithAuthorizer
 ): Promise<APIGatewayProxyResultV2> => {
   try {
     // Extract userId from JWT claims
-    const eventWithAuth = event as APIGatewayProxyEventV2WithAuthorizer;
-    const userId = eventWithAuth.requestContext.authorizer?.jwt?.claims?.sub as string;
+    const userId = event.requestContext.authorizer?.jwt?.claims?.sub;
     if (!userId) {
       return {
         statusCode: 401,

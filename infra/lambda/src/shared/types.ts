@@ -41,3 +41,46 @@ export interface Menu {
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * Extended type for API Gateway event with JWT authorizer
+ * This type includes the authorizer context which is present when using JWT authorizer
+ */
+export interface APIGatewayProxyEventV2WithAuthorizer {
+  version: string;
+  routeKey: string;
+  rawPath: string;
+  rawQueryString: string;
+  headers?: { [name: string]: string | undefined };
+  queryStringParameters?: { [name: string]: string | undefined };
+  pathParameters?: { [name: string]: string | undefined };
+  requestContext: {
+    accountId: string;
+    apiId: string;
+    domainName: string;
+    domainPrefix: string;
+    http: {
+      method: string;
+      path: string;
+      protocol: string;
+      sourceIp: string;
+      userAgent: string;
+    };
+    requestId: string;
+    routeKey: string;
+    stage: string;
+    time: string;
+    timeEpoch: number;
+    authorizer?: {
+      jwt?: {
+        claims?: {
+          sub?: string;
+          email?: string;
+          [key: string]: unknown;
+        };
+      };
+    };
+  };
+  body?: string;
+  isBase64Encoded: boolean;
+}
