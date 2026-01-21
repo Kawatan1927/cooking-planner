@@ -11,6 +11,24 @@ interface RecipeDetailResponse extends Recipe {
 }
 
 /**
+ * Extended type for API Gateway event with JWT authorizer
+ * This includes the authorizer context which is not in the base type
+ */
+interface APIGatewayProxyEventV2WithAuthorizer extends APIGatewayProxyEventV2 {
+  requestContext: APIGatewayProxyEventV2['requestContext'] & {
+    authorizer?: {
+      jwt?: {
+        claims?: {
+          sub?: string;
+          email?: string;
+          [key: string]: unknown;
+        };
+      };
+    };
+  };
+}
+
+/**
  * Get a single recipe with its ingredients
  * 
  * @param event API Gateway event
@@ -21,8 +39,8 @@ export const getRecipeById = async (
 ): Promise<APIGatewayProxyResultV2> => {
   try {
     // Extract userId from JWT claims
-    // @ts-ignore - authorizer exists in APIGatewayProxyEventV2 when using JWT authorizer
-    const userId = event.requestContext.authorizer?.jwt?.claims?.sub as string;
+    const eventWithAuth = event as APIGatewayProxyEventV2WithAuthorizer;
+    const userId = eventWithAuth.requestContext.authorizer?.jwt?.claims?.sub as string;
     if (!userId) {
       return {
         statusCode: 401,
@@ -83,6 +101,7 @@ export const getRecipeById = async (
     const recipe = recipeResult.Item as Recipe;
 
     // Query ingredients from RecipeIngredients table
+    // Note: SK (Sort Key) structure is 'recipeId#ingredientName' as defined in docs/03-domain-and-data-model.md
     const queryIngredientsCommand = new QueryCommand({
       TableName: TABLE_NAMES.RECIPE_INGREDIENTS,
       KeyConditionExpression: 'userId = :userId AND begins_with(SK, :recipeIdPrefix)',
