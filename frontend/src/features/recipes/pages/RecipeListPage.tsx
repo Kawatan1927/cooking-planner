@@ -20,6 +20,9 @@ export function RecipeListPage() {
 
   const { data: recipes, isLoading, error } = useRecipes(token);
 
+  // 認証が未実装の場合の表示
+  const isAuthNotImplemented = !token;
+
   const handleRecipeClick = (recipeId: string) => {
     navigate(`/recipes/${recipeId}`);
   };
@@ -59,6 +62,23 @@ export function RecipeListPage() {
       {isLoading && (
         <div style={{ padding: '2rem', textAlign: 'center' }}>
           <p>読み込み中...</p>
+        </div>
+      )}
+
+      {isAuthNotImplemented && !isLoading && (
+        <div
+          style={{
+            padding: '2rem',
+            backgroundColor: '#fff3cd',
+            border: '1px solid #ffc107',
+            borderRadius: '4px',
+            color: '#856404',
+            textAlign: 'center',
+          }}
+        >
+          <p style={{ margin: 0 }}>
+            ※ 現在、認証機能は未実装です。バックエンドAPI実装後にレシピ一覧が表示されます。
+          </p>
         </div>
       )}
 
