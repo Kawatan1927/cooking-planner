@@ -14,7 +14,7 @@ import type { RecipesResponse } from '../types';
  */
 export function useRecipes(token: string | null) {
   return useQuery<RecipesResponse>({
-    queryKey: ['recipes'],
+    queryKey: ['recipes', token],
     queryFn: () => fetchRecipes(token),
     // トークンがない場合はクエリを実行しない
     enabled: !!token,
