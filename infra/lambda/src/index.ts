@@ -1,4 +1,8 @@
-import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
+import {
+  APIGatewayProxyEventV2WithJWTAuthorizer,
+  APIGatewayProxyResultV2,
+} from 'aws-lambda';
+import { getRecipes, createRecipe } from './recipes';
 import { getRecipeById } from './recipes/getRecipeById';
 import { APIGatewayProxyEventV2WithAuthorizer } from './shared/types';
 
@@ -7,7 +11,7 @@ import { APIGatewayProxyEventV2WithAuthorizer } from './shared/types';
  * Routes requests based on path and HTTP method
  */
 export const handler = async (
-  event: APIGatewayProxyEventV2
+  event: APIGatewayProxyEventV2WithJWTAuthorizer
 ): Promise<APIGatewayProxyResultV2> => {
   const { requestContext, rawPath } = event;
   const httpMethod = requestContext.http.method;
@@ -30,13 +34,24 @@ export const handler = async (
     // GET /recipes/{recipeId}
     const recipeByIdMatch = rawPath.match(/^\/recipes\/([^/]+)$/);
     if (recipeByIdMatch && httpMethod === 'GET') {
-      return getRecipeById(event as APIGatewayProxyEventV2WithAuthorizer);
+      return getRecipeById({
+        ...event,
+        pathParameters: { recipeId: recipeByIdMatch[1] },
+      } as APIGatewayProxyEventV2WithAuthorizer);
+    }
+
+    // Recipes endpoints
+    if (rawPath === '/recipes' && httpMethod === 'GET') {
+      return getRecipes(event);
+    }
+
+    if (rawPath === '/recipes' && httpMethod === 'POST') {
+      return createRecipe(event);
     }
 
     // TODO: Add routing logic for other endpoints
-    // - GET /recipes
-    // - POST /recipes
     // - PUT /recipes/{recipeId}
+    // - DELETE /recipes/{recipeId}
     // - /menus
     // - /shopping-list
 
