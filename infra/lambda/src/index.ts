@@ -31,8 +31,15 @@ export const handler = async (
       return handlePostRecipe(event);
     }
 
+    // GET /recipes - Temporary placeholder response merged from main branch
+    if (rawPath === '/recipes' && httpMethod === 'GET') {
+      return {
+        statusCode: 501,
+        body: JSON.stringify({ message: 'GET /recipes is not implemented yet' }),
+      };
+    }
+
     // TODO: Add routing logic for other endpoints
-    // - GET /recipes
     // - GET /recipes/{recipeId}
     // - PUT /recipes/{recipeId}
     // - /menus
