@@ -108,7 +108,7 @@ export const createRecipe = async (
 
     // Validate each ingredient
     const ingredientNames = new Set<string>();
-    const sanitizedIngredientNames = new Set<string>();
+    const sanitizedIngredientNames = new Map<string, string>(); // sanitized -> original
     
     for (const ingredient of requestBody.ingredients) {
       if (!ingredient.ingredientName || typeof ingredient.ingredientName !== 'string') {
@@ -135,19 +135,20 @@ export const createRecipe = async (
       // Check for duplicates after sanitization
       const sanitizedName = sanitizeIngredientNameForSK(ingredient.ingredientName).toLowerCase().trim();
       if (sanitizedIngredientNames.has(sanitizedName)) {
+        const conflictingName = sanitizedIngredientNames.get(sanitizedName);
         return createErrorResponse(
           400,
           'BAD_REQUEST',
-          `Ingredient names "${ingredient.ingredientName}" would conflict after sanitization`
+          `Ingredient names "${ingredient.ingredientName}" and "${conflictingName}" would conflict after sanitization`
         );
       }
-      sanitizedIngredientNames.add(sanitizedName);
+      sanitizedIngredientNames.set(sanitizedName, ingredient.ingredientName);
 
-      if (typeof ingredient.quantity !== 'number' || ingredient.quantity < 0) {
+      if (typeof ingredient.quantity !== 'number' || ingredient.quantity <= 0) {
         return createErrorResponse(
           400,
           'BAD_REQUEST',
-          'Each ingredient must have a valid quantity'
+          'Each ingredient must have a positive quantity'
         );
       }
       if (!ingredient.unit || typeof ingredient.unit !== 'string') {
