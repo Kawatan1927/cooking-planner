@@ -22,6 +22,16 @@ export interface Recipe {
   updatedAt: string;
 }
 
+export interface RecipeResponse {
+  recipeId: string;
+  name: string;
+  sourceBook: string | null;
+  sourcePage: number | null;
+  baseServings: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface RecipeIngredient {
   recipeId: string;
   ingredientName: string;
