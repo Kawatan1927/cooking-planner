@@ -2,12 +2,25 @@ import {
   APIGatewayProxyEventV2WithJWTAuthorizer,
   APIGatewayProxyResultV2,
 } from 'aws-lambda';
-import { PutCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { 
+  PutCommand, 
+  BatchWriteCommand, 
+  BatchWriteCommandInput,
+  BatchWriteCommandOutput 
+} from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeIngredient } from '../shared/types';
 import { randomUUID } from 'crypto';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
+
+/**
+ * Sanitize ingredient name for use in DynamoDB sort key
+ * Replaces '#' with '_' to avoid conflicts with the delimiter
+ */
+const sanitizeIngredientNameForSK = (ingredientName: string): string => {
+  return ingredientName.replace(/#/g, '_');
+};
 
 const createErrorResponse = (
   statusCode: number,
@@ -173,12 +186,12 @@ export const createRecipe = async (
       for (let i = 0; i < ingredientItems.length; i += BATCH_SIZE) {
         const chunk = ingredientItems.slice(i, i + BATCH_SIZE);
         
-        let requestItems: Record<string, any> = {
+        let requestItems: BatchWriteCommandInput['RequestItems'] = {
           [TABLE_NAMES.RECIPE_INGREDIENTS]: chunk.map((item) => ({
             PutRequest: {
               Item: {
                 ...item,
-                SK: `${recipeId}#${item.ingredientName}`,
+                SK: `${recipeId}#${sanitizeIngredientNameForSK(item.ingredientName)}`,
               },
             },
           })),
@@ -189,7 +202,7 @@ export const createRecipe = async (
         let retryCount = 0;
         
         while (retryCount < MAX_RETRIES) {
-          const result = await dynamoDbClient.send(
+          const result: BatchWriteCommandOutput = await dynamoDbClient.send(
             new BatchWriteCommand({
               RequestItems: requestItems,
             })
