@@ -33,6 +33,7 @@ export interface RecipeResponse {
 }
 
 export interface RecipeIngredient {
+  userId: string;
   recipeId: string;
   ingredientName: string;
   quantity: number;
