@@ -4,6 +4,7 @@ import {
 } from 'aws-lambda';
 import { 
   PutCommand, 
+  DeleteCommand,
   BatchWriteCommand, 
   BatchWriteCommandInput,
   BatchWriteCommandOutput 
@@ -37,6 +38,9 @@ const createErrorResponse = (
     },
   }),
 });
+
+const BATCH_SIZE = 25;
+const MAX_RETRIES = 3;
 
 interface CreateRecipeRequestBody {
   name: string;
@@ -111,6 +115,18 @@ export const createRecipe = async (
     const sanitizedIngredientNames = new Map<string, string>(); // sanitized -> original
     
     for (const ingredient of requestBody.ingredients) {
+      if (
+        typeof ingredient !== 'object' ||
+        ingredient === null ||
+        Array.isArray(ingredient)
+      ) {
+        return createErrorResponse(
+          400,
+          'BAD_REQUEST',
+          'Each ingredient must be an object'
+        );
+      }
+
       if (!ingredient.ingredientName || typeof ingredient.ingredientName !== 'string') {
         return createErrorResponse(
           400,
@@ -173,52 +189,103 @@ export const createRecipe = async (
       updatedAt: now,
     };
 
-    // Save recipe to DynamoDB
-    await dynamoDbClient.send(
-      new PutCommand({
-        TableName: TABLE_NAMES.RECIPES,
-        Item: recipe,
-      })
-    );
+    // Prepare ingredient items
+    const ingredientItems = requestBody.ingredients.map((ingredient) => {
+      const recipeIngredient: RecipeIngredient = {
+        userId,
+        recipeId,
+        ingredientName: ingredient.ingredientName,
+        quantity: ingredient.quantity,
+        unit: ingredient.unit,
+        note: ingredient.note ?? undefined,
+      };
+      return recipeIngredient;
+    });
 
-    console.log(`Recipe created: ${recipeId}`);
+    try {
+      // Save recipe first. If ingredient writes fail later, compensate by deleting recipe+ingredients.
+      await dynamoDbClient.send(
+        new PutCommand({
+          TableName: TABLE_NAMES.RECIPES,
+          Item: recipe,
+        })
+      );
 
-    // Save ingredients if any
-    if (requestBody.ingredients.length > 0) {
-      // Prepare ingredient items
-      const ingredientItems = requestBody.ingredients.map((ingredient) => {
-        const recipeIngredient: RecipeIngredient = {
-          userId,
-          recipeId,
-          ingredientName: ingredient.ingredientName,
-          quantity: ingredient.quantity,
-          unit: ingredient.unit,
-          note: ingredient.note ?? undefined,
-        };
-        return recipeIngredient;
+      console.log(`Recipe created: ${recipeId}`);
+
+      // Save ingredients if any
+      if (ingredientItems.length > 0) {
+        // BatchWrite has a limit of 25 items per request
+        // Split into chunks if needed
+        for (let i = 0; i < ingredientItems.length; i += BATCH_SIZE) {
+          const chunk = ingredientItems.slice(i, i + BATCH_SIZE);
+
+          let requestItems: BatchWriteCommandInput['RequestItems'] = {
+            [TABLE_NAMES.RECIPE_INGREDIENTS]: chunk.map((item) => ({
+              PutRequest: {
+                Item: {
+                  ...item,
+                  SK: `${recipeId}#${sanitizeIngredientNameForSK(item.ingredientName)}`,
+                },
+              },
+            })),
+          };
+
+          // Retry logic for unprocessed items
+          let retryCount = 0;
+
+          while (retryCount < MAX_RETRIES) {
+            const result: BatchWriteCommandOutput = await dynamoDbClient.send(
+              new BatchWriteCommand({
+                RequestItems: requestItems,
+              })
+            );
+
+            // Check if there are unprocessed items
+            if (!result.UnprocessedItems || Object.keys(result.UnprocessedItems).length === 0) {
+              break; // All items processed successfully
+            }
+
+            // If there are unprocessed items, retry with exponential backoff
+            requestItems = result.UnprocessedItems;
+            retryCount++;
+
+            if (retryCount < MAX_RETRIES) {
+              const backoffTime = Math.pow(2, retryCount) * 100; // 200ms, 400ms, 800ms
+              await new Promise((resolve) => setTimeout(resolve, backoffTime));
+              console.log(`Retrying unprocessed items (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+            } else {
+              // Max retries reached, log error and fail
+              console.error(`Failed to write all ingredients after ${MAX_RETRIES} retries`);
+              throw new Error('Failed to save all ingredients due to throttling');
+            }
+          }
+        }
+
+        console.log(`Saved ${ingredientItems.length} ingredients for recipe ${recipeId}`);
+      }
+    } catch (error) {
+      console.error('Failed to persist recipe transactionally. Starting compensation.', {
+        recipeId,
+        error,
       });
 
-      // BatchWrite has a limit of 25 items per request
-      // Split into chunks if needed
-      const BATCH_SIZE = 25;
+      // Compensating delete for partial writes (ingredients)
       for (let i = 0; i < ingredientItems.length; i += BATCH_SIZE) {
         const chunk = ingredientItems.slice(i, i + BATCH_SIZE);
-        
+
         let requestItems: BatchWriteCommandInput['RequestItems'] = {
           [TABLE_NAMES.RECIPE_INGREDIENTS]: chunk.map((item) => ({
-            PutRequest: {
-              Item: {
-                ...item,
+            DeleteRequest: {
+              Key: {
+                userId: item.userId,
                 SK: `${recipeId}#${sanitizeIngredientNameForSK(item.ingredientName)}`,
               },
             },
           })),
         };
 
-        // Retry logic for unprocessed items
-        const MAX_RETRIES = 3;
         let retryCount = 0;
-        
         while (retryCount < MAX_RETRIES) {
           const result: BatchWriteCommandOutput = await dynamoDbClient.send(
             new BatchWriteCommand({
@@ -226,28 +293,36 @@ export const createRecipe = async (
             })
           );
 
-          // Check if there are unprocessed items
           if (!result.UnprocessedItems || Object.keys(result.UnprocessedItems).length === 0) {
-            break; // All items processed successfully
+            break;
           }
 
-          // If there are unprocessed items, retry with exponential backoff
           requestItems = result.UnprocessedItems;
           retryCount++;
-          
+
           if (retryCount < MAX_RETRIES) {
-            const backoffTime = Math.pow(2, retryCount) * 100; // 200ms, 400ms, 800ms
+            const backoffTime = Math.pow(2, retryCount) * 100;
             await new Promise((resolve) => setTimeout(resolve, backoffTime));
-            console.log(`Retrying unprocessed items (attempt ${retryCount + 1}/${MAX_RETRIES})`);
           } else {
-            // Max retries reached, log error and fail
-            console.error(`Failed to write all ingredients after ${MAX_RETRIES} retries`);
-            throw new Error('Failed to save all ingredients due to throttling');
+            console.error('Failed to delete all partially written ingredients during compensation', {
+              recipeId,
+            });
           }
         }
       }
 
-      console.log(`Saved ${ingredientItems.length} ingredients for recipe ${recipeId}`);
+      // Compensating delete for recipe item
+      await dynamoDbClient.send(
+        new DeleteCommand({
+          TableName: TABLE_NAMES.RECIPES,
+          Key: {
+            userId,
+            recipeId,
+          },
+        })
+      );
+
+      throw error;
     }
 
     return {
