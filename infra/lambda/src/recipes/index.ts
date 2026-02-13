@@ -1,0 +1,1 @@
+export { getRecipes } from './getRecipes';

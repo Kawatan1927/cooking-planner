@@ -1,11 +1,15 @@
-import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
+import {
+  APIGatewayProxyEventV2WithJWTAuthorizer,
+  APIGatewayProxyResultV2,
+} from 'aws-lambda';
+import { getRecipes } from './recipes';
 
 /**
  * Main Lambda handler for Cooking Planner API
  * Routes requests based on path and HTTP method
  */
 export const handler = async (
-  event: APIGatewayProxyEventV2
+  event: APIGatewayProxyEventV2WithJWTAuthorizer
 ): Promise<APIGatewayProxyResultV2> => {
   const { requestContext, rawPath } = event;
   const httpMethod = requestContext.http.method;
@@ -25,8 +29,16 @@ export const handler = async (
       };
     }
 
+    // Recipes endpoints
+    if (rawPath === '/recipes' && httpMethod === 'GET') {
+      return getRecipes(event);
+    }
+
     // TODO: Add routing logic for other endpoints
-    // - /recipes
+    // - POST /recipes
+    // - GET /recipes/{recipeId}
+    // - PUT /recipes/{recipeId}
+    // - DELETE /recipes/{recipeId}
     // - /menus
     // - /shopping-list
 
