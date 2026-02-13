@@ -108,6 +108,8 @@ export const createRecipe = async (
 
     // Validate each ingredient
     const ingredientNames = new Set<string>();
+    const sanitizedIngredientNames = new Set<string>();
+    
     for (const ingredient of requestBody.ingredients) {
       if (!ingredient.ingredientName || typeof ingredient.ingredientName !== 'string') {
         return createErrorResponse(
@@ -116,15 +118,30 @@ export const createRecipe = async (
           'Each ingredient must have a valid ingredientName'
         );
       }
-      // Check for duplicate ingredient names
-      if (ingredientNames.has(ingredient.ingredientName)) {
+      
+      // Normalize ingredient name for duplicate checking (case-insensitive)
+      const normalizedName = ingredient.ingredientName.toLowerCase().trim();
+      
+      // Check for duplicate ingredient names (case-insensitive)
+      if (ingredientNames.has(normalizedName)) {
         return createErrorResponse(
           400,
           'BAD_REQUEST',
           `Duplicate ingredient name: ${ingredient.ingredientName}`
         );
       }
-      ingredientNames.add(ingredient.ingredientName);
+      ingredientNames.add(normalizedName);
+      
+      // Check for duplicates after sanitization
+      const sanitizedName = sanitizeIngredientNameForSK(ingredient.ingredientName).toLowerCase().trim();
+      if (sanitizedIngredientNames.has(sanitizedName)) {
+        return createErrorResponse(
+          400,
+          'BAD_REQUEST',
+          `Ingredient names "${ingredient.ingredientName}" would conflict after sanitization`
+        );
+      }
+      sanitizedIngredientNames.add(sanitizedName);
 
       if (typeof ingredient.quantity !== 'number' || ingredient.quantity < 0) {
         return createErrorResponse(
