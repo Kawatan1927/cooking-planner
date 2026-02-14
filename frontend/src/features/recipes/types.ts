@@ -1,15 +1,23 @@
 /**
  * レシピ関連の型定義
  *
- * API レスポンスとドメインモデルの型を定義します。
- * docs/03-domain-and-data-model.md および docs/04-api-design.md に基づいています。
+ * docs/03-domain-and-data-model.md および docs/04-api-design.md に基づく
  */
 
 /**
- * レシピ一覧で取得されるレシピの型
- * GET /recipes のレスポンス配列の要素
+ * レシピの材料
  */
-export interface Recipe {
+export interface RecipeIngredient {
+  ingredientName: string;
+  quantity: number;
+  unit: string;
+  note?: string | null;
+}
+
+/**
+ * レシピの基本情報（一覧表示用）
+ */
+export interface RecipeSummary {
   recipeId: string;
   name: string;
   sourceBook?: string | null;
@@ -20,29 +28,22 @@ export interface Recipe {
 }
 
 /**
- * レシピの材料の型
+ * 互換エイリアス: 既存コードで使われる一覧型名
  */
-export interface RecipeIngredient {
-  ingredientName: string;
-  quantity: number | string;
-  unit: string;
-  note?: string | null;
-}
+export type Recipe = RecipeSummary;
 
 /**
- * レシピ詳細の型
- * GET /recipes/{recipeId} のレスポンス
+ * レシピの詳細情報（材料を含む）
  */
-export interface RecipeDetail extends Recipe {
+export interface RecipeDetail extends RecipeSummary {
   memo?: string | null;
   ingredients: RecipeIngredient[];
 }
 
 /**
- * レシピ作成時のリクエストボディの型
- * POST /recipes
+ * レシピ作成・更新時のリクエストボディ
  */
-export interface CreateRecipeRequest {
+export interface RecipeInput {
   name: string;
   sourceBook?: string | null;
   sourcePage?: number | null;
@@ -52,27 +53,20 @@ export interface CreateRecipeRequest {
 }
 
 /**
- * レシピ作成時のレスポンスの型
+ * 互換エイリアス: 既存コードで使われるリクエスト型名
+ */
+export type CreateRecipeRequest = RecipeInput;
+export type UpdateRecipeRequest = RecipeInput;
+
+/**
+ * レシピ作成時のレスポンス
  */
 export interface CreateRecipeResponse {
   recipeId: string;
 }
 
 /**
- * レシピ更新時のリクエストボディの型
- * PUT /recipes/{recipeId}
- */
-export interface UpdateRecipeRequest {
-  name: string;
-  sourceBook?: string | null;
-  sourcePage?: number | null;
-  baseServings: number;
-  memo?: string | null;
-  ingredients: RecipeIngredient[];
-}
-
-/**
- * レシピ更新時のレスポンスの型
+ * レシピ更新時のレスポンス
  */
 export interface UpdateRecipeResponse {
   recipeId: string;

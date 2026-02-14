@@ -1,0 +1,121 @@
+name: "Feature: 新機能"
+description: "ユーザー価値のある機能追加（Issue駆動・エージェント実装向け）"
+title: "[Feature] "
+labels: ["type:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 目的
+        可能な限り「何を」「なぜ」「どうなったらOKか」を明確にしてください。
+        エージェントに割り当てる場合は、曖昧さが残ると手戻りが増えます。
+
+  - type: input
+    id: goal
+    attributes:
+      label: ゴール（1文）
+      description: "例：ユーザーが一覧を条件検索できるようにする"
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景・目的（Why）
+      description: "なぜ必要か、何が困っているか"
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: スコープ（やること / やらないこと）
+      description: |
+        - やること: 箇条書き
+        - やらないこと: 箇条書き（重要）
+      value: |
+        **やること**
+        - 
+        
+        **やらないこと**
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: 要件（仕様）
+      description: "画面・API・入力制約・例外など。可能なら例を含める"
+      placeholder: |
+        例：
+        - 入力: 〇〇は必須、最大20文字
+        - 例外: 条件不正なら400
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件（Acceptance Criteria）
+      description: "チェック可能な形で。Given/When/Then 推奨"
+      value: |
+        - [ ] Given ..., When ..., Then ...
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: test
+    attributes:
+      label: テスト方針
+      description: "ユニット/統合/E2E、追加すべき観点、最低限の期待"
+      value: |
+        - [ ] 追加/更新するテスト:
+        - [ ] 主要ケース:
+        - [ ] 異常系:
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: 影響範囲・リスク
+      description: "変更が波及する場所、互換性、パフォーマンス、セキュリティ等"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: agent_ok
+    attributes:
+      label: コーディングエージェント割当
+      options:
+        - "OK（割り当ててよい）"
+        - "NG（人間が実装）"
+        - "要相談"
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: 制約・禁止事項（重要）
+      description: |
+        例：
+        - 依存追加禁止
+        - DBマイグレーション禁止
+        - 既存API互換性維持
+        - 変更ファイルの上限
+      value: |
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: 参考資料（任意）
+      description: "仕様書リンク、スクショ、ログ、既存コード位置など"
+    validations:
+      required: false
