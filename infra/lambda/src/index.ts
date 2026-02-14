@@ -2,9 +2,7 @@ import {
   APIGatewayProxyEventV2WithJWTAuthorizer,
   APIGatewayProxyResultV2,
 } from 'aws-lambda';
-import { getRecipes, createRecipe } from './recipes';
-import { getRecipeById } from './recipes/getRecipeById';
-import { APIGatewayProxyEventV2WithAuthorizer } from './shared/types';
+import { getRecipes, createRecipe, getRecipeById } from './recipes';
 
 /**
  * Main Lambda handler for Cooking Planner API
@@ -37,7 +35,7 @@ export const handler = async (
       return getRecipeById({
         ...event,
         pathParameters: { recipeId: recipeByIdMatch[1] },
-      } as APIGatewayProxyEventV2WithAuthorizer);
+      } as APIGatewayProxyEventV2WithJWTAuthorizer);
     }
 
     // Recipes endpoints

@@ -1,104 +1,113 @@
-import { APIGatewayProxyResultV2 } from 'aws-lambda';
+import {
+  APIGatewayProxyEventV2WithJWTAuthorizer,
+  APIGatewayProxyResultV2,
+} from 'aws-lambda';
 import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
-import { Recipe, RecipeIngredient, APIGatewayProxyEventV2WithAuthorizer } from '../shared/types';
+import { Recipe, RecipeIngredient } from '../shared/types';
 
-/**
- * Response type for GET /recipes/{recipeId}
- */
-interface RecipeDetailResponse extends Recipe {
-  ingredients: RecipeIngredient[];
+interface RecipeIngredientResponse {
+  ingredientName: string;
+  quantity: number;
+  unit: string;
+  note: string | null;
 }
 
+interface RecipeDetailResponse {
+  recipeId: string;
+  name: string;
+  sourceBook: string | null;
+  sourcePage: number | null;
+  baseServings: number;
+  memo: string | null;
+  createdAt: string;
+  updatedAt: string;
+  ingredients: RecipeIngredientResponse[];
+}
+
+const createErrorResponse = (
+  statusCode: number,
+  code: string,
+  message: string
+): APIGatewayProxyResultV2 => ({
+  statusCode,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    error: {
+      code,
+      message,
+      details: null,
+    },
+  }),
+});
+
 /**
- * Get a single recipe with its ingredients
- * 
- * @param event API Gateway event with JWT authorizer
- * @returns Recipe details with ingredients or error response
+ * GET /recipes/{recipeId}
+ * Get a single recipe with its ingredients for the logged-in user
  */
 export const getRecipeById = async (
-  event: APIGatewayProxyEventV2WithAuthorizer
+  event: APIGatewayProxyEventV2WithJWTAuthorizer
 ): Promise<APIGatewayProxyResultV2> => {
   try {
-    // Extract userId from JWT claims
-    const userId = event.requestContext.authorizer?.jwt?.claims?.sub;
-    if (!userId) {
-      return {
-        statusCode: 401,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'User ID not found in JWT claims',
-            details: null,
-          },
-        }),
-      };
+    const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
+
+    if (typeof subClaim !== 'string' || !subClaim) {
+      return createErrorResponse(401, 'UNAUTHORIZED', 'User ID not found in token');
     }
 
-    // Extract recipeId from path parameters
     const recipeId = event.pathParameters?.recipeId;
     if (!recipeId) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: {
-            code: 'BAD_REQUEST',
-            message: 'Recipe ID is required',
-            details: null,
-          },
-        }),
-      };
+      return createErrorResponse(400, 'BAD_REQUEST', 'Recipe ID is required');
     }
+
+    const userId = subClaim;
 
     console.log(`Fetching recipe: userId=${userId}, recipeId=${recipeId}`);
 
-    // Get recipe from Recipes table
-    const getRecipeCommand = new GetCommand({
-      TableName: TABLE_NAMES.RECIPES,
-      Key: {
-        userId,
-        recipeId,
-      },
-    });
-
-    const recipeResult = await dynamoDbClient.send(getRecipeCommand);
+    const recipeResult = await dynamoDbClient.send(
+      new GetCommand({
+        TableName: TABLE_NAMES.RECIPES,
+        Key: {
+          userId,
+          recipeId,
+        },
+      })
+    );
 
     if (!recipeResult.Item) {
-      return {
-        statusCode: 404,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: {
-            code: 'RECIPE_NOT_FOUND',
-            message: 'Recipe not found',
-            details: null,
-          },
-        }),
-      };
+      return createErrorResponse(404, 'RECIPE_NOT_FOUND', 'Recipe not found');
     }
 
     const recipe = recipeResult.Item as Recipe;
 
-    // Query ingredients from RecipeIngredients table
-    // Note: SK (Sort Key) structure is 'recipeId#ingredientName' as defined in docs/03-domain-and-data-model.md
-    const queryIngredientsCommand = new QueryCommand({
-      TableName: TABLE_NAMES.RECIPE_INGREDIENTS,
-      KeyConditionExpression: 'userId = :userId AND begins_with(SK, :recipeIdPrefix)',
-      ExpressionAttributeValues: {
-        ':userId': userId,
-        ':recipeIdPrefix': `${recipeId}#`,
-      },
-    });
+    const ingredientsResult = await dynamoDbClient.send(
+      new QueryCommand({
+        TableName: TABLE_NAMES.RECIPE_INGREDIENTS,
+        KeyConditionExpression: 'userId = :userId AND begins_with(SK, :recipeIdPrefix)',
+        ExpressionAttributeValues: {
+          ':userId': userId,
+          ':recipeIdPrefix': `${recipeId}#`,
+        },
+      })
+    );
 
-    const ingredientsResult = await dynamoDbClient.send(queryIngredientsCommand);
-    const ingredients = (ingredientsResult.Items || []) as RecipeIngredient[];
+    const ingredientItems = (ingredientsResult.Items || []) as RecipeIngredient[];
 
-    // Combine recipe and ingredients
     const response: RecipeDetailResponse = {
-      ...recipe,
-      ingredients,
+      recipeId: recipe.recipeId,
+      name: recipe.name,
+      sourceBook: recipe.sourceBook ?? null,
+      sourcePage: recipe.sourcePage ?? null,
+      baseServings: recipe.baseServings,
+      memo: recipe.memo ?? null,
+      createdAt: recipe.createdAt,
+      updatedAt: recipe.updatedAt,
+      ingredients: ingredientItems.map((ingredient) => ({
+        ingredientName: ingredient.ingredientName,
+        quantity: ingredient.quantity,
+        unit: ingredient.unit,
+        note: ingredient.note ?? null,
+      })),
     };
 
     return {
@@ -107,17 +116,16 @@ export const getRecipeById = async (
       body: JSON.stringify(response),
     };
   } catch (error) {
-    console.error('Error fetching recipe:', error);
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'An unexpected error occurred while fetching the recipe',
-          details: null,
-        },
-      }),
-    };
+    const errorName =
+      typeof error === 'object' && error !== null && 'name' in error
+        ? String(error.name)
+        : 'UnknownError';
+
+    console.error('Error fetching recipe by ID:', {
+      errorName,
+      error,
+    });
+
+    return createErrorResponse(500, 'INTERNAL_SERVER_ERROR', 'Failed to fetch recipe');
   }
 };
