@@ -25,7 +25,7 @@ function RecipeListPage() {
       <h1>レシピ一覧</h1>
       <button onClick={() => refetch()}>再読み込み</button>
       <ul>
-        {recipes?.map((recipe) => (
+        {recipes?.map(recipe => (
           <li key={recipe.recipeId}>{recipe.name}</li>
         ))}
       </ul>
@@ -52,7 +52,11 @@ import { useParams } from 'react-router-dom';
 function RecipeDetailPage() {
   const { recipeId } = useParams<{ recipeId: string }>();
   const token = useAuthToken(); // 認証トークンを取得（仮）
-  const { data: recipe, isLoading, error } = useRecipe({
+  const {
+    data: recipe,
+    isLoading,
+    error,
+  } = useRecipe({
     recipeId: recipeId || '',
     token,
   });
