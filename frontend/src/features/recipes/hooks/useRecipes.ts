@@ -7,6 +7,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getRecipes } from '../api/recipes';
 import type { Recipe } from '../types';
+import { getUserCacheKey, recipesQueryKeys } from './queryKeys';
 
 /**
  * レシピ一覧を取得するフックのオプション
@@ -17,6 +18,11 @@ export interface UseRecipesOptions {
    * 認証が必要なため、必須パラメータです
    */
   token: string | null;
+  /**
+   * クエリキー分離用のユーザー識別子
+   * 未指定時は token から自動導出します
+   */
+  userCacheKey?: string | null;
 
   /**
    * React Query の enabled オプション
@@ -50,9 +56,11 @@ export interface UseRecipesOptions {
  * }
  * ```
  */
-export function useRecipes({ token, enabled = true }: UseRecipesOptions) {
+export function useRecipes({ token, userCacheKey, enabled = true }: UseRecipesOptions) {
+  const cacheUserKey = getUserCacheKey(token, userCacheKey);
+
   return useQuery<Recipe[], Error>({
-    queryKey: ['recipes'],
+    queryKey: recipesQueryKeys.list(cacheUserKey),
     queryFn: async () => {
       if (!token) {
         throw new Error('認証トークンが必要です');

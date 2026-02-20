@@ -37,6 +37,7 @@ function RecipeListPage() {
 **オプション:**
 
 - `token`: 認証トークン（必須）
+- `userCacheKey`: クエリキー分離用のユーザー識別子（任意、未指定時は token から自動導出）
 - `enabled`: クエリの有効化フラグ（デフォルト: `true`）
 
 ### `useRecipe`
@@ -92,6 +93,7 @@ function RecipeDetailPage() {
 
 - `recipeId`: レシピID（必須）
 - `token`: 認証トークン（必須）
+- `userCacheKey`: クエリキー分離用のユーザー識別子（任意、未指定時は token から自動導出）
 - `enabled`: クエリの有効化フラグ（デフォルト: `true`）
 
 ## React Query の機能
@@ -105,8 +107,8 @@ function RecipeDetailPage() {
 
 ## キャッシュキー
 
-- `useRecipes`: `['recipes']`
-- `useRecipe`: `['recipes', recipeId]`
+- `useRecipes`: `['recipes', userKey]`
+- `useRecipe`: `['recipes', userKey, recipeId]`
 
 これらのキーは、mutation（作成・更新・削除）後のキャッシュ無効化に使用できます。
 
