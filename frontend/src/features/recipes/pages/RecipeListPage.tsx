@@ -3,7 +3,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
-import { useRecipes } from '../hooks/useRecipes';
+import { useRecipes } from '../hooks';
 import { RecipeList } from '../components/RecipeList';
 
 /**
@@ -15,10 +15,10 @@ export function RecipeListPage() {
   const navigate = useNavigate();
 
   // TODO: 認証実装後は実際のトークンを取得する
-  // 現在は開発用として null を渡す（APIが未実装のため）
+  // 現在は開発用として null を渡す
   const token = null;
 
-  const { data: recipes, isLoading, error } = useRecipes(token);
+  const { data: recipes, isLoading, error } = useRecipes({ token });
 
   // 認証が未実装の場合の表示
   const isAuthNotImplemented = !token;

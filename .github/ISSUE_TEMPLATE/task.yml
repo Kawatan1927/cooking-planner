@@ -1,0 +1,53 @@
+name: "Task: リファクタ/改善"
+description: "内部品質・負債返済・小改善"
+title: "[Task] "
+labels: ["type:task"]
+body:
+  - type: input
+    id: goal
+    attributes:
+      label: ゴール（何が良くなる？）
+      placeholder: "例：Controllerの肥大化を解消しServiceに移す"
+    validations:
+      required: true
+
+  - type: textarea
+    id: target
+    attributes:
+      label: 対象範囲（ファイル/モジュール/機能）
+      placeholder: "例：CustomerController, CustomerService"
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goal
+    attributes:
+      label: やらないこと（スコープ外）
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件
+      value: |
+        - [ ] 既存の振る舞いを変えない（意図した変更は明記）
+        - [ ] テストがすべて通る
+        - [ ] 差分が読みやすい（無関係な整形を避ける）
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: 制約（依存追加/破壊的変更など）
+    validations:
+      required: true
+
+  - type: dropdown
+    id: agent_ok
+    attributes:
+      label: コーディングエージェント割当
+      options: ["OK（割り当ててよい）", "NG（人間が実装）", "要相談"]
+    validations:
+      required: true

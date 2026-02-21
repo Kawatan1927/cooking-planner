@@ -1,0 +1,51 @@
+name: Lambda CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'infra/lambda/**'
+      - '.github/workflows/lambda-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'infra/lambda/**'
+      - '.github/workflows/lambda-ci.yml'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - name: Checkout リポジトリ
+      uses: actions/checkout@v4
+
+    - name: Node.js ${{ matrix.node-version }} のセットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: infra/lambda/package-lock.json
+
+    - name: 依存関係のインストール
+      working-directory: ./infra/lambda
+      run: npm ci
+
+    - name: TypeScript 型チェック
+      working-directory: ./infra/lambda
+      run: npx tsc --noEmit
+
+    - name: ビルドの実行
+      working-directory: ./infra/lambda
+      run: npm run build
+
+    - name: ビルド成果物のアップロード
+      uses: actions/upload-artifact@v4
+      with:
+        name: lambda-dist
+        path: infra/lambda/dist
+        retention-days: 7
