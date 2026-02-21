@@ -28,6 +28,11 @@ export interface RecipeSummary {
 }
 
 /**
+ * 互換エイリアス: 既存コードで使われる一覧型名
+ */
+export type Recipe = RecipeSummary;
+
+/**
  * レシピの詳細情報（材料を含む）
  */
 export interface RecipeDetail extends RecipeSummary {
@@ -46,6 +51,12 @@ export interface RecipeInput {
   memo?: string | null;
   ingredients: RecipeIngredient[];
 }
+
+/**
+ * 互換エイリアス: 既存コードで使われるリクエスト型名
+ */
+export type CreateRecipeRequest = RecipeInput;
+export type UpdateRecipeRequest = RecipeInput;
 
 /**
  * レシピ作成時のレスポンス
