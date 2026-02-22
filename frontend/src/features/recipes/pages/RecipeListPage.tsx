@@ -3,6 +3,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { useAuthToken } from '../../auth/hooks/useAuthToken';
 import { useRecipes } from '../hooks';
 import { RecipeList } from '../components/RecipeList';
 
@@ -13,15 +14,11 @@ import { RecipeList } from '../components/RecipeList';
  */
 export function RecipeListPage() {
   const navigate = useNavigate();
-
-  // TODO: 認証実装後は実際のトークンを取得する
-  // 現在は開発用として null を渡す
-  const token = null;
+  const token = useAuthToken();
 
   const { data: recipes, isLoading, error } = useRecipes({ token });
 
-  // 認証が未実装の場合の表示
-  const isAuthNotImplemented = !token;
+  const isUnauthenticated = !token;
 
   const handleRecipeClick = (recipeId: string) => {
     navigate(`/recipes/${recipeId}`);
@@ -65,7 +62,7 @@ export function RecipeListPage() {
         </div>
       )}
 
-      {isAuthNotImplemented && !isLoading && (
+      {isUnauthenticated && !isLoading && (
         <div
           style={{
             padding: '2rem',
@@ -77,7 +74,7 @@ export function RecipeListPage() {
           }}
         >
           <p style={{ margin: 0 }}>
-            ※ 現在、認証機能は未実装です。バックエンドAPI実装後にレシピ一覧が表示されます。
+            レシピ一覧の表示にはログインが必要です。認証トークンを設定して再読み込みしてください。
           </p>
         </div>
       )}
