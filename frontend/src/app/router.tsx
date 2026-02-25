@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { Placeholder } from '../components/Placeholder';
+import { RecipeListPage } from '../features/recipes';
 
 export const router = createBrowserRouter([
   {
@@ -12,7 +13,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/recipes',
-    element: <Placeholder title="レシピ一覧" />,
+    element: <RecipeListPage />,
   },
   {
     path: '/recipes/new',

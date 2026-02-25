@@ -22,6 +22,9 @@ export type { UseRecipesOptions, UseRecipeOptions } from './hooks';
 // API (必要に応じて)
 export { getRecipes, getRecipe, createRecipe, updateRecipe } from './api';
 
-// Components (サンプル)
+// Components
 export { RecipeList } from './components';
 export { RecipeDetail as RecipeDetailComponent } from './components';
+
+// Pages
+export { RecipeListPage } from './pages/RecipeListPage';
