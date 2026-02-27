@@ -100,26 +100,14 @@ export class CookingPlannerStack extends cdk.Stack {
     });
 
     // ============================================
-    // Lambda Function (Placeholder)
+    // Lambda Function
     // ============================================
 
     const apiLambda = new lambda.Function(this, 'ApiLambda', {
       functionName: `CookingPlanner-Api-${stage}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return {
-            statusCode: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
-            },
-            body: JSON.stringify({ message: 'API Lambda placeholder - implementation pending' }),
-          };
-        };
-      `),
+      code: lambda.Code.fromAsset('lambda/dist'),
       environment: {
         RECIPES_TABLE_NAME: recipesTable.tableName,
         RECIPE_INGREDIENTS_TABLE_NAME: recipeIngredientsTable.tableName,

@@ -51,43 +51,40 @@ Lambda サービスロールに自動的に CloudWatch Logs への書き込み�
 
 ## 現在の実装状態
 
-### プレースホルダー実装
+### Lambda 実装の統合
 
-初期状態では、以下のプレースホルダーコードが設定されています：
-
-```javascript
-exports.handler = async (event) => {
-  console.log('Event:', JSON.stringify(event, null, 2));
-  return {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-    body: JSON.stringify({ 
-      message: 'API Lambda placeholder - implementation pending' 
-    }),
-  };
-};
-```
-
-### 今後の実装予定
-
-実際の API 実装は `lambda/` ディレクトリに以下の構成で作成予定：
+Lambda 関数の実装は `infra/lambda/` ディレクトリに配置されています：
 
 ```
-lambda/
-├── handler.ts               # メインエントリーポイント
-├── recipes/                 # レシピ関連の処理
-│   ├── list.ts
-│   ├── get.ts
-│   ├── create.ts
-│   ├── update.ts
-│   └── delete.ts
-├── menus/                   # 献立関連の処理
-│   └── ...
-├── shoppingList/            # 買い物リスト関連の処理
-│   └── ...
+infra/lambda/
+├── src/
+│   ├── index.ts              # メインエントリーポイント
+│   ├── recipes/              # レシピ関連の処理
+│   │   ├── getRecipes.ts
+│   │   ├── getRecipeById.ts
+│   │   ├── createRecipe.ts
+│   │   └── index.ts
+│   └── shared/               # 共通処理
+│       ├── dynamodb.ts       # DynamoDB クライアント
+│       └── types.ts          # 型定義
+├── dist/                     # ビルド成果物（CDK デプロイ時に使用）
+├── package.json
+└── tsconfig.json
+```
+
+CDK スタックでは、ビルド済みの Lambda コードを `lambda/dist` ディレクトリから読み込んでデプロイします。
+
+### Lambda のビルド
+
+Lambda コードのビルドは以下のコマンドで実行：
+
+```bash
+cd infra/lambda
+npm ci
+npm run build
+```
+
+ビルドにより `dist/` ディレクトリに JavaScript ファイルが生成され、CDK デプロイ時にこれらのファイルが Lambda にアップロードされます。
 └── shared/                  # 共通処理
     ├── dynamodb.ts          # DynamoDB クライアント
     ├── auth.ts              # 認証処理
@@ -103,19 +100,7 @@ const apiLambda = new lambda.Function(this, 'ApiLambda', {
   functionName: `CookingPlanner-Api-${stage}`,
   runtime: lambda.Runtime.NODEJS_20_X,
   handler: 'index.handler',
-  code: lambda.Code.fromInline(`
-    exports.handler = async (event) => {
-      console.log('Event:', JSON.stringify(event, null, 2));
-      return {
-        statusCode: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: JSON.stringify({ message: 'API Lambda placeholder - implementation pending' }),
-      };
-    };
-  `),
+  code: lambda.Code.fromAsset('lambda/dist'),
   environment: {
     RECIPES_TABLE_NAME: recipesTable.tableName,
     RECIPE_INGREDIENTS_TABLE_NAME: recipeIngredientsTable.tableName,
@@ -125,6 +110,8 @@ const apiLambda = new lambda.Function(this, 'ApiLambda', {
   timeout: cdk.Duration.seconds(30),
 });
 ```
+
+Lambda コードは `lambda/dist` ディレクトリからアセットとして読み込まれます。デプロイ前に Lambda コードをビルドする必要があります。
 
 ### 権限の付与
 

@@ -1,0 +1,96 @@
+name: CDK CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'infra/**'
+      - '!infra/lambda/**'
+      - '.github/workflows/cdk-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'infra/**'
+      - '!infra/lambda/**'
+      - '.github/workflows/cdk-ci.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - name: Checkout リポジトリ
+      uses: actions/checkout@v4
+
+    - name: Node.js ${{ matrix.node-version }} のセットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: infra/package-lock.json
+
+    - name: 依存関係のインストール
+      working-directory: ./infra
+      run: npm ci
+
+    - name: TypeScript ビルド
+      working-directory: ./infra
+      run: npm run build
+
+    - name: テストの実行
+      working-directory: ./infra
+      run: npm test
+
+    - name: CDK スタック合成の検証
+      working-directory: ./infra
+      run: npx cdk synth
+
+    - name: CDK diff の実行 (main ブランチのみ)
+      if: github.ref == 'refs/heads/main'
+      working-directory: ./infra
+      run: npx cdk diff || true
+      env:
+        AWS_REGION: ap-northeast-1
+
+    - name: 合成済み CloudFormation テンプレートのアップロード
+      uses: actions/upload-artifact@v4
+      with:
+        name: cdk-synthesized-template
+        path: infra/cdk.out
+        retention-days: 7
+
+  # デプロイジョブ（必要に応じてコメント解除）
+  # deploy:
+  #   needs: validate
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   
+  #   steps:
+  #   - name: Checkout リポジトリ
+  #     uses: actions/checkout@v4
+  #   
+  #   - name: Node.js のセットアップ
+  #     uses: actions/setup-node@v4
+  #     with:
+  #       node-version: 20.x
+  #       cache: 'npm'
+  #       cache-dependency-path: infra/package-lock.json
+  #   
+  #   - name: 依存関係のインストール
+  #     working-directory: ./infra
+  #     run: npm ci
+  #   
+  #   - name: AWS 認証情報の設定
+  #     uses: aws-actions/configure-aws-credentials@v4
+  #     with:
+  #       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #       aws-region: ap-northeast-1
+  #   
+  #   - name: CDK デプロイ
+  #     working-directory: ./infra
+  #     run: npx cdk deploy --require-approval never

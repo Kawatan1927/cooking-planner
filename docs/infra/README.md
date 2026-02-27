@@ -176,25 +176,63 @@ infra/
 ### 初回デプロイ
 
 ```bash
-# 1. CDK のブートストラップ（アカウント・リージョンごとに1回のみ）
-cd infra
+# 1. Lambda コードのビルド
+cd infra/lambda
+npm ci
+npm run build
+cd ..
+
+# 2. CDK のブートストラップ（アカウント・リージョンごとに1回のみ）
 npx cdk bootstrap
 
-# 2. スタックのデプロイ
+# 3. スタックのデプロイ
 npx cdk deploy
 
-# 3. Outputs をメモして、フロントエンド環境変数に設定
+# 4. Outputs をメモして、フロントエンド環境変数に設定
 ```
 
 ### 更新デプロイ
 
 ```bash
-# 1. 変更内容の確認
+# 1. Lambda コードの再ビルド（Lambda コードを変更した場合）
+cd lambda
+npm run build
+cd ..
+
+# 2. 変更内容の確認
 npx cdk diff
 
-# 2. デプロイ
+# 3. デプロイ
 npx cdk deploy
 ```
+
+## CI/CD - GitHub Actions
+
+### 自動化されたワークフロー
+
+`.github/workflows/cdk-ci.yml` により、以下が自動実行されます：
+
+- **トリガー条件**:
+  - `main` または `develop` ブランチへの push
+  - `infra/**` ディレクトリ（`lambda` を除く）の変更を含む PR
+  
+- **実行内容**:
+  1. TypeScript ビルド
+  2. ユニットテストの実行
+  3. CDK スタック合成（`cdk synth`）の検証
+  4. 合成済み CloudFormation テンプレートのアップロード
+
+### デプロイの自動化（オプション）
+
+自動デプロイを有効にする場合：
+
+1. GitHub リポジトリの Secrets に AWS 認証情報を追加：
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
+
+2. `.github/workflows/cdk-ci.yml` のデプロイジョブのコメントを解除
+
+**注意**: 本番環境への自動デプロイは慎重に検討してください。手動承認プロセスを挟むことを推奨します。
 
 ## セキュリティ考慮事項
 
