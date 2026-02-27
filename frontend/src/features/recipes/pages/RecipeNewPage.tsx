@@ -11,7 +11,20 @@ import { useAuthToken } from '../../auth/hooks/useAuthToken';
 import { useCreateRecipe } from '../hooks';
 import type { RecipeIngredient } from '../types';
 
-const UNIT_OPTIONS = ['g', 'kg', 'ml', 'L', '個', '本', '枚', '切れ', '大さじ', '小さじ', '少々', '適量'];
+const UNIT_OPTIONS = [
+  'g',
+  'kg',
+  'ml',
+  'L',
+  '個',
+  '本',
+  '枚',
+  '切れ',
+  '大さじ',
+  '小さじ',
+  '少々',
+  '適量',
+];
 
 interface IngredientRow extends RecipeIngredient {
   id: number;
@@ -43,7 +56,11 @@ export function RecipeNewPage() {
   // 材料リスト
   const [ingredients, setIngredients] = useState<IngredientRow[]>([newIngredientRow()]);
 
-  const { mutate: createRecipe, isPending, error } = useCreateRecipe({
+  const {
+    mutate: createRecipe,
+    isPending,
+    error,
+  } = useCreateRecipe({
     token,
     onSuccess: ({ recipeId }) => {
       navigate(`/recipes/${recipeId}`);
@@ -120,9 +137,7 @@ export function RecipeNewPage() {
             color: '#856404',
           }}
         >
-          <p style={{ margin: 0 }}>
-            レシピを登録するにはログインが必要です。
-          </p>
+          <p style={{ margin: 0 }}>レシピを登録するにはログインが必要です。</p>
         </div>
       )}
 

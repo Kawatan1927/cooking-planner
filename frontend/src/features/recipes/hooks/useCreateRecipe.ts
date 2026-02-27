@@ -60,7 +60,7 @@ export function useCreateRecipe({ token, userCacheKey, onSuccess }: UseCreateRec
       }
       return createRecipe(data, token);
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       // レシピ一覧のキャッシュを無効化
       queryClient.invalidateQueries({ queryKey: recipesQueryKeys.list(cacheUserKey) });
       onSuccess?.(data);
