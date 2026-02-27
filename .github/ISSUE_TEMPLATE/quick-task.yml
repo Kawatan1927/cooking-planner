@@ -1,0 +1,74 @@
+name: "Quick Task: ちょい修正（人間用）"
+description: "小さな変更・雑務・微調整。エージェントに投げずにサクッと片付ける用"
+title: "[Quick] "
+labels: ["type:quick-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 使いどころ
+        - 5〜30分くらいで終わる小作業
+        - 仕様変更や設計検討が不要
+        - エージェントに投げるほどではない（ここ重要）
+
+  - type: input
+    id: what
+    attributes:
+      label: 何をする？（1行）
+      placeholder: "例：READMEのセットアップ手順を最新化する"
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: 具体的に（箇条書きでOK）
+      placeholder: |
+        - ここを直す：
+        - こうしたい：
+        - 参考リンク：
+    validations:
+      required: false
+
+  - type: textarea
+    id: done
+    attributes:
+      label: 完了条件（これだけ満たせばOK）
+      placeholder: |
+        - [ ] 〇〇が更新されている
+        - [ ] 動作に影響がない
+    validations:
+      required: true
+
+  - type: dropdown
+    id: risk
+    attributes:
+      label: 影響度
+      options:
+        - "低（UI/ドキュメント/ログ/コメント等）"
+        - "中（小さな挙動変更、影響範囲限定）"
+        - "高（このテンプレは使わないで別テンプレへ）"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: agent
+    attributes:
+      label: コーディングエージェント割当
+      options:
+        - "NG（人間がやる）"
+        - "要相談（迷った）"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: チェック（最低限）
+      options:
+        - label: "変更は小さく、関係ない整形は混ぜない"
+          required: true
+        - label: "必要ならスクショ/ログ/リンクを貼った"
+          required: false
+        - label: "PRを作る場合、タイトル/本文は日本語で書く"
+          required: true

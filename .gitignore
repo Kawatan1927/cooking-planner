@@ -9,6 +9,8 @@ yarn-error.log*
 .pnp.js
 
 .vscode/*
+.idea
+.DS_Store
 
 # Frontend build artifacts
 frontend/dist
@@ -27,3 +29,7 @@ infra/lib/*.js
 infra/lib/*.d.ts
 infra/test/*.js
 infra/test/*.d.ts
+
+# Lambda build artifacts
+infra/lambda/dist
+infra/lambda/node_modules
