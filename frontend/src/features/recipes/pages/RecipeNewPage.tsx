@@ -11,6 +11,15 @@ import { useAuthToken } from '../../auth/hooks/useAuthToken';
 import { useCreateRecipe } from '../hooks';
 import type { RecipeIngredient } from '../types';
 
+// 材料行の内部状態（quantity は入力途中の文字列として保持し、submit 時に数値へ変換）
+interface IngredientRow {
+  id: number;
+  ingredientName: string;
+  quantityStr: string;
+  unit: string;
+  note: string;
+}
+
 const UNIT_OPTIONS = [
   'g',
   'kg',
@@ -26,15 +35,11 @@ const UNIT_OPTIONS = [
   '適量',
 ];
 
-interface IngredientRow extends RecipeIngredient {
-  id: number;
-}
-
 let ingredientIdCounter = 0;
 const newIngredientRow = (): IngredientRow => ({
   id: ++ingredientIdCounter,
   ingredientName: '',
-  quantity: 0,
+  quantityStr: '',
   unit: 'g',
   note: '',
 });
@@ -55,6 +60,8 @@ export function RecipeNewPage() {
 
   // 材料リスト
   const [ingredients, setIngredients] = useState<IngredientRow[]>([newIngredientRow()]);
+  // 材料バリデーションエラー
+  const [ingredientError, setIngredientError] = useState('');
 
   const {
     mutate: createRecipe,
@@ -83,9 +90,6 @@ export function RecipeNewPage() {
     setIngredients(prev =>
       prev.map(row => {
         if (row.id !== id) return row;
-        if (field === 'quantity') {
-          return { ...row, quantity: parseFloat(value) || 0 };
-        }
         return { ...row, [field]: value };
       })
     );
@@ -93,18 +97,30 @@ export function RecipeNewPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIngredientError('');
 
     const parsedPage = sourcePage !== '' ? parseInt(sourcePage, 10) : undefined;
     const parsedServings = parseInt(baseServings, 10) || 1;
 
-    const requestIngredients: RecipeIngredient[] = ingredients
-      .filter(row => row.ingredientName.trim() !== '')
-      .map(({ ingredientName, quantity, unit, note }) => ({
+    // 食材名ありの行に quantity > 0 を必須とするバリデーション
+    const namedRows = ingredients.filter(row => row.ingredientName.trim() !== '');
+    const invalidRows = namedRows.filter(row => {
+      const q = parseFloat(row.quantityStr);
+      return isNaN(q) || q <= 0;
+    });
+    if (invalidRows.length > 0) {
+      setIngredientError('食材名が入力されている行には、0より大きい分量を入力してください。');
+      return;
+    }
+
+    const requestIngredients: RecipeIngredient[] = namedRows.map(
+      ({ ingredientName, quantityStr, unit, note }) => ({
         ingredientName: ingredientName.trim(),
-        quantity,
+        quantity: parseFloat(quantityStr),
         unit,
-        note: note?.trim() || null,
-      }));
+        note: note.trim() || null,
+      })
+    );
 
     createRecipe({
       name: name.trim(),
@@ -171,10 +187,14 @@ export function RecipeNewPage() {
           <h2 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem' }}>基本情報</h2>
 
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+            <label
+              htmlFor="recipe-name"
+              style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}
+            >
               レシピ名 <span style={{ color: '#dc3545' }}>*</span>
             </label>
             <input
+              id="recipe-name"
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
@@ -186,10 +206,14 @@ export function RecipeNewPage() {
 
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
             <div style={{ flex: 2 }}>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+              <label
+                htmlFor="recipe-source-book"
+                style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}
+              >
                 出典本のタイトル
               </label>
               <input
+                id="recipe-source-book"
                 type="text"
                 value={sourceBook}
                 onChange={e => setSourceBook(e.target.value)}
@@ -198,10 +222,14 @@ export function RecipeNewPage() {
               />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+              <label
+                htmlFor="recipe-source-page"
+                style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}
+              >
                 ページ番号
               </label>
               <input
+                id="recipe-source-page"
                 type="number"
                 value={sourcePage}
                 onChange={e => setSourcePage(e.target.value)}
@@ -213,10 +241,14 @@ export function RecipeNewPage() {
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+            <label
+              htmlFor="recipe-base-servings"
+              style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}
+            >
               基本人数
             </label>
             <input
+              id="recipe-base-servings"
               type="number"
               value={baseServings}
               onChange={e => setBaseServings(e.target.value)}
@@ -227,10 +259,14 @@ export function RecipeNewPage() {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+            <label
+              htmlFor="recipe-memo"
+              style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}
+            >
               メモ
             </label>
             <textarea
+              id="recipe-memo"
               value={memo}
               onChange={e => setMemo(e.target.value)}
               placeholder="例: 少し甘めなので砂糖控えめが好み"
@@ -250,6 +286,22 @@ export function RecipeNewPage() {
           }}
         >
           <h2 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem' }}>材料</h2>
+
+          {ingredientError && (
+            <div
+              style={{
+                padding: '0.75rem',
+                marginBottom: '1rem',
+                backgroundColor: '#f8d7da',
+                border: '1px solid #f5c6cb',
+                borderRadius: '4px',
+                color: '#721c24',
+                fontSize: '0.875rem',
+              }}
+            >
+              {ingredientError}
+            </div>
+          )}
 
           {/* ヘッダー行 */}
           <div
@@ -286,20 +338,23 @@ export function RecipeNewPage() {
                 value={row.ingredientName}
                 onChange={e => handleIngredientChange(row.id, 'ingredientName', e.target.value)}
                 placeholder="例: 鶏もも肉"
+                aria-label="食材名"
                 style={inputStyle}
               />
               <input
                 type="number"
-                value={row.quantity === 0 ? '' : row.quantity}
-                onChange={e => handleIngredientChange(row.id, 'quantity', e.target.value)}
+                value={row.quantityStr}
+                onChange={e => handleIngredientChange(row.id, 'quantityStr', e.target.value)}
                 placeholder="300"
-                min={0}
+                min={0.01}
                 step="any"
+                aria-label="分量"
                 style={inputStyle}
               />
               <select
                 value={row.unit}
                 onChange={e => handleIngredientChange(row.id, 'unit', e.target.value)}
+                aria-label="単位"
                 style={inputStyle}
               >
                 {UNIT_OPTIONS.map(u => (
@@ -313,6 +368,7 @@ export function RecipeNewPage() {
                 value={row.note ?? ''}
                 onChange={e => handleIngredientChange(row.id, 'note', e.target.value)}
                 placeholder="例: 薄切り（任意）"
+                aria-label="備考"
                 style={inputStyle}
               />
               <button
