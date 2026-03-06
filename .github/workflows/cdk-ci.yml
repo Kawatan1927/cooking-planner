@@ -33,11 +33,19 @@ jobs:
         cache: 'npm'
         cache-dependency-path: infra/package-lock.json
 
-    - name: 依存関係のインストール
+    - name: CDK 依存関係のインストール
       working-directory: ./infra
       run: npm ci
 
-    - name: TypeScript ビルド
+    - name: Lambda 依存関係のインストール
+      working-directory: ./infra/lambda
+      run: npm ci
+
+    - name: Lambda ビルド
+      working-directory: ./infra/lambda
+      run: npm run build
+
+    - name: CDK TypeScript ビルド
       working-directory: ./infra
       run: npm run build
 

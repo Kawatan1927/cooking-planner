@@ -150,6 +150,19 @@ export class CookingPlannerStack extends cdk.Stack {
     );
 
     // Add routes - using proxy integration for all paths
+    // Root path route (required because {proxy+} doesn't match empty path)
+    httpApi.addRoutes({
+      path: '/',
+      methods: [
+        apigatewayv2.HttpMethod.GET,
+        apigatewayv2.HttpMethod.POST,
+        apigatewayv2.HttpMethod.PUT,
+        apigatewayv2.HttpMethod.DELETE,
+      ],
+      integration: lambdaIntegration,
+    });
+
+    // Greedy proxy route for all other paths
     httpApi.addRoutes({
       path: '/{proxy+}',
       methods: [
