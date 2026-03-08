@@ -5,7 +5,7 @@
  * 「保存」でPOST /recipesを呼び出し、成功時にレシピ詳細へ遷移します。
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthToken } from '../../auth/hooks/useAuthToken';
 import { useCreateRecipe } from '../hooks';
@@ -35,21 +35,13 @@ const UNIT_OPTIONS = [
   '適量',
 ];
 
-let ingredientIdCounter = 0;
-const newIngredientRow = (): IngredientRow => ({
-  id: ++ingredientIdCounter,
-  ingredientName: '',
-  quantityStr: '',
-  unit: 'g',
-  note: '',
-});
-
 /**
  * レシピ登録ページ
  */
 export function RecipeNewPage() {
   const navigate = useNavigate();
   const token = useAuthToken();
+  const ingredientIdCounterRef = useRef(0);
 
   // 基本情報
   const [name, setName] = useState('');
@@ -57,9 +49,17 @@ export function RecipeNewPage() {
   const [sourcePage, setSourcePage] = useState('');
   const [baseServings, setBaseServings] = useState('2');
   const [memo, setMemo] = useState('');
+  const [baseServingsError, setBaseServingsError] = useState('');
 
   // 材料リスト
-  const [ingredients, setIngredients] = useState<IngredientRow[]>([newIngredientRow()]);
+  const newIngredientRow = (): IngredientRow => ({
+    id: ++ingredientIdCounterRef.current,
+    ingredientName: '',
+    quantityStr: '',
+    unit: 'g',
+    note: '',
+  });
+  const [ingredients, setIngredients] = useState<IngredientRow[]>(() => [newIngredientRow()]);
   // 材料バリデーションエラー
   const [ingredientError, setIngredientError] = useState('');
 
@@ -98,9 +98,15 @@ export function RecipeNewPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIngredientError('');
+    setBaseServingsError('');
 
     const parsedPage = sourcePage !== '' ? parseInt(sourcePage, 10) : undefined;
-    const parsedServings = parseInt(baseServings, 10) || 1;
+    const parsedServings = parseInt(baseServings, 10);
+
+    if (!Number.isInteger(parsedServings) || parsedServings <= 0) {
+      setBaseServingsError('基本人数には 1 以上の整数を入力してください。');
+      return;
+    }
 
     // 食材名ありの行に quantity > 0 を必須とするバリデーション
     const namedRows = ingredients.filter(row => row.ingredientName.trim() !== '');
@@ -251,11 +257,29 @@ export function RecipeNewPage() {
               id="recipe-base-servings"
               type="number"
               value={baseServings}
-              onChange={e => setBaseServings(e.target.value)}
+              onChange={e => {
+                setBaseServings(e.target.value);
+                if (baseServingsError) {
+                  setBaseServingsError('');
+                }
+              }}
               min={1}
+              required
+              aria-invalid={baseServingsError ? 'true' : 'false'}
               style={{ ...inputStyle, width: '120px' }}
             />
             <span style={{ marginLeft: '0.5rem', color: '#666' }}>人分</span>
+            {baseServingsError && (
+              <div
+                style={{
+                  marginTop: '0.5rem',
+                  color: '#721c24',
+                  fontSize: '0.875rem',
+                }}
+              >
+                {baseServingsError}
+              </div>
+            )}
           </div>
 
           <div>
