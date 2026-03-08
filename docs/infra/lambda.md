@@ -85,11 +85,6 @@ npm run build
 ```
 
 ビルドにより `dist/` ディレクトリに JavaScript ファイルが生成され、CDK デプロイ時にこれらのファイルが Lambda にアップロードされます。
-└── shared/                  # 共通処理
-    ├── dynamodb.ts          # DynamoDB クライアント
-    ├── auth.ts              # 認証処理
-    └── types.ts             # 型定義
-```
 
 ## CDK コード参照
 
@@ -166,7 +161,7 @@ Lambda 関数の以下のメトリクスが CloudWatch で自動的に収集さ�
 ### 認証
 
 API Gateway 経由でのみアクセス可能。
-Cognito JWT トークンによる認証は API Gateway レベルで実装予定。
+業務エンドポイントには Cognito JWT Authorizer を適用し、Lambda には認証済みリクエストのみ到達する構成です。
 
 ### 環境変数の暗号化
 

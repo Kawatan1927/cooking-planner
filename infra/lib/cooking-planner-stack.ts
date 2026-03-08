@@ -1,8 +1,9 @@
-import * as cdk from 'aws-cdk-lib/core';
+import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as apigatewayv2 from '@aws-cdk/aws-apigatewayv2-alpha';
-import * as apigatewayv2Integrations from '@aws-cdk/aws-apigatewayv2-integrations-alpha';
+import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as apigatewayv2Authorizers from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
+import * as apigatewayv2Integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
@@ -92,7 +93,6 @@ export class CookingPlannerStack extends cdk.Stack {
       oAuth: {
         flows: {
           authorizationCodeGrant: true,
-          implicitCodeGrant: true,
         },
         scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
       },
@@ -121,58 +121,6 @@ export class CookingPlannerStack extends cdk.Stack {
     recipesTable.grantReadWriteData(apiLambda);
     recipeIngredientsTable.grantReadWriteData(apiLambda);
     menusTable.grantReadWriteData(apiLambda);
-
-    // ============================================
-    // API Gateway HTTP API
-    // ============================================
-
-    const httpApi = new apigatewayv2.HttpApi(this, 'HttpApi', {
-      apiName: `CookingPlanner-Api-${stage}`,
-      description: 'Cooking Planner HTTP API',
-      corsPreflight: {
-        allowOrigins: ['*'], // TODO: Restrict to CloudFront domain in production
-        allowMethods: [
-          apigatewayv2.CorsHttpMethod.GET,
-          apigatewayv2.CorsHttpMethod.POST,
-          apigatewayv2.CorsHttpMethod.PUT,
-          apigatewayv2.CorsHttpMethod.DELETE,
-          apigatewayv2.CorsHttpMethod.OPTIONS,
-        ],
-        allowHeaders: ['Content-Type', 'Authorization'],
-        maxAge: cdk.Duration.days(1),
-      },
-    });
-
-    // Add Lambda integration
-    const lambdaIntegration = new apigatewayv2Integrations.HttpLambdaIntegration(
-      'LambdaIntegration',
-      apiLambda
-    );
-
-    // Add routes - using proxy integration for all paths
-    // Root path route (required because {proxy+} doesn't match empty path)
-    httpApi.addRoutes({
-      path: '/',
-      methods: [
-        apigatewayv2.HttpMethod.GET,
-        apigatewayv2.HttpMethod.POST,
-        apigatewayv2.HttpMethod.PUT,
-        apigatewayv2.HttpMethod.DELETE,
-      ],
-      integration: lambdaIntegration,
-    });
-
-    // Greedy proxy route for all other paths
-    httpApi.addRoutes({
-      path: '/{proxy+}',
-      methods: [
-        apigatewayv2.HttpMethod.GET,
-        apigatewayv2.HttpMethod.POST,
-        apigatewayv2.HttpMethod.PUT,
-        apigatewayv2.HttpMethod.DELETE,
-      ],
-      integration: lambdaIntegration,
-    });
 
     // ============================================
     // S3 Bucket for Frontend Hosting
@@ -222,6 +170,70 @@ export class CookingPlannerStack extends cdk.Stack {
           ttl: cdk.Duration.minutes(5),
         },
       ],
+    });
+
+    // ============================================
+    // API Gateway HTTP API
+    // ============================================
+
+    const allowedOrigins =
+      stage === 'prod' ? [`https://${distribution.distributionDomainName}`] : ['*'];
+
+    const httpApi = new apigatewayv2.HttpApi(this, 'HttpApi', {
+      apiName: `CookingPlanner-Api-${stage}`,
+      description: 'Cooking Planner HTTP API',
+      corsPreflight: {
+        allowOrigins: allowedOrigins,
+        allowMethods: [
+          apigatewayv2.CorsHttpMethod.GET,
+          apigatewayv2.CorsHttpMethod.POST,
+          apigatewayv2.CorsHttpMethod.PUT,
+          apigatewayv2.CorsHttpMethod.DELETE,
+          apigatewayv2.CorsHttpMethod.OPTIONS,
+        ],
+        allowHeaders: ['Content-Type', 'Authorization'],
+        maxAge: cdk.Duration.days(1),
+      },
+    });
+
+    const lambdaIntegration = new apigatewayv2Integrations.HttpLambdaIntegration(
+      'LambdaIntegration',
+      apiLambda
+    );
+
+    const jwtAuthorizer = new apigatewayv2Authorizers.HttpJwtAuthorizer(
+      'CognitoJwtAuthorizer',
+      `https://cognito-idp.${this.region}.amazonaws.com/${userPool.userPoolId}`,
+      {
+        jwtAudience: [userPoolClient.userPoolClientId],
+      }
+    );
+
+    // Root path route (required because {proxy+} doesn't match empty path)
+    httpApi.addRoutes({
+      path: '/',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration: lambdaIntegration,
+    });
+
+    // Health check endpoint is intentionally public for simple connectivity checks.
+    httpApi.addRoutes({
+      path: '/health',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration: lambdaIntegration,
+    });
+
+    // Business API routes are JWT-protected.
+    httpApi.addRoutes({
+      path: '/{proxy+}',
+      methods: [
+        apigatewayv2.HttpMethod.GET,
+        apigatewayv2.HttpMethod.POST,
+        apigatewayv2.HttpMethod.PUT,
+        apigatewayv2.HttpMethod.DELETE,
+      ],
+      integration: lambdaIntegration,
+      authorizer: jwtAuthorizer,
     });
 
     // ============================================

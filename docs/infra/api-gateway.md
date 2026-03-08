@@ -20,14 +20,14 @@ SPA からのアクセスを許可するため、CORS を設定しています�
 
 | 項目 | 値 | 説明 |
 |-----|-----|------|
-| Allow Origins | `*` | すべてのオリジンを許可（本番では CloudFront ドメインに制限推奨） |
+| Allow Origins | `*`（dev/test）, CloudFront ドメイン（prod） | 開発時は簡便さ、本番ではフロント配信元に制限 |
 | Allow Methods | GET, POST, PUT, DELETE, OPTIONS | 許可する HTTP メソッド |
 | Allow Headers | Content-Type, Authorization | 許可するリクエストヘッダー |
 | Max Age | 1日 (86400秒) | プリフライトリクエストのキャッシュ時間 |
 
-### 本番環境での推奨設定
+### 本番環境での設定
 
-本番環境では、セキュリティのため CloudFront ドメインのみを許可することを推奨：
+本番環境では、CloudFront ドメインのみを許可：
 
 ```typescript
 corsPreflight: {
@@ -44,8 +44,9 @@ corsPreflight: {
 
 | パス | メソッド | 説明 |
 |-----|-----|------|
-| `/` | GET, POST, PUT, DELETE | ルートパス（ヘルスチェックなど） |
-| `/{proxy+}` | GET, POST, PUT, DELETE | すべてのサブパス |
+| `/` | GET | ルートパス |
+| `/health` | GET | 疎通確認用エンドポイント |
+| `/{proxy+}` | GET, POST, PUT, DELETE | 認証必須の業務 API |
 
 **注意**: `/{proxy+}` のみでは空のパス（ルートパス）にマッチしないため、明示的に `/` ルートを追加しています。これにより、API のルートエンドポイントへのリクエストも正しく Lambda に転送されます。
 
@@ -130,13 +131,12 @@ https://xxxxxxxxxx.execute-api.{region}.amazonaws.com
 - Output名: `ApiEndpoint`
 - Export名: `CookingPlanner-ApiEndpoint-{stage}`
 
-## 認証設定（今後の実装予定）
+## 認証設定
 
-現在は認証なしで Lambda が実行されますが、今後 Cognito JWT Authorizer を追加予定：
+業務 API には Cognito JWT Authorizer を適用しています。`/health` と `/` は疎通確認用のため認証なしです。
 
 ```typescript
-// 今後追加する認証設定の例
-import { HttpJwtAuthorizer } from '@aws-cdk/aws-apigatewayv2-authorizers-alpha';
+import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 
 const authorizer = new HttpJwtAuthorizer('CognitoAuthorizer', 
   `https://cognito-idp.{region}.amazonaws.com/{userPoolId}`, {
@@ -148,7 +148,7 @@ httpApi.addRoutes({
   path: '/{proxy+}',
   methods: [...],
   integration: lambdaIntegration,
-  authorizer: authorizer, // 認証を追加
+  authorizer,
 });
 ```
 
@@ -163,7 +163,7 @@ HTTP API は自動的にデフォルトステージ（`$default`）を作成し�
 ```typescript
 // Route 53 + ACM を使用したカスタムドメインの例
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
-import { DomainName } from '@aws-cdk/aws-apigatewayv2-alpha';
+import { DomainName } from 'aws-cdk-lib/aws-apigatewayv2';
 
 const certificate = acm.Certificate.fromCertificateArn(...);
 const domainName = new DomainName(this, 'DomainName', {
@@ -227,7 +227,8 @@ const httpApi = new apigatewayv2.HttpApi(this, 'HttpApi', {
   apiName: `CookingPlanner-Api-${stage}`,
   description: 'Cooking Planner HTTP API',
   corsPreflight: {
-    allowOrigins: ['*'],
+    allowOrigins:
+      stage === 'prod' ? [`https://${distribution.distributionDomainName}`] : ['*'],
     allowMethods: [
       apigatewayv2.CorsHttpMethod.GET,
       apigatewayv2.CorsHttpMethod.POST,
@@ -249,6 +250,14 @@ const lambdaIntegration = new apigatewayv2Integrations.HttpLambdaIntegration(
   apiLambda
 );
 
+const jwtAuthorizer = new HttpJwtAuthorizer(
+  'CognitoJwtAuthorizer',
+  `https://cognito-idp.${this.region}.amazonaws.com/${userPool.userPoolId}`,
+  {
+    jwtAudience: [userPoolClient.userPoolClientId],
+  }
+);
+
 httpApi.addRoutes({
   path: '/{proxy+}',
   methods: [
@@ -258,20 +267,20 @@ httpApi.addRoutes({
     apigatewayv2.HttpMethod.DELETE,
   ],
   integration: lambdaIntegration,
+  authorizer: jwtAuthorizer,
 });
 ```
 
 ## セキュリティ考慮事項
 
 ### 現在の状態
-- CORS で全オリジン許可（開発用）
-- 認証なし（プレースホルダー実装）
+- dev/test は CORS で全オリジン許可
+- prod は CloudFront ドメインのみに CORS を制限
+- 業務 API は Cognito JWT Authorizer で保護
 
 ### 本番運用前に必要な対応
-1. CORS を CloudFront ドメインに制限
-2. Cognito JWT Authorizer の追加
-3. アクセスログの有効化
-4. レートリミットの検討（必要に応じて）
+1. アクセスログの有効化
+2. レートリミットの検討（必要に応じて）
 
 ## 参考資料
 
