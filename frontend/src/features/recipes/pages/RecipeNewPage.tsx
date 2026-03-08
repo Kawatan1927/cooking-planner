@@ -43,6 +43,12 @@ const newIngredientRow = (): IngredientRow => ({
   note: '',
 });
 
+const normalizeIngredientName = (ingredientName: string): string =>
+  ingredientName.trim().toLowerCase();
+
+const sanitizeIngredientNameForDuplicateCheck = (ingredientName: string): string =>
+  ingredientName.replace(/#/g, '_');
+
 /**
  * レシピ登録ページ
  */
@@ -56,6 +62,7 @@ export function RecipeNewPage() {
   const [sourcePage, setSourcePage] = useState('');
   const [baseServings, setBaseServings] = useState('2');
   const [memo, setMemo] = useState('');
+  const [sourcePageError, setSourcePageError] = useState('');
   const [baseServingsError, setBaseServingsError] = useState('');
 
   // 材料リスト
@@ -98,21 +105,57 @@ export function RecipeNewPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIngredientError('');
+    setSourcePageError('');
     setBaseServingsError('');
 
-    const parsedPage = sourcePage !== '' ? parseInt(sourcePage, 10) : undefined;
-    const parsedServings = parseInt(baseServings, 10);
+    const parsedPage = sourcePage !== '' ? Number(sourcePage) : undefined;
+    const parsedServings = Number(baseServings);
+
+    if (
+      parsedPage !== undefined &&
+      (!Number.isInteger(parsedPage) || parsedPage <= 0)
+    ) {
+      setSourcePageError('ページ番号には 1 以上の整数を入力してください。');
+      return;
+    }
 
     if (!Number.isInteger(parsedServings) || parsedServings <= 0) {
       setBaseServingsError('基本人数には 1 以上の整数を入力してください。');
       return;
     }
 
-    // 食材名ありの行に quantity > 0 を必須とするバリデーション
     const namedRows = ingredients.filter(row => row.ingredientName.trim() !== '');
+
+    const normalizedIngredientNames = new Set<string>();
+    const sanitizedIngredientNames = new Map<string, string>();
+
+    for (const row of namedRows) {
+      const trimmedName = row.ingredientName.trim();
+      const normalizedName = normalizeIngredientName(row.ingredientName);
+      if (normalizedIngredientNames.has(normalizedName)) {
+        setIngredientError(
+          `食材名「${trimmedName}」が重複しています。大文字小文字や前後の空白を含めて同じ名前は登録できません。`
+        );
+        return;
+      }
+      normalizedIngredientNames.add(normalizedName);
+
+      const sanitizedName = normalizeIngredientName(
+        sanitizeIngredientNameForDuplicateCheck(row.ingredientName)
+      );
+      const conflictingName = sanitizedIngredientNames.get(sanitizedName);
+      if (conflictingName) {
+        setIngredientError(
+          `食材名「${trimmedName}」と「${conflictingName}」は保存時に同じキーになるため、どちらかを修正してください。`
+        );
+        return;
+      }
+      sanitizedIngredientNames.set(sanitizedName, trimmedName);
+    }
+
     const invalidRows = namedRows.filter(row => {
-      const q = parseFloat(row.quantityStr);
-      return isNaN(q) || q <= 0;
+      const quantity = Number(row.quantityStr);
+      return !Number.isFinite(quantity) || quantity <= 0;
     });
     if (invalidRows.length > 0) {
       setIngredientError('食材名が入力されている行には、0より大きい分量を入力してください。');
@@ -122,7 +165,7 @@ export function RecipeNewPage() {
     const requestIngredients: RecipeIngredient[] = namedRows.map(
       ({ ingredientName, quantityStr, unit, note }) => ({
         ingredientName: ingredientName.trim(),
-        quantity: parseFloat(quantityStr),
+        quantity: Number(quantityStr),
         unit,
         note: note.trim() || null,
       })
@@ -238,11 +281,28 @@ export function RecipeNewPage() {
                 id="recipe-source-page"
                 type="number"
                 value={sourcePage}
-                onChange={e => setSourcePage(e.target.value)}
+                onChange={e => {
+                  setSourcePage(e.target.value);
+                  if (sourcePageError) {
+                    setSourcePageError('');
+                  }
+                }}
                 placeholder="例: 34"
                 min={1}
+                aria-invalid={sourcePageError ? 'true' : 'false'}
                 style={inputStyle}
               />
+              {sourcePageError && (
+                <div
+                  style={{
+                    marginTop: '0.5rem',
+                    color: '#721c24',
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  {sourcePageError}
+                </div>
+              )}
             </div>
           </div>
 
