@@ -1,5 +1,5 @@
-import * as cdk from 'aws-cdk-lib/core';
-import { Template } from 'aws-cdk-lib/assertions';
+import * as cdk from 'aws-cdk-lib';
+import { Match, Template } from 'aws-cdk-lib/assertions';
 import { CookingPlannerStack } from '../lib/cooking-planner-stack';
 
 describe('CookingPlannerStack', () => {
@@ -45,6 +45,8 @@ describe('CookingPlannerStack', () => {
 
     template.hasResourceProperties('AWS::Cognito::UserPoolClient', {
       ClientName: 'CookingPlanner-Client-test',
+      AllowedOAuthFlows: ['code'],
+      AllowedOAuthFlowsUserPoolClient: true,
     });
   });
 
@@ -70,6 +72,25 @@ describe('CookingPlannerStack', () => {
 
     template.resourceCountIs('AWS::S3::Bucket', 1);
     template.resourceCountIs('AWS::CloudFront::Distribution', 1);
+  });
+
+  test('HTTP API uses JWT authorizer for business routes', () => {
+    const app = new cdk.App();
+    const stack = new CookingPlannerStack(app, 'TestStack', {
+      stage: 'test',
+    });
+    const template = Template.fromStack(stack);
+
+    template.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
+    template.hasResourceProperties('AWS::ApiGatewayV2::Route', {
+      RouteKey: 'GET /{proxy+}',
+      AuthorizationType: 'JWT',
+      AuthorizerId: Match.anyValue(),
+    });
+    template.hasResourceProperties('AWS::ApiGatewayV2::Route', {
+      RouteKey: 'GET /health',
+      Target: Match.anyValue(),
+    });
   });
 });
 

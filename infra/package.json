@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
+    "pretest": "npm --prefix lambda ci && npm --prefix lambda run build",
     "test": "jest",
     "cdk": "cdk"
   },
@@ -20,8 +21,6 @@
     "typescript": "~5.9.3"
   },
   "dependencies": {
-    "@aws-cdk/aws-apigatewayv2-alpha": "^2.114.1-alpha.0",
-    "@aws-cdk/aws-apigatewayv2-integrations-alpha": "^2.114.1-alpha.0",
     "aws-cdk-lib": "2.232.1",
     "constructs": "^10.0.0"
   }

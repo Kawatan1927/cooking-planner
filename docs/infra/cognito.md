@@ -81,7 +81,7 @@ SPA（Single Page Application）からのアクセス用にクライアントを
 
 | 項目 | 値 | 説明 |
 |-----|-----|------|
-| OAuth フロー | Authorization Code Grant, Implicit Grant | SPA で使用可能なフロー |
+| OAuth フロー | Authorization Code Grant | SPA は Authorization Code + PKCE を前提にする |
 | OAuth スコープ | openid, email, profile | 基本的なユーザー情報へのアクセス |
 
 #### スコープの説明
@@ -240,7 +240,6 @@ const userPoolClient = userPool.addClient('UserPoolClient', {
   oAuth: {
     flows: {
       authorizationCodeGrant: true,
-      implicitCodeGrant: true,
     },
     scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
   },
