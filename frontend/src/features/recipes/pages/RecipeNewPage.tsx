@@ -5,7 +5,7 @@
  * 「保存」でPOST /recipesを呼び出し、成功時にレシピ詳細へ遷移します。
  */
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthToken } from '../../auth/hooks/useAuthToken';
 import { useCreateRecipe } from '../hooks';
@@ -13,7 +13,7 @@ import type { RecipeIngredient } from '../types';
 
 // 材料行の内部状態（quantity は入力途中の文字列として保持し、submit 時に数値へ変換）
 interface IngredientRow {
-  id: number;
+  id: string;
   ingredientName: string;
   quantityStr: string;
   unit: string;
@@ -35,13 +35,20 @@ const UNIT_OPTIONS = [
   '適量',
 ];
 
+const newIngredientRow = (): IngredientRow => ({
+  id: crypto.randomUUID(),
+  ingredientName: '',
+  quantityStr: '',
+  unit: 'g',
+  note: '',
+});
+
 /**
  * レシピ登録ページ
  */
 export function RecipeNewPage() {
   const navigate = useNavigate();
   const token = useAuthToken();
-  const ingredientIdCounterRef = useRef(0);
 
   // 基本情報
   const [name, setName] = useState('');
@@ -52,13 +59,6 @@ export function RecipeNewPage() {
   const [baseServingsError, setBaseServingsError] = useState('');
 
   // 材料リスト
-  const newIngredientRow = (): IngredientRow => ({
-    id: ++ingredientIdCounterRef.current,
-    ingredientName: '',
-    quantityStr: '',
-    unit: 'g',
-    note: '',
-  });
   const [ingredients, setIngredients] = useState<IngredientRow[]>(() => [newIngredientRow()]);
   // 材料バリデーションエラー
   const [ingredientError, setIngredientError] = useState('');
@@ -78,12 +78,12 @@ export function RecipeNewPage() {
     setIngredients(prev => [...prev, newIngredientRow()]);
   };
 
-  const handleRemoveIngredient = (id: number) => {
+  const handleRemoveIngredient = (id: string) => {
     setIngredients(prev => prev.filter(row => row.id !== id));
   };
 
   const handleIngredientChange = (
-    id: number,
+    id: string,
     field: keyof Omit<IngredientRow, 'id'>,
     value: string
   ) => {
