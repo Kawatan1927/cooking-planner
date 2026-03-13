@@ -111,10 +111,7 @@ export function RecipeNewPage() {
     const parsedPage = sourcePage !== '' ? Number(sourcePage) : undefined;
     const parsedServings = Number(baseServings);
 
-    if (
-      parsedPage !== undefined &&
-      (!Number.isInteger(parsedPage) || parsedPage <= 0)
-    ) {
+    if (parsedPage !== undefined && (!Number.isInteger(parsedPage) || parsedPage <= 0)) {
       setSourcePageError('ページ番号には 1 以上の整数を入力してください。');
       return;
     }
