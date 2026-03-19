@@ -59,36 +59,27 @@ npm run prepare
 
 ### Gitフックについて
 
-lefthookを使用してローカルでCI相当のチェックを自動実行します。これにより、CIで失敗するケースを事前に防ぎます。
+[lefthook](https://github.com/evilmartians/lefthook)を使用してローカルでCI相当のチェックを自動実行します。これにより、CIで失敗するケースを事前に防ぎます。
 
-#### pre-commitフック
+#### 自動実行されるチェック
 
-以下のチェックを実行します：
-- フロントエンドのフォーマットチェック（Prettier）
-- フロントエンドのlint（ESLint）
+- **pre-commit**: コミット前にフォーマットチェック（Prettier）とlint（ESLint）を実行
+- **pre-push**: プッシュ前にTypeScript型チェック、ビルド、テストを実行
 
-#### pre-pushフック
-
-以下のチェックを実行します：
-- フロントエンドのTypeScript型チェックとビルド
-- LambdaのTypeScript型チェックとビルド
-- テスト実行（テストが実装されている場合）
+詳細は [CONTRIBUTING.md](./CONTRIBUTING.md) を参照してください。
 
 #### フックをスキップする場合
 
-緊急時などでフックをスキップしたい場合は、以下のオプションを使用できます：
-
 ```bash
-# コミット時のフックをスキップ
-git commit --no-verify -m "メッセージ"
-
-# プッシュ時のフックをスキップ
-git push --no-verify
+git commit --no-verify  # pre-commitをスキップ
+git push --no-verify    # pre-pushをスキップ
 ```
 
-**注意**: CI では同様のチェックが実行されるため、フックをスキップするとCIで失敗する可能性があります。
+**⚠️ 注意**: フックをスキップしてもCIでは同様のチェックが実行されるため、CI失敗のリスクがあります。
 
 ## 開発
+
+開発のガイドラインと詳細については [CONTRIBUTING.md](./CONTRIBUTING.md) を参照してください。
 
 ### フロントエンド
 
