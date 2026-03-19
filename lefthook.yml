@@ -1,0 +1,50 @@
+# Lefthook configuration for cooking-planner
+# See: https://github.com/evilmartians/lefthook
+
+# pre-commit: 軽量チェック（フォーマット、lint）
+pre-commit:
+  parallel: true
+  commands:
+    # フロントエンドのフォーマットチェック
+    frontend-format:
+      glob: "frontend/**/*.{ts,tsx,js,jsx,json,css,md}"
+      run: cd frontend && npm run format:check
+      stage_fixed: false
+
+    # フロントエンドのlint
+    frontend-lint:
+      glob: "frontend/**/*.{ts,tsx,js,jsx}"
+      run: cd frontend && npm run lint
+      stage_fixed: false
+
+# pre-push: やや重めのチェック（TypeScript型チェック、ビルド）
+pre-push:
+  parallel: false
+  commands:
+    # フロントエンドのTypeScript型チェックとビルド
+    frontend-build:
+      run: |
+        echo "🔍 フロントエンドのTypeScript型チェックとビルドを実行中..."
+        cd frontend && npm run build
+
+    # LambdaのTypeScript型チェックとビルド
+    lambda-build:
+      run: |
+        echo "🔍 LambdaのTypeScript型チェックとビルドを実行中..."
+        cd infra/lambda && npm run build
+
+    # テスト実行（将来的にテストが追加された場合）
+    tests:
+      run: |
+        echo "🧪 テストを実行中..."
+        npm run test
+
+# 設定
+# CI環境ではスキップする（CI_=true の場合）
+skip_output:
+  - meta
+  - summary
+
+# リモートファイルからのフックはスキップ
+remote:
+  enabled: false

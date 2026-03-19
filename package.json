@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "prepare": "lefthook install",
     "frontend:dev": "cd frontend && npm run dev",
     "frontend:build": "cd frontend && npm run build",
     "frontend:preview": "cd frontend && npm run preview",
@@ -15,10 +16,14 @@
     "lambda:build": "cd infra/lambda && npm run build",
     "lambda:clean": "cd infra/lambda && npm run clean",
     "lambda:rebuild": "cd infra/lambda && npm run rebuild",
-    "lambda:watch": "cd infra/lambda && npm run watch"
+    "lambda:watch": "cd infra/lambda && npm run watch",
+    "lint": "npm run frontend:lint",
+    "format:check": "npm run frontend:format:check",
+    "type-check": "npm run frontend:build && npm run lambda:build",
+    "test": "echo 'No tests configured yet' && exit 0"
   },
-  "dependencies": {},
   "devDependencies": {
+    "lefthook": "^2.1.4",
     "typescript": "^5.5.3"
   },
   "private": true
