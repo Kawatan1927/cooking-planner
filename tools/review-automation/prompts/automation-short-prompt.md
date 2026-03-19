@@ -1,0 +1,19 @@
+# Codex Automation Short Prompt
+
+指定された review inbox の Markdown を読み、未解決 thread のみを対象に対応してください。
+
+やること:
+- 各 thread の論点を 1 行で要約する
+- 「コード修正が必要 / 説明だけで返せる / 見送り候補」に分類する
+- コード修正が必要なものから順に対応する
+- 修正後に format / lint / build を実行する
+- 修正がある場合は commit / push まで行う
+- 各 thread ごとに日本語で短い返信案を作る
+- 返信本文ファイルと dry-run 用投稿コマンドを出す
+
+制約:
+- resolved / outdated thread は対象外
+- 関係ないリファクタや広い整形はしない
+- 仕様判断に迷ったら docs を優先する
+- 返信文は 3 文以内を基本にする
+- commit / push が失敗した場合は完了扱いにしない
