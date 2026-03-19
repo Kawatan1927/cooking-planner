@@ -121,12 +121,23 @@ export function RecipeNewPage() {
       return;
     }
 
-    const namedRows = ingredients.filter(row => row.ingredientName.trim() !== '');
+    const activeRows = ingredients.filter(
+      row =>
+        row.ingredientName.trim() !== '' || row.quantityStr.trim() !== '' || row.note.trim() !== ''
+    );
+
+    const rowsMissingIngredientName = activeRows.filter(row => row.ingredientName.trim() === '');
+    if (rowsMissingIngredientName.length > 0) {
+      setIngredientError(
+        '食材名が未入力の行があります。分量や備考を入力した行には、食材名も入力してください。'
+      );
+      return;
+    }
 
     const normalizedIngredientNames = new Set<string>();
     const sanitizedIngredientNames = new Map<string, string>();
 
-    for (const row of namedRows) {
+    for (const row of activeRows) {
       const trimmedName = row.ingredientName.trim();
       const normalizedName = normalizeIngredientName(row.ingredientName);
       if (normalizedIngredientNames.has(normalizedName)) {
@@ -150,7 +161,7 @@ export function RecipeNewPage() {
       sanitizedIngredientNames.set(sanitizedName, trimmedName);
     }
 
-    const invalidRows = namedRows.filter(row => {
+    const invalidRows = activeRows.filter(row => {
       const quantity = Number(row.quantityStr);
       return !Number.isFinite(quantity) || quantity <= 0;
     });
@@ -159,7 +170,7 @@ export function RecipeNewPage() {
       return;
     }
 
-    const requestIngredients: RecipeIngredient[] = namedRows.map(
+    const requestIngredients: RecipeIngredient[] = activeRows.map(
       ({ ingredientName, quantityStr, unit, note }) => ({
         ingredientName: ingredientName.trim(),
         quantity: Number(quantityStr),
