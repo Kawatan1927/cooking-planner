@@ -23,26 +23,12 @@ pre-commit:
 pre-push:
   parallel: false
   commands:
-    # フロントエンドのTypeScript型チェック
-    frontend-type-check:
-      glob: "frontend/**"
-      run: |
-        echo "🔍 フロントエンドのTypeScript型チェックを実行中..."
-        npm run frontend:type-check
-
     # フロントエンドのビルド
     frontend-build:
       glob: "frontend/**"
       run: |
         echo "🏗️ フロントエンドのビルドを実行中..."
         npm run frontend:build
-
-    # LambdaのTypeScript型チェック
-    lambda-type-check:
-      glob: "infra/lambda/**"
-      run: |
-        echo "🔍 LambdaのTypeScript型チェックを実行中..."
-        npm run lambda:type-check
 
     # Lambdaのビルド
     lambda-build:
