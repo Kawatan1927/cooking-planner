@@ -36,7 +36,7 @@ export interface RecipeIngredient {
   userId: string;
   recipeId: string;
   ingredientName: string;
-  quantity: number;
+  quantity: number | string;
   unit: string;
   note?: string;
 }

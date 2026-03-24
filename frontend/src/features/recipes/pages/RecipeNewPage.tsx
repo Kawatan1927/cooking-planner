@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import type { CSSProperties, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthToken } from '../../auth/hooks/useAuthToken';
 import { useCreateRecipe } from '../hooks';
@@ -104,7 +105,7 @@ export function RecipeNewPage() {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setIngredientError('');
     setSourcePageError('');
@@ -564,7 +565,7 @@ export function RecipeNewPage() {
   );
 }
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: '100%',
   padding: '0.5rem',
   border: '1px solid #ccc',

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthToken } from '../../auth/hooks/useAuthToken';
 import { RecipeDetail as RecipeDetailComponent } from '../components';
@@ -66,7 +67,7 @@ export function RecipeDetailPage() {
   );
 }
 
-const secondaryButtonStyle: React.CSSProperties = {
+const secondaryButtonStyle: CSSProperties = {
   padding: '0.75rem 1.25rem',
   cursor: 'pointer',
   border: '1px solid #6c757d',
@@ -76,7 +77,7 @@ const secondaryButtonStyle: React.CSSProperties = {
   fontSize: '0.95rem',
 };
 
-const messageCardStyle: React.CSSProperties = {
+const messageCardStyle: CSSProperties = {
   marginTop: '1rem',
   padding: '1.5rem',
   border: '1px solid #ddd',

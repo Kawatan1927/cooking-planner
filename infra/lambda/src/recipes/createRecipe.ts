@@ -50,7 +50,7 @@ interface CreateRecipeRequestBody {
   memo?: string | null;
   ingredients: Array<{
     ingredientName: string;
-    quantity: number;
+    quantity: number | string;
     unit: string;
     note?: string | null;
   }>;
@@ -160,15 +160,36 @@ export const createRecipe = async (
       }
       sanitizedIngredientNames.set(sanitizedName, ingredient.ingredientName);
 
-      if (typeof ingredient.quantity !== 'number' || ingredient.quantity <= 0) {
+      if (typeof ingredient.quantity === 'number') {
+        if (ingredient.quantity <= 0) {
+          return createErrorResponse(
+            400,
+            'BAD_REQUEST',
+            'Each ingredient must have a positive quantity'
+          );
+        }
+
+        if (!ingredient.unit || typeof ingredient.unit !== 'string') {
+          return createErrorResponse(400, 'BAD_REQUEST', 'Each ingredient must have a unit');
+        }
+      } else if (typeof ingredient.quantity === 'string') {
+        if (!ingredient.quantity.trim()) {
+          return createErrorResponse(
+            400,
+            'BAD_REQUEST',
+            'Each ingredient must have a non-empty quantity'
+          );
+        }
+
+        if (typeof ingredient.unit !== 'string') {
+          return createErrorResponse(400, 'BAD_REQUEST', 'Each ingredient must have a unit');
+        }
+      } else {
         return createErrorResponse(
           400,
           'BAD_REQUEST',
-          'Each ingredient must have a positive quantity'
+          'Each ingredient must have a quantity'
         );
-      }
-      if (!ingredient.unit || typeof ingredient.unit !== 'string') {
-        return createErrorResponse(400, 'BAD_REQUEST', 'Each ingredient must have a unit');
       }
     }
 
