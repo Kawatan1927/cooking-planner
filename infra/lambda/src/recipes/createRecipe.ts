@@ -173,11 +173,21 @@ export const createRecipe = async (
           return createErrorResponse(400, 'BAD_REQUEST', 'Each ingredient must have a unit');
         }
       } else if (typeof ingredient.quantity === 'string') {
-        if (!ingredient.quantity.trim()) {
+        const trimmedQuantity = ingredient.quantity.trim();
+        if (!trimmedQuantity) {
           return createErrorResponse(
             400,
             'BAD_REQUEST',
             'Each ingredient must have a non-empty quantity'
+          );
+        }
+
+        const parsedQuantity = Number(trimmedQuantity);
+        if (Number.isFinite(parsedQuantity) && parsedQuantity <= 0) {
+          return createErrorResponse(
+            400,
+            'BAD_REQUEST',
+            'Each ingredient must have a positive quantity'
           );
         }
 
