@@ -2,6 +2,14 @@
 
 GitHub PR の未解決 review thread を取得し、変化がある時だけ Codex を起動するためのローカル運用用ツールです。
 
+## 前提条件
+
+- `gh` CLI がインストール済みで、`gh auth login` により対象リポジトリへアクセスできること
+- `codex` コマンドが利用可能であること
+- `pwsh` が利用可能であること
+- `register-review-task.ps1` は Windows のタスク スケジューラを前提とすること
+- runtime 生成物を書き込めるよう、repo 配下の `tmp/` を利用できること
+
 ## 構成
 
 - `fetch-pr-review.ps1`
@@ -88,3 +96,4 @@ pwsh -File .\tools\review-automation\register-review-task.ps1 -IntervalHours 2
 - このツール自体は reply の自動投稿までは行いません。返信投稿は `post-pr-reply.ps1` で明示的に行います。
 - `poll-review.ps1` が起動する Codex には commit / push を指示しますが、実際に成功するかはローカルの git 認証状態と権限に依存します。
 - push に失敗した場合は、返信文でも完了扱いにしない前提です。
+- 定期監視の登録は Windows 前提ですが、`fetch-pr-review.ps1` / `poll-review.ps1` / `post-pr-reply.ps1` 自体は PowerShell 7 と `gh` CLI があれば他 OS でも実行できます。

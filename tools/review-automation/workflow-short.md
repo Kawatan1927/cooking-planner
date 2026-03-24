@@ -31,7 +31,7 @@ Codex に以下を渡す。
 短く指示するなら例:
 
 ```text
-tmp\review-inbox\Kawatan1927__cooking-planner\pr-46.md を読んで、tools/review-automation/prompts/automation-short-prompt.md に従って対応して。修正が必要なら検証後に commit / push まで進めて、返信案は dry-run 用のファイルで出して。
+tmp\review-inbox\<owner__repo>\pr-<number>.md を読んで、tools/review-automation/prompts/automation-short-prompt.md に従って対応して。修正が必要なら検証後に commit / push まで進めて、返信案は dry-run 用のファイルで出して。
 ```
 
 期待する成果物:

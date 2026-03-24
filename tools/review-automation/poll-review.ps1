@@ -19,13 +19,30 @@ $ErrorActionPreference = 'Stop'
 
 $toolRoot = $PSScriptRoot
 $repoRoot = (Resolve-Path (Join-Path $toolRoot '..\..')).Path
+
+function Join-PathSegments {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$BasePath,
+    [Parameter(Mandatory = $true)]
+    [string[]]$Segments
+  )
+
+  $path = $BasePath
+  foreach ($segment in $Segments) {
+    $path = Join-Path $path $segment
+  }
+
+  return $path
+}
+
 $workspace = if ($WorkspacePath) { (Resolve-Path $WorkspacePath).Path } else { $repoRoot }
-$stateFilePath = if ($StateFile) { $StateFile } else { Join-Path $repoRoot 'tmp\review-automation\state.json' }
-$promptTemplatePath = if ($PromptTemplateFile) { $PromptTemplateFile } else { Join-Path $toolRoot 'prompts\automation-short-prompt.md' }
+$stateFilePath = if ($StateFile) { $StateFile } else { Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-automation', 'state.json') }
+$promptTemplatePath = if ($PromptTemplateFile) { $PromptTemplateFile } else { Join-PathSegments -BasePath $toolRoot -Segments @('prompts', 'automation-short-prompt.md') }
 $fetchScriptPath = Join-Path $toolRoot 'fetch-pr-review.ps1'
-$reviewInboxRoot = Join-Path $repoRoot 'tmp\review-inbox'
-$reviewRunsRoot = Join-Path $repoRoot 'tmp\review-runs'
-$lockFile = Join-Path $repoRoot 'tmp\review-automation\poll-review.lock'
+$reviewInboxRoot = Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-inbox')
+$reviewRunsRoot = Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-runs')
+$lockFile = Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-automation', 'poll-review.lock')
 
 function Resolve-RepoName {
   param([string]$RepoName, [string]$Workspace)
@@ -155,7 +172,7 @@ $inbox
 "@
 }
 
-New-Item -ItemType Directory -Force (Join-Path $repoRoot 'tmp\review-automation') | Out-Null
+New-Item -ItemType Directory -Force (Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-automation')) | Out-Null
 New-Item -ItemType Directory -Force $reviewInboxRoot | Out-Null
 New-Item -ItemType Directory -Force $reviewRunsRoot | Out-Null
 
@@ -215,6 +232,7 @@ try {
 
   $sameAsLast =
     ($previousCodexStatus -ne '') -and
+    (-not $previousCodexStatus.StartsWith('failed(')) -and
     ($previousRepo -eq $repoName) -and
     ($previousPrNumber -eq $pr) -and
     ($previousInboxHash -eq $inboxHash) -and

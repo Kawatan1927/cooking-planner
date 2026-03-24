@@ -27,7 +27,7 @@ if ($Body -and $BodyFile) {
 }
 
 if ($BodyFile) {
-  $Body = Get-Content -Raw -Path $BodyFile
+  $Body = Get-Content -Raw -Encoding UTF8 -Path $BodyFile
 }
 
 $Body = $Body.Trim()

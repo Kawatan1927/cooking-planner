@@ -17,6 +17,22 @@ $toolRoot = $PSScriptRoot
 $repoRoot = (Resolve-Path (Join-Path $toolRoot '..\..')).Path
 $replyScriptRelativePath = '.\tools\review-automation\post-pr-reply.ps1'
 
+function Join-PathSegments {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$BasePath,
+    [Parameter(Mandatory = $true)]
+    [string[]]$Segments
+  )
+
+  $path = $BasePath
+  foreach ($segment in $Segments) {
+    $path = Join-Path $path $segment
+  }
+
+  return $path
+}
+
 function Resolve-Repo {
   param([string]$Repo)
 
@@ -97,38 +113,114 @@ function Invoke-GhJson {
   }
 }
 
-$repoName = Resolve-Repo -Repo $Repo
-$pr = Resolve-PrNumber -PrNumber $PrNumber
-$repoParts = $repoName.Split('/', 2)
-if ($repoParts.Count -ne 2) {
-  throw "Repo は owner/name 形式である必要があります: $repoName"
-}
-$owner = $repoParts[0]
-$name = $repoParts[1]
+function New-ReviewThreadCommentNode {
+  param([object]$Comment)
 
-if (-not $OutFile) {
-  $baseDir = Join-Path $repoRoot 'tmp\review-inbox'
-  $repoDir = Join-Path $baseDir ($repoName -replace '/', '__')
-  New-Item -ItemType Directory -Force $repoDir | Out-Null
-  $OutFile = Join-Path $repoDir ("pr-$pr.md")
-} else {
-  $outDir = Split-Path -Parent $OutFile
-  if ($outDir) {
-    New-Item -ItemType Directory -Force $outDir | Out-Null
+  return [pscustomobject]@{
+    id = $Comment.id
+    databaseId = $Comment.databaseId
+    body = $Comment.body
+    path = $Comment.path
+    line = $Comment.line
+    originalLine = $Comment.originalLine
+    createdAt = $Comment.createdAt
+    url = $Comment.url
+    author = [pscustomobject]@{
+      login = $Comment.author.login
+    }
   }
 }
 
-$prInfo = Invoke-GhJson -CommandArgs @('pr', 'view', "$pr", '--repo', $repoName, '--json', 'number,title,url,headRefName,baseRefName,author')
+function Get-ReviewThreadComments {
+  param(
+    [string]$ThreadId,
+    [object[]]$InitialNodes,
+    [object]$InitialPageInfo
+  )
 
-$reviewThreadsQuery = @"
-query(`$owner:String!, `$name:String!, `$number:Int!) {
+  $allComments = New-Object System.Collections.Generic.List[object]
+  foreach ($comment in $InitialNodes) {
+    $allComments.Add((New-ReviewThreadCommentNode -Comment $comment))
+  }
+
+  $hasNextPage = [bool]$InitialPageInfo.hasNextPage
+  $cursor = [string]$InitialPageInfo.endCursor
+
+  while ($hasNextPage) {
+    $query = @"
+query(`$threadId: ID!, `$cursor: String) {
+  node(id: `$threadId) {
+    ... on PullRequestReviewThread {
+      comments(first: 100, after: `$cursor) {
+        nodes {
+          id
+          databaseId
+          body
+          path
+          line
+          originalLine
+          createdAt
+          url
+          author {
+            login
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  }
+}
+"@
+
+    $commandArgs = @(
+      'api',
+      'graphql',
+      '-f', "query=$query",
+      '-F', "threadId=$ThreadId"
+    )
+    if ($cursor) {
+      $commandArgs += @('-F', "cursor=$cursor")
+    }
+
+    $response = Invoke-GhJson -CommandArgs $commandArgs
+
+    $commentsConnection = $response.data.node.comments
+    foreach ($comment in @($commentsConnection.nodes)) {
+      $allComments.Add((New-ReviewThreadCommentNode -Comment $comment))
+    }
+
+    $hasNextPage = [bool]$commentsConnection.pageInfo.hasNextPage
+    $cursor = [string]$commentsConnection.pageInfo.endCursor
+  }
+
+  return $allComments.ToArray()
+}
+
+function Get-ReviewThreads {
+  param(
+    [string]$Owner,
+    [string]$Name,
+    [int]$Number
+  )
+
+  $allThreads = New-Object System.Collections.Generic.List[object]
+  $hasNextPage = $true
+  $cursor = $null
+
+  while ($hasNextPage) {
+    $query = @"
+query(`$owner:String!, `$name:String!, `$number:Int!, `$cursor:String) {
   repository(owner:`$owner, name:`$name) {
     pullRequest(number:`$number) {
-      reviewThreads(first:100) {
+      reviewThreads(first:100, after:`$cursor) {
         nodes {
+          id
           isResolved
           isOutdated
-          comments(first:30) {
+          comments(first:100) {
             nodes {
               id
               databaseId
@@ -142,7 +234,15 @@ query(`$owner:String!, `$name:String!, `$number:Int!) {
                 login
               }
             }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
           }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
         }
       }
     }
@@ -150,23 +250,100 @@ query(`$owner:String!, `$name:String!, `$number:Int!) {
 }
 "@
 
-$reviewThreadResponse = Invoke-GhJson -CommandArgs @(
-  'api',
-  'graphql',
-  '-f', "query=$reviewThreadsQuery",
-  '-F', "owner=$owner",
-  '-F', "name=$name",
-  '-F', "number=$pr"
-)
+    $commandArgs = @(
+      'api',
+      'graphql',
+      '-f', "query=$query",
+      '-F', "owner=$Owner",
+      '-F', "name=$Name",
+      '-F', "number=$Number"
+    )
+    if ($cursor) {
+      $commandArgs += @('-F', "cursor=$cursor")
+    }
 
-$reviewThreads = @($reviewThreadResponse.data.repository.pullRequest.reviewThreads.nodes)
+    $response = Invoke-GhJson -CommandArgs $commandArgs
+
+    $threadsConnection = $response.data.repository.pullRequest.reviewThreads
+    foreach ($thread in @($threadsConnection.nodes)) {
+      $comments = Get-ReviewThreadComments -ThreadId $thread.id -InitialNodes @($thread.comments.nodes) -InitialPageInfo $thread.comments.pageInfo
+      $allThreads.Add([pscustomobject]@{
+          isResolved = $thread.isResolved
+          isOutdated = $thread.isOutdated
+          comments = [pscustomobject]@{
+            nodes = $comments
+          }
+        })
+    }
+
+    $hasNextPage = [bool]$threadsConnection.pageInfo.hasNextPage
+    $cursor = [string]$threadsConnection.pageInfo.endCursor
+  }
+
+  return $allThreads.ToArray()
+}
+
+function Get-IssueComments {
+  param(
+    [string]$RepoName,
+    [int]$PrNumber
+  )
+
+  $allComments = New-Object System.Collections.Generic.List[object]
+  $page = 1
+
+  while ($true) {
+    $pageItems = @(Invoke-GhJson -CommandArgs @('api', "repos/$RepoName/issues/$PrNumber/comments?per_page=100&page=$page"))
+    if ($pageItems.Count -eq 0) {
+      break
+    }
+
+    foreach ($comment in $pageItems) {
+      if ($comment.body) {
+        $allComments.Add($comment)
+      }
+    }
+
+    if ($pageItems.Count -lt 100) {
+      break
+    }
+
+    $page += 1
+  }
+
+  return @($allComments)
+}
+
+$repoName = Resolve-Repo -Repo $Repo
+$pr = Resolve-PrNumber -PrNumber $PrNumber
+$repoParts = $repoName.Split('/', 2)
+if ($repoParts.Count -ne 2) {
+  throw "Repo は owner/name 形式である必要があります: $repoName"
+}
+$owner = $repoParts[0]
+$name = $repoParts[1]
+
+if (-not $OutFile) {
+  $baseDir = Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-inbox')
+  $repoDir = Join-Path $baseDir ($repoName -replace '/', '__')
+  New-Item -ItemType Directory -Force $repoDir | Out-Null
+  $OutFile = Join-Path $repoDir ("pr-$pr.md")
+} else {
+  $outDir = Split-Path -Parent $OutFile
+  if ($outDir) {
+    New-Item -ItemType Directory -Force $outDir | Out-Null
+  }
+}
+
+$prInfo = Invoke-GhJson -CommandArgs @('pr', 'view', "$pr", '--repo', $repoName, '--json', 'number,title,url,headRefName,baseRefName,author')
+$reviewThreads = @(Get-ReviewThreads -Owner $owner -Name $name -Number $pr)
 $filteredThreads = @($reviewThreads | Where-Object {
   ($IncludeResolved -or -not $_.isResolved) -and ($IncludeOutdated -or -not $_.isOutdated)
 })
 
 $issueComments = @()
 if ($IncludeConversationComments) {
-  $issueComments = @(Invoke-GhJson -CommandArgs @('api', "repos/$repoName/issues/$pr/comments?per_page=100")) | Where-Object { $_.body }
+  $issueComments = @(Get-IssueComments -RepoName $repoName -PrNumber $pr)
 }
 
 $lines = New-Object System.Collections.Generic.List[string]
