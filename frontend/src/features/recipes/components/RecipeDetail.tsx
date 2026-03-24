@@ -73,7 +73,8 @@ export function RecipeDetail({ recipeId, token }: RecipeDetailProps) {
           <ul>
             {recipe.ingredients.map((ingredient, index) => (
               <li key={index}>
-                {ingredient.ingredientName}: {ingredient.quantity} {ingredient.unit}
+                {ingredient.ingredientName}:{' '}
+                {formatIngredientAmount(ingredient.quantity, ingredient.unit)}
                 {ingredient.note && <span> ({ingredient.note})</span>}
               </li>
             ))}
@@ -87,4 +88,8 @@ export function RecipeDetail({ recipeId, token }: RecipeDetailProps) {
       </div>
     </div>
   );
+}
+
+function formatIngredientAmount(quantity: number | string, unit: string): string {
+  return unit ? `${quantity} ${unit}` : String(quantity);
 }

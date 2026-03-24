@@ -28,4 +28,5 @@ export { RecipeDetail as RecipeDetailComponent } from './components';
 
 // Pages
 export { RecipeListPage } from './pages/RecipeListPage';
+export { RecipeDetailPage } from './pages/RecipeDetailPage';
 export { RecipeNewPage } from './pages/RecipeNewPage';

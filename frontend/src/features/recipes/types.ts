@@ -9,7 +9,7 @@
  */
 export interface RecipeIngredient {
   ingredientName: string;
-  quantity: number;
+  quantity: number | string;
   unit: string;
   note?: string | null;
 }

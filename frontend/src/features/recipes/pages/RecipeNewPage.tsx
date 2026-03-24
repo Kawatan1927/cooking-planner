@@ -20,6 +20,8 @@ interface IngredientRow {
   note: string;
 }
 
+const TEXT_QUANTITY_UNITS = new Set(['少々', '適量']);
+
 const UNIT_OPTIONS = [
   'g',
   'kg',
@@ -162,21 +164,46 @@ export function RecipeNewPage() {
     }
 
     const invalidRows = activeRows.filter(row => {
-      const quantity = Number(row.quantityStr);
-      return !Number.isFinite(quantity) || quantity <= 0;
+      const trimmedQuantity = row.quantityStr.trim();
+      if (trimmedQuantity === '') {
+        return !TEXT_QUANTITY_UNITS.has(row.unit);
+      }
+
+      const quantity = Number(trimmedQuantity);
+      return Number.isFinite(quantity) && quantity <= 0;
     });
     if (invalidRows.length > 0) {
-      setIngredientError('食材名が入力されている行には、0より大きい分量を入力してください。');
+      setIngredientError(
+        '食材名が入力されている行には、0より大きい数値または「少々」などの分量テキストを入力してください。'
+      );
       return;
     }
 
     const requestIngredients: RecipeIngredient[] = activeRows.map(
-      ({ ingredientName, quantityStr, unit, note }) => ({
-        ingredientName: ingredientName.trim(),
-        quantity: Number(quantityStr),
-        unit,
-        note: note.trim() || null,
-      })
+      ({ ingredientName, quantityStr, unit, note }) => {
+        const trimmedQuantity = quantityStr.trim();
+
+        if (trimmedQuantity === '' && TEXT_QUANTITY_UNITS.has(unit)) {
+          return {
+            ingredientName: ingredientName.trim(),
+            quantity: unit,
+            unit: '',
+            note: note.trim() || null,
+          };
+        }
+
+        const parsedQuantity = Number(trimmedQuantity);
+
+        return {
+          ingredientName: ingredientName.trim(),
+          quantity:
+            Number.isFinite(parsedQuantity) && parsedQuantity > 0
+              ? parsedQuantity
+              : trimmedQuantity,
+          unit,
+          note: note.trim() || null,
+        };
+      }
     );
 
     createRecipe({
@@ -434,12 +461,10 @@ export function RecipeNewPage() {
                 style={inputStyle}
               />
               <input
-                type="number"
+                type="text"
                 value={row.quantityStr}
                 onChange={e => handleIngredientChange(row.id, 'quantityStr', e.target.value)}
-                placeholder="300"
-                min={0.01}
-                step="any"
+                placeholder={TEXT_QUANTITY_UNITS.has(row.unit) ? '空欄可（例: 少々）' : '300'}
                 aria-label="分量"
                 style={inputStyle}
               />

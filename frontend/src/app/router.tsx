@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { Placeholder } from '../components/Placeholder';
-import { RecipeListPage, RecipeNewPage } from '../features/recipes';
+import { RecipeDetailPage, RecipeListPage, RecipeNewPage } from '../features/recipes';
 
 export const router = createBrowserRouter([
   {
@@ -21,7 +21,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/recipes/:id',
-    element: <Placeholder title="レシピ詳細" />,
+    element: <RecipeDetailPage />,
   },
   {
     path: '/menus',
