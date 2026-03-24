@@ -71,36 +71,46 @@ npm run prepare
 
 #### pre-commit フック（コミット前）
 
-変更されたファイルに対して以下のチェックを並列実行します：
+コミットに含める `frontend/` 配下の staged ファイルに対して以下のチェックを並列実行します：
 
 1. **フォーマットチェック** (`frontend-format`)
-   - 対象: `frontend/**/*.{ts,tsx,js,jsx,json,css,md}`
-   - コマンド: `prettier --check`
+   - 対象: `frontend/**/*.{ts,tsx,js,jsx,json,css,md,html}`
+   - コマンド: `prettier --check {staged_files}`
    - 失敗時: コミットがブロックされます
 
 2. **Lint** (`frontend-lint`)
    - 対象: `frontend/**/*.{ts,tsx,js,jsx}`
-   - コマンド: `eslint`
+   - コマンド: `eslint {staged_files}`
    - 失敗時: コミットがブロックされます
 
 **目的**: 軽量なチェックで即座にフィードバックを得る
 
 #### pre-push フック（プッシュ前）
 
-リモートにプッシュする前に以下のチェックを順次実行します：
+リモートにプッシュする前に、push 対象に `frontend/**` または `infra/lambda/**` の変更が含まれる場合だけ、以下のチェックを順次実行します：
 
-1. **フロントエンドのビルド** (`frontend-build`)
-   - TypeScript型チェック + Viteビルド
+1. **フロントエンドの型チェック** (`frontend-type-check`)
+   - `npx tsc -b`
+   - 対象: `frontend/**`
+
+2. **フロントエンドのビルド** (`frontend-build`)
+   - Viteビルド
+   - 対象: `frontend/**`
    - 所要時間: 約3秒
 
-2. **Lambdaのビルド** (`lambda-build`)
-   - TypeScript型チェック + コンパイル
+3. **Lambdaの型チェック** (`lambda-type-check`)
+   - `npx tsc --noEmit`
+   - 対象: `infra/lambda/**`
+
+4. **Lambdaのビルド** (`lambda-build`)
+   - TypeScriptコンパイル
+   - 対象: `infra/lambda/**`
    - 所要時間: 約1秒
 
-3. **テスト** (`tests`)
+5. **テスト** (`tests`)
    - 現在はプレースホルダー（将来的にテストを追加予定）
 
-**目的**: CIで実行されるチェックと同等の内容をローカルで事前検証
+**目的**: 関連する変更に対して、CIで実行されるチェックをローカルで事前検証
 
 ### フックをスキップする場合
 
@@ -114,7 +124,7 @@ git commit --no-verify -m "コミットメッセージ"
 git push --no-verify
 ```
 
-**⚠️ 注意**: フックをスキップした場合でも、GitHub ActionsのCIでは同様のチェックが実行されます。
+**⚠️ 注意**: フックをスキップした場合でも、`frontend/**` や `infra/lambda/**` の変更を含む push では GitHub Actions の CI が実行されます。
 CIで失敗する可能性が高いため、フックのスキップは極力避けてください。
 
 ### 開発コマンド
@@ -128,8 +138,11 @@ npm run lint
 # すべてのフォーマットチェック
 npm run format:check
 
-# TypeScript型チェックとビルド
+# TypeScript型チェック
 npm run type-check
+
+# フロントエンドとLambdaのビルド
+npm run build:all
 
 # テスト実行（将来的に実装予定）
 npm run test
@@ -196,7 +209,7 @@ GitHub Actionsを使用してCI/CDを実行しています。
 ### ローカルフックとCIの一貫性
 
 lefthookの設定は、CIで実行されるチェックと可能な限り一致するように設計されています。
-これにより、ローカルでフックをパスすればCIでも成功する可能性が高くなります。
+これにより、関連ファイルの変更でローカルフックをパスすればCIでも成功する可能性が高くなります。
 
 ## トラブルシューティング
 
@@ -275,6 +288,7 @@ cd ../..
 - 必要に応じてissue番号を参照
 
 例：
+
 ```
 レシピ一覧ページのレイアウトを修正
 

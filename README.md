@@ -54,8 +54,8 @@ npm run prepare
 
 これにより、以下のGitフックが自動的に設定されます：
 
-- **pre-commit**: コミット前にフォーマットチェックとlintを実行
-- **pre-push**: プッシュ前にTypeScript型チェック、ビルド、テストを実行
+- **pre-commit**: コミットに含める `frontend/` 配下の staged ファイルだけに対してフォーマットチェックと lint を実行
+- **pre-push**: `frontend/**` または `infra/lambda/**` の変更があるときだけ、型チェック・ビルド・テストを実行
 
 ### Gitフックについて
 
@@ -63,8 +63,9 @@ npm run prepare
 
 #### 自動実行されるチェック
 
-- **pre-commit**: コミット前にフォーマットチェック（Prettier）とlint（ESLint）を実行
-- **pre-push**: プッシュ前にTypeScript型チェック、ビルド、テストを実行
+- **pre-commit**: コミットに含める `frontend/` 配下の staged ファイルに対して、Prettier と ESLint を実行
+- **pre-push**: `frontend/**` または `infra/lambda/**` の変更が push に含まれる場合だけ、対応する型チェック・ビルドを実行
+- **test**: 現在の `npm run test` はプレースホルダーで、将来の自動テスト追加まで成功終了のみを返します
 
 詳細は [CONTRIBUTING.md](./CONTRIBUTING.md) を参照してください。
 
@@ -75,7 +76,7 @@ git commit --no-verify  # pre-commitをスキップ
 git push --no-verify    # pre-pushをスキップ
 ```
 
-**⚠️ 注意**: フックをスキップしてもCIでは同様のチェックが実行されるため、CI失敗のリスクがあります。
+**⚠️ 注意**: フックをスキップすると、`frontend/**` や `infra/lambda/**` の変更を含む push では CI 失敗のリスクがあります。
 
 ## 開発
 
@@ -125,8 +126,11 @@ npm run lint
 # すべてのフォーマットチェック
 npm run format:check
 
-# すべてのTypeScript型チェックとビルド
+# フロントエンドとLambdaの型チェック
 npm run type-check
+
+# フロントエンドとLambdaのビルド
+npm run build:all
 
 # テスト実行
 npm run test
