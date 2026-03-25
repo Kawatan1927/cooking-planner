@@ -44,7 +44,7 @@ runtime の生成物は repo 配下の `tmp/` に保存します。
 repo root で実行します。
 
 ```powershell
-pwsh -File .\tools\review-automation\fetch-pr-review.ps1
+pwsh -File ./tools/review-automation/fetch-pr-review.ps1
 ```
 
 ### 2. Codex
@@ -64,7 +64,7 @@ pwsh -File .\tools\review-automation\fetch-pr-review.ps1
 返信案をまず dry-run で確認します。
 
 ```powershell
-pwsh -File .\tools\review-automation\post-pr-reply.ps1 -Repo owner/repo -ReviewCommentId 123456 -BodyFile .\tmp\review-runs\<run-dir>\reply-123456.md -DryRun
+pwsh -File ./tools/review-automation/post-pr-reply.ps1 -Repo owner/repo -ReviewCommentId 123456 -BodyFile ./tmp/review-runs/<run-dir>/reply-123456.md -DryRun
 ```
 
 ### 4. post
@@ -76,19 +76,19 @@ pwsh -File .\tools\review-automation\post-pr-reply.ps1 -Repo owner/repo -ReviewC
 まず 1 回だけ dry-run で判定を確認します。
 
 ```powershell
-pwsh -File .\tools\review-automation\poll-review.ps1 -DryRunCodexLaunch
+pwsh -File ./tools/review-automation/poll-review.ps1 -DryRunCodexLaunch
 ```
 
 問題なければ本番実行します。
 
 ```powershell
-pwsh -File .\tools\review-automation\poll-review.ps1
+pwsh -File ./tools/review-automation/poll-review.ps1
 ```
 
 Windows タスク スケジューラへ 2 時間おきで登録する例:
 
 ```powershell
-pwsh -File .\tools\review-automation\register-review-task.ps1 -IntervalHours 2
+pwsh -File ./tools/review-automation/register-review-task.ps1 -IntervalHours 2
 ```
 
 ## 注意

@@ -14,8 +14,8 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $toolRoot = $PSScriptRoot
-$repoRoot = (Resolve-Path (Join-Path $toolRoot '..\..')).Path
-$replyScriptRelativePath = '.\tools\review-automation\post-pr-reply.ps1'
+$repoRoot = (Resolve-Path (Join-Path (Join-Path $toolRoot '..') '..')).Path
+$replyScriptRelativePath = './tools/review-automation/post-pr-reply.ps1'
 
 function Join-PathSegments {
   param(

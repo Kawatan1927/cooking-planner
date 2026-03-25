@@ -18,7 +18,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $toolRoot = $PSScriptRoot
-$repoRoot = (Resolve-Path (Join-Path $toolRoot '..\..')).Path
+$repoRoot = (Resolve-Path (Join-Path (Join-Path $toolRoot '..') '..')).Path
 
 function Join-PathSegments {
   param(
@@ -301,7 +301,7 @@ try {
     $state.lastCodexStatus = 'dry-run'
     $state.lastCodexMessageFile = $lastMessagePath
     Save-State -State $state -Path $stateFilePath
-    Write-Output "Codex 起動予定: codex exec --full-auto -C $workspace --add-dir $requestDir -o $lastMessagePath - < $promptPath"
+    Write-Output "Codex 起動予定: Get-Content -Raw $promptPath | codex exec --full-auto -C $workspace --add-dir $requestDir -o $lastMessagePath -"
     Write-Output "requestDir: $requestDir"
     exit 0
   }
