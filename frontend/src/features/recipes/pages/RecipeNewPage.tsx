@@ -65,8 +65,10 @@ export function RecipeNewPage() {
   const [sourcePage, setSourcePage] = useState('');
   const [baseServings, setBaseServings] = useState('2');
   const [memo, setMemo] = useState('');
+  const [nameError, setNameError] = useState('');
   const [sourcePageError, setSourcePageError] = useState('');
   const [baseServingsError, setBaseServingsError] = useState('');
+  const [submitError, setSubmitError] = useState('');
 
   // 材料リスト
   const [ingredients, setIngredients] = useState<IngredientRow[]>(() => [newIngredientRow()]);
@@ -107,9 +109,23 @@ export function RecipeNewPage() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setNameError('');
     setIngredientError('');
     setSourcePageError('');
     setBaseServingsError('');
+    setSubmitError('');
+
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      setNameError('レシピ名を入力してください。');
+      return;
+    }
+
+    if (!token) {
+      setSubmitError('レシピを登録するにはログインが必要です。');
+      return;
+    }
 
     const parsedPage = sourcePage !== '' ? Number(sourcePage) : undefined;
     const parsedServings = Number(baseServings);
@@ -208,7 +224,7 @@ export function RecipeNewPage() {
     );
 
     createRecipe({
-      name: name.trim(),
+      name: trimmedName,
       sourceBook: sourceBook.trim() || undefined,
       sourcePage: parsedPage,
       baseServings: parsedServings,
@@ -259,6 +275,21 @@ export function RecipeNewPage() {
         </div>
       )}
 
+      {submitError && (
+        <div
+          style={{
+            padding: '1rem',
+            marginBottom: '1rem',
+            backgroundColor: '#f8d7da',
+            border: '1px solid #f5c6cb',
+            borderRadius: '4px',
+            color: '#721c24',
+          }}
+        >
+          <p style={{ margin: 0 }}>{submitError}</p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         {/* レシピ基本情報 */}
         <section
@@ -282,11 +313,28 @@ export function RecipeNewPage() {
               id="recipe-name"
               type="text"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={e => {
+                setName(e.target.value);
+                if (nameError) {
+                  setNameError('');
+                }
+              }}
               placeholder="例: 鶏の照り焼き"
               required
+              aria-invalid={nameError ? 'true' : 'false'}
               style={inputStyle}
             />
+            {nameError && (
+              <div
+                style={{
+                  marginTop: '0.5rem',
+                  color: '#721c24',
+                  fontSize: '0.875rem',
+                }}
+              >
+                {nameError}
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>

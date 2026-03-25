@@ -71,8 +71,8 @@ export function RecipeDetail({ recipeId, token }: RecipeDetailProps) {
           <p>材料が登録されていません</p>
         ) : (
           <ul>
-            {recipe.ingredients.map((ingredient, index) => (
-              <li key={index}>
+            {recipe.ingredients.map(ingredient => (
+              <li key={ingredient.ingredientName}>
                 {ingredient.ingredientName}:{' '}
                 {formatIngredientAmount(ingredient.quantity, ingredient.unit)}
                 {ingredient.note && <span> ({ingredient.note})</span>}

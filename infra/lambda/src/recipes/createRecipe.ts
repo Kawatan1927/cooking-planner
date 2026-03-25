@@ -226,7 +226,10 @@ export const createRecipe = async (
         userId,
         recipeId,
         ingredientName: ingredient.ingredientName,
-        quantity: ingredient.quantity,
+        quantity:
+          typeof ingredient.quantity === 'string'
+            ? ingredient.quantity.trim()
+            : ingredient.quantity,
         unit: ingredient.unit,
         note: ingredient.note ?? undefined,
       };
