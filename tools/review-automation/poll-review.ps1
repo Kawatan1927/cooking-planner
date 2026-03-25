@@ -36,9 +36,26 @@ function Join-PathSegments {
   return $path
 }
 
+function Resolve-ConfiguredPath {
+  param(
+    [string]$PathValue,
+    [string]$BasePath
+  )
+
+  if (-not $PathValue) {
+    return $null
+  }
+
+  if ([System.IO.Path]::IsPathRooted($PathValue)) {
+    return [System.IO.Path]::GetFullPath($PathValue)
+  }
+
+  return [System.IO.Path]::GetFullPath((Join-Path $BasePath $PathValue))
+}
+
 $workspace = if ($WorkspacePath) { (Resolve-Path $WorkspacePath).Path } else { $repoRoot }
-$stateFilePath = if ($StateFile) { $StateFile } else { Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-automation', 'state.json') }
-$promptTemplatePath = if ($PromptTemplateFile) { $PromptTemplateFile } else { Join-PathSegments -BasePath $toolRoot -Segments @('prompts', 'automation-short-prompt.md') }
+$stateFilePath = if ($StateFile) { Resolve-ConfiguredPath -PathValue $StateFile -BasePath $repoRoot } else { Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-automation', 'state.json') }
+$promptTemplatePath = if ($PromptTemplateFile) { Resolve-ConfiguredPath -PathValue $PromptTemplateFile -BasePath $toolRoot } else { Join-PathSegments -BasePath $toolRoot -Segments @('prompts', 'automation-short-prompt.md') }
 $fetchScriptPath = Join-Path $toolRoot 'fetch-pr-review.ps1'
 $reviewInboxRoot = Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-inbox')
 $reviewRunsRoot = Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-runs')
@@ -157,8 +174,8 @@ $template
 - 必要な修正があれば、この workspace 上で最小限のコード修正を行ってください。
 - 修正後は format / lint / build を実行してください。
 - 検証が通り、変更ファイルがある場合は日本語のコミットメッセージで commit し、現在の作業ブランチを origin へ push してください。
-- commit / push に失敗した場合は、失敗内容を $RequestDir\codex-result.md に明記し、返信文でも未完了として扱ってください。
-- 実行結果の要約を $RequestDir\codex-result.md に保存してください。
+- commit / push に失敗した場合は、失敗内容を codex-result.md に明記し、返信文でも未完了として扱ってください。
+- 実行結果の要約を codex-result.md に保存してください。
 - codex-result.md には実行した検証コマンド、結果、commit hash、push の成否を必ず書いてください。
 - 各 thread への返信案は $RequestDir 配下に reply-<reviewCommentId>.md というファイル名で保存してください。
 - replyExample に含まれる reviewCommentId を使って返信ファイル名を対応づけてください。
@@ -229,10 +246,13 @@ try {
   $previousInboxHash = [string]($state.lastInboxHash ?? '')
   $previousCodexStatus = [string]($state.lastCodexStatus ?? '')
   $now = Get-Date -Format o
+  $isPreviousStatusRetrySafe =
+    ($previousCodexStatus -eq 'completed') -or
+    ($previousCodexStatus -eq 'dry-run') -or
+    $previousCodexStatus.StartsWith('skipped-')
 
   $sameAsLast =
-    ($previousCodexStatus -ne '') -and
-    (-not $previousCodexStatus.StartsWith('failed(')) -and
+    $isPreviousStatusRetrySafe -and
     ($previousRepo -eq $repoName) -and
     ($previousPrNumber -eq $pr) -and
     ($previousInboxHash -eq $inboxHash) -and

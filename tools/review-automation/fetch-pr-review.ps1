@@ -367,11 +367,11 @@ $lines.Add('3. 修正後は対象リポジトリの format / lint / build を実
 $lines.Add('4. 修正がある場合は commit / push を済ませてから返信案を作る。')
 $lines.Add('5. 返信案は日本語で短く書く。')
 $lines.Add('')
-$lines.Add('## Unresolved Review Threads')
+$lines.Add('## Review Threads')
 $lines.Add('')
 
 if ($filteredThreads.Count -eq 0) {
-  $lines.Add('未解決の review thread はありません。')
+  $lines.Add('対象の review thread はありません。')
   $lines.Add('')
 } else {
   $threadIndex = 0
