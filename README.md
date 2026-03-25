@@ -55,7 +55,7 @@ npm run prepare
 これにより、以下のGitフックが自動的に設定されます：
 
 - **pre-commit**: コミットに含める `frontend/` 配下の staged ファイルだけに対してフォーマットチェックと lint を実行
-- **pre-push**: `frontend/**` または `infra/lambda/**` の変更があるときだけ、型チェック・ビルド・テストを実行
+- **pre-push**: `frontend/**` または `infra/lambda/**` の変更があるときだけ、ビルドとテストを実行します（ビルド時に TypeScript の型エラーも検出）
 
 ### Gitフックについて
 
@@ -64,7 +64,7 @@ npm run prepare
 #### 自動実行されるチェック
 
 - **pre-commit**: コミットに含める `frontend/` 配下の staged ファイルに対して、Prettier と ESLint を実行
-- **pre-push**: `frontend/**` または `infra/lambda/**` の変更が push に含まれる場合だけ、対応する型チェック・ビルドを実行
+- **pre-push**: `frontend/**` または `infra/lambda/**` の変更が push に含まれる場合だけ、対応するビルドを実行します（ビルド時に TypeScript の型エラーも検出）
 - **test**: 現在の `npm run test` はプレースホルダーで、将来の自動テスト追加まで成功終了のみを返します
 
 詳細は [CONTRIBUTING.md](./CONTRIBUTING.md) を参照してください。

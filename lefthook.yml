@@ -10,13 +10,13 @@ pre-commit:
     # フロントエンドのフォーマットチェック
     frontend-format:
       glob: "frontend/**/*.{ts,tsx,js,jsx,json,css,md,html}"
-      run: npm exec --prefix frontend -- prettier --check "{staged_files}"
+      run: npm exec --prefix frontend -- prettier --check {staged_files}
       stage_fixed: false
 
     # フロントエンドのlint
     frontend-lint:
       glob: "frontend/**/*.{ts,tsx,js,jsx}"
-      run: npm exec --prefix frontend -- eslint --config frontend/eslint.config.js "{staged_files}"
+      run: npm exec --prefix frontend -- eslint --config frontend/eslint.config.js {staged_files}
       stage_fixed: false
 
 # pre-push: やや重めのチェック（変更がある領域だけ）

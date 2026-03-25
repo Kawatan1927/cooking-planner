@@ -89,25 +89,19 @@ npm run prepare
 
 リモートにプッシュする前に、push 対象に `frontend/**` または `infra/lambda/**` の変更が含まれる場合だけ、以下のチェックを順次実行します：
 
-1. **フロントエンドの型チェック** (`frontend-type-check`)
-   - `npx tsc -b`
-   - 対象: `frontend/**`
-
-2. **フロントエンドのビルド** (`frontend-build`)
+1. **フロントエンドのビルド** (`frontend-build`)
    - Viteビルド
+   - 内部で `tsc -b` による型チェックを実行
    - 対象: `frontend/**`
    - 所要時間: 約3秒
 
-3. **Lambdaの型チェック** (`lambda-type-check`)
-   - `npx tsc --noEmit`
-   - 対象: `infra/lambda/**`
-
-4. **Lambdaのビルド** (`lambda-build`)
+2. **Lambdaのビルド** (`lambda-build`)
    - TypeScriptコンパイル
+   - コンパイル時に型エラーも検出
    - 対象: `infra/lambda/**`
    - 所要時間: 約1秒
 
-5. **テスト** (`tests`)
+3. **テスト** (`tests`)
    - 現在はプレースホルダー（将来的にテストを追加予定）
 
 **目的**: 関連する変更に対して、CIで実行されるチェックをローカルで事前検証
