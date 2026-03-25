@@ -204,7 +204,7 @@ export function RecipeNewPage() {
           return {
             ingredientName: ingredientName.trim(),
             quantity: unit,
-            unit: '',
+            unit,
             note: note.trim() || null,
           };
         }

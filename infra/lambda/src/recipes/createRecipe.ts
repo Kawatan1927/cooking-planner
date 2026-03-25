@@ -134,31 +134,42 @@ export const createRecipe = async (
           'Each ingredient must have a valid ingredientName'
         );
       }
-      
+
+      const trimmedIngredientName = ingredient.ingredientName.trim();
+      const trimmedUnit = typeof ingredient.unit === 'string' ? ingredient.unit.trim() : '';
+
+      if (!trimmedIngredientName) {
+        return createErrorResponse(
+          400,
+          'BAD_REQUEST',
+          'Each ingredient must have a valid ingredientName'
+        );
+      }
+
       // Normalize ingredient name for duplicate checking (case-insensitive)
-      const normalizedName = ingredient.ingredientName.toLowerCase().trim();
-      
+      const normalizedName = trimmedIngredientName.toLowerCase();
+
       // Check for duplicate ingredient names (case-insensitive)
       if (ingredientNames.has(normalizedName)) {
         return createErrorResponse(
           400,
           'BAD_REQUEST',
-          `Duplicate ingredient name: ${ingredient.ingredientName}`
+          `Duplicate ingredient name: ${trimmedIngredientName}`
         );
       }
       ingredientNames.add(normalizedName);
-      
+
       // Check for duplicates after sanitization
-      const sanitizedName = sanitizeIngredientNameForSK(ingredient.ingredientName).toLowerCase().trim();
+      const sanitizedName = sanitizeIngredientNameForSK(trimmedIngredientName).toLowerCase();
       if (sanitizedIngredientNames.has(sanitizedName)) {
         const conflictingName = sanitizedIngredientNames.get(sanitizedName);
         return createErrorResponse(
           400,
           'BAD_REQUEST',
-          `Ingredient names "${ingredient.ingredientName}" and "${conflictingName}" would conflict after sanitization`
+          `Ingredient names "${trimmedIngredientName}" and "${conflictingName}" would conflict after sanitization`
         );
       }
-      sanitizedIngredientNames.set(sanitizedName, ingredient.ingredientName);
+      sanitizedIngredientNames.set(sanitizedName, trimmedIngredientName);
 
       if (typeof ingredient.quantity === 'number') {
         if (ingredient.quantity <= 0) {
@@ -169,7 +180,7 @@ export const createRecipe = async (
           );
         }
 
-        if (!ingredient.unit || typeof ingredient.unit !== 'string') {
+        if (!trimmedUnit) {
           return createErrorResponse(400, 'BAD_REQUEST', 'Each ingredient must have a unit');
         }
       } else if (typeof ingredient.quantity === 'string') {
@@ -191,7 +202,7 @@ export const createRecipe = async (
           );
         }
 
-        if (typeof ingredient.unit !== 'string') {
+        if (!trimmedUnit) {
           return createErrorResponse(400, 'BAD_REQUEST', 'Each ingredient must have a unit');
         }
       } else {
@@ -222,15 +233,18 @@ export const createRecipe = async (
 
     // Prepare ingredient items
     const ingredientItems = requestBody.ingredients.map((ingredient) => {
+      const trimmedIngredientName = ingredient.ingredientName.trim();
+      const trimmedUnit = ingredient.unit.trim();
+
       const recipeIngredient: RecipeIngredient = {
         userId,
         recipeId,
-        ingredientName: ingredient.ingredientName,
+        ingredientName: trimmedIngredientName,
         quantity:
           typeof ingredient.quantity === 'string'
             ? ingredient.quantity.trim()
             : ingredient.quantity,
-        unit: ingredient.unit,
+        unit: trimmedUnit,
         note: ingredient.note ?? undefined,
       };
       return recipeIngredient;

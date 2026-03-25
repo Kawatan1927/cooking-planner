@@ -91,5 +91,9 @@ export function RecipeDetail({ recipeId, token }: RecipeDetailProps) {
 }
 
 function formatIngredientAmount(quantity: number | string, unit: string): string {
+  if (typeof quantity === 'string' && quantity === unit) {
+    return quantity;
+  }
+
   return unit ? `${quantity} ${unit}` : String(quantity);
 }
