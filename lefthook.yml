@@ -1,0 +1,56 @@
+glob_matcher: doublestar
+
+# Lefthook configuration for cooking-planner
+# See: https://github.com/evilmartians/lefthook
+
+# pre-commit: 軽量チェック（staged の frontend ファイルのみ）
+pre-commit:
+  parallel: true
+  commands:
+    # フロントエンドのフォーマットチェック
+    frontend-format:
+      glob: "frontend/**/*.{ts,tsx,js,jsx,json,css,md,html}"
+      run: npm exec --prefix frontend -- prettier --check {staged_files}
+      stage_fixed: false
+
+    # フロントエンドのlint
+    frontend-lint:
+      glob: "frontend/**/*.{ts,tsx,js,jsx}"
+      run: npm exec --prefix frontend -- eslint --config frontend/eslint.config.js {staged_files}
+      stage_fixed: false
+
+# pre-push: やや重めのチェック（変更がある領域だけ）
+pre-push:
+  parallel: false
+  commands:
+    # フロントエンドのビルド
+    frontend-build:
+      glob: "frontend/**"
+      run: |
+        echo "🏗️ フロントエンドのビルドを実行中..."
+        npm run frontend:build
+
+    # Lambdaのビルド
+    lambda-build:
+      glob: "infra/lambda/**"
+      run: |
+        echo "🏗️ Lambdaのビルドを実行中..."
+        npm run lambda:build
+
+    # テスト実行（将来的にテストが追加された場合）
+    tests:
+      glob:
+        - "frontend/**"
+        - "infra/lambda/**"
+      run: |
+        echo "🧪 テストを実行中..."
+        npm run test
+
+# 設定
+skip_output:
+  - meta
+  - summary
+
+# リモートファイルからのフックはスキップ
+remote:
+  enabled: false
