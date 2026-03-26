@@ -84,21 +84,6 @@ export class CookingPlannerStack extends cdk.Stack {
       removalPolicy: stage === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
     });
 
-    const userPoolClient = userPool.addClient('UserPoolClient', {
-      userPoolClientName: `CookingPlanner-Client-${stage}`,
-      authFlows: {
-        userPassword: true,
-        userSrp: true,
-      },
-      oAuth: {
-        flows: {
-          authorizationCodeGrant: true,
-        },
-        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
-      },
-      generateSecret: false, // SPA doesn't use client secret
-    });
-
     // ============================================
     // Lambda Function
     // ============================================
@@ -170,6 +155,28 @@ export class CookingPlannerStack extends cdk.Stack {
           ttl: cdk.Duration.minutes(5),
         },
       ],
+    });
+
+    const hostedUiRedirectUrls =
+      stage === 'prod'
+        ? [`https://${distribution.distributionDomainName}`]
+        : ['http://localhost:5173', `https://${distribution.distributionDomainName}`];
+
+    const userPoolClient = userPool.addClient('UserPoolClient', {
+      userPoolClientName: `CookingPlanner-Client-${stage}`,
+      authFlows: {
+        userPassword: true,
+        userSrp: true,
+      },
+      oAuth: {
+        flows: {
+          authorizationCodeGrant: true,
+        },
+        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
+        callbackUrls: hostedUiRedirectUrls,
+        logoutUrls: hostedUiRedirectUrls,
+      },
+      generateSecret: false, // SPA doesn't use client secret
     });
 
     // ============================================

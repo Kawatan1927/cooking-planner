@@ -31,7 +31,7 @@ HTTP API エンドポイントを提供する API Gateway の設定：
 - CORS 設定
 - Lambda プロキシ統合
 - ルーティング設定
-- 認証設定（今後実装予定）
+- 認証設定（実装済み）
 - ロギングとモニタリング
 
 ### [Cognito User Pool 設定](./cognito.md)
@@ -133,16 +133,16 @@ npx cdk deploy -c stage=dev
 
 デプロイ後、以下の情報が CloudFormation Outputs として出力されます：
 
-| Output 名 | 説明 | 用途 |
-|----------|------|------|
-| `UserPoolId` | Cognito User Pool ID | フロントエンド認証設定 |
-| `UserPoolClientId` | Cognito Client ID | フロントエンド認証設定 |
-| `ApiEndpoint` | API Gateway エンドポイント URL | フロントエンド API 接続設定 |
-| `DistributionDomainName` | CloudFront ドメイン名 | フロントエンドアクセス URL |
-| `FrontendBucketName` | S3 バケット名 | フロントエンドデプロイ先 |
-| `RecipesTableName` | Recipes テーブル名 | Lambda 環境変数（自動設定済み） |
-| `RecipeIngredientsTableName` | RecipeIngredients テーブル名 | Lambda 環境変数（自動設定済み） |
-| `MenusTableName` | Menus テーブル名 | Lambda 環境変数（自動設定済み） |
+| Output 名                    | 説明                           | 用途                            |
+| ---------------------------- | ------------------------------ | ------------------------------- |
+| `UserPoolId`                 | Cognito User Pool ID           | フロントエンド認証設定          |
+| `UserPoolClientId`           | Cognito Client ID              | フロントエンド認証設定          |
+| `ApiEndpoint`                | API Gateway エンドポイント URL | フロントエンド API 接続設定     |
+| `DistributionDomainName`     | CloudFront ドメイン名          | フロントエンドアクセス URL      |
+| `FrontendBucketName`         | S3 バケット名                  | フロントエンドデプロイ先        |
+| `RecipesTableName`           | Recipes テーブル名             | Lambda 環境変数（自動設定済み） |
+| `RecipeIngredientsTableName` | RecipeIngredients テーブル名   | Lambda 環境変数（自動設定済み） |
+| `MenusTableName`             | Menus テーブル名               | Lambda 環境変数（自動設定済み） |
 
 ## フロントエンド環境変数設定
 
@@ -215,7 +215,6 @@ npx cdk deploy
 - **トリガー条件**:
   - `main` または `develop` ブランチへの push
   - `infra/**` ディレクトリ（`lambda` を除く）の変更を含む PR
-  
 - **実行内容**:
   1. TypeScript ビルド
   2. ユニットテストの実行

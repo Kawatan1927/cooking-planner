@@ -47,6 +47,8 @@ describe('CookingPlannerStack', () => {
       ClientName: 'CookingPlanner-Client-test',
       AllowedOAuthFlows: ['code'],
       AllowedOAuthFlowsUserPoolClient: true,
+      CallbackURLs: Match.arrayWith(['http://localhost:5173']),
+      LogoutURLs: Match.arrayWith(['http://localhost:5173']),
     });
   });
 

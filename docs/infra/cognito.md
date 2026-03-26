@@ -8,22 +8,22 @@ Amazon Cognito User Pool を使用して、アプリケーションへのログ�
 
 ## User Pool の基本設定
 
-| 項目 | 値 | 説明 |
-|-----|-----|------|
-| User Pool 名 | `CookingPlanner-UserPool-{stage}` | stage は `prod` または `dev` |
-| セルフサインアップ | 無効 | 管理者のみがユーザーを作成可能 |
-| サインイン方式 | Email | メールアドレスでログイン |
-| Email 自動検証 | 有効 | メールアドレスを自動検証 |
-| Removal Policy (prod) | RETAIN | 本番環境ではスタック削除時も User Pool を保持 |
-| Removal Policy (dev) | DESTROY | 開発環境ではスタック削除時に削除 |
+| 項目                  | 値                                | 説明                                          |
+| --------------------- | --------------------------------- | --------------------------------------------- |
+| User Pool 名          | `CookingPlanner-UserPool-{stage}` | stage は `prod` または `dev`                  |
+| セルフサインアップ    | 無効                              | 管理者のみがユーザーを作成可能                |
+| サインイン方式        | Email                             | メールアドレスでログイン                      |
+| Email 自動検証        | 有効                              | メールアドレスを自動検証                      |
+| Removal Policy (prod) | RETAIN                            | 本番環境ではスタック削除時も User Pool を保持 |
+| Removal Policy (dev)  | DESTROY                           | 開発環境ではスタック削除時に削除              |
 
 ## ユーザー属性
 
 ### 必須属性
 
-| 属性名 | タイプ | 変更可否 | 説明 |
-|-------|--------|---------|------|
-| email | String | 不可 | ユーザーのメールアドレス（ログインIDとして使用） |
+| 属性名 | タイプ | 変更可否 | 説明                                             |
+| ------ | ------ | -------- | ------------------------------------------------ |
+| email  | String | 不可     | ユーザーのメールアドレス（ログインIDとして使用） |
 
 ### 属性設定の背景
 
@@ -34,13 +34,13 @@ Amazon Cognito User Pool を使用して、アプリケーションへのログ�
 
 セキュリティを確保しつつ、個人利用に適したバランスの取れた設定：
 
-| 項目 | 値 | 説明 |
-|-----|-----|------|
-| 最小文字数 | 8文字 | 十分な強度を確保 |
-| 小文字 | 必須 | a-z を含む必要あり |
-| 大文字 | 必須 | A-Z を含む必要あり |
-| 数字 | 必須 | 0-9 を含む必要あり |
-| 記号 | 不要 | 利便性のため不要 |
+| 項目       | 値    | 説明               |
+| ---------- | ----- | ------------------ |
+| 最小文字数 | 8文字 | 十分な強度を確保   |
+| 小文字     | 必須  | a-z を含む必要あり |
+| 大文字     | 必須  | A-Z を含む必要あり |
+| 数字       | 必須  | 0-9 を含む必要あり |
+| 記号       | 不要  | 利便性のため不要   |
 
 ### パスワード例
 
@@ -51,8 +51,8 @@ Amazon Cognito User Pool を使用して、アプリケーションへのログ�
 
 ## アカウント復旧設定
 
-| 項目 | 値 |
-|-----|-----|
+| 項目     | 値         |
+| -------- | ---------- |
 | 復旧方法 | Email のみ |
 
 パスワードを忘れた場合、登録メールアドレスに復旧コードが送信されます。
@@ -63,26 +63,27 @@ SPA（Single Page Application）からのアクセス用にクライアントを
 
 ### Client 基本設定
 
-| 項目 | 値 | 説明 |
-|-----|-----|------|
-| Client 名 | `CookingPlanner-Client-{stage}` | stage は `prod` または `dev` |
-| Client Secret | 生成しない | SPA は Secret を安全に保管できないため |
+| 項目          | 値                              | 説明                                   |
+| ------------- | ------------------------------- | -------------------------------------- |
+| Client 名     | `CookingPlanner-Client-{stage}` | stage は `prod` または `dev`           |
+| Client Secret | 生成しない                      | SPA は Secret を安全に保管できないため |
 
 ### 認証フロー
 
 有効化されている認証フロー：
 
-| フロー | 説明 |
-|-------|------|
-| USER_PASSWORD_AUTH | ユーザー名とパスワードによる認証 |
-| USER_SRP_AUTH | Secure Remote Password プロトコルによる認証 |
+| フロー             | 説明                                        |
+| ------------------ | ------------------------------------------- |
+| USER_PASSWORD_AUTH | ユーザー名とパスワードによる認証            |
+| USER_SRP_AUTH      | Secure Remote Password プロトコルによる認証 |
 
 ### OAuth 2.0 設定
 
-| 項目 | 値 | 説明 |
-|-----|-----|------|
-| OAuth フロー | Authorization Code Grant | SPA は Authorization Code + PKCE を前提にする |
-| OAuth スコープ | openid, email, profile | 基本的なユーザー情報へのアクセス |
+| 項目                  | 値                                                            | 説明                                                                       |
+| --------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| OAuth フロー          | Authorization Code Grant                                      | SPA は Authorization Code + PKCE を前提にする                              |
+| OAuth スコープ        | openid, email, profile                                        | 基本的なユーザー情報へのアクセス                                           |
+| Callback / Logout URL | `http://localhost:5173`（dev）, `https://<CloudFront domain>` | ローカル開発とデプロイ済み SPA の両方から Hosted UI を利用できるようにする |
 
 #### スコープの説明
 
@@ -96,11 +97,11 @@ SPA（Single Page Application）からのアクセス用にクライアントを
 
 フロントエンドアプリケーションで Cognito を使用するために必要な情報：
 
-| 情報 | CloudFormation Output 名 | 説明 |
-|-----|--------------------------|------|
-| User Pool ID | `UserPoolId` | Cognito User Pool の識別子 |
-| Client ID | `UserPoolClientId` | アプリケーションクライアントの識別子 |
-| Region | - | AWS リージョン（デプロイ先） |
+| 情報         | CloudFormation Output 名 | 説明                                 |
+| ------------ | ------------------------ | ------------------------------------ |
+| User Pool ID | `UserPoolId`             | Cognito User Pool の識別子           |
+| Client ID    | `UserPoolClientId`       | アプリケーションクライアントの識別子 |
+| Region       | -                        | AWS リージョン（デプロイ先）         |
 
 ### 環境変数の設定例
 
@@ -110,6 +111,8 @@ SPA（Single Page Application）からのアクセス用にクライアントを
 VITE_COGNITO_USER_POOL_ID=ap-northeast-1_XXXXXXXXX
 VITE_COGNITO_CLIENT_ID=1234567890abcdefghijklmnop
 VITE_COGNITO_REGION=ap-northeast-1
+VITE_COGNITO_REDIRECT_URI=http://localhost:5173
+VITE_COGNITO_LOGOUT_REDIRECT_URI=http://localhost:5173
 ```
 
 ### ライブラリの例
@@ -117,7 +120,11 @@ VITE_COGNITO_REGION=ap-northeast-1
 AWS Amplify や amazon-cognito-identity-js を使用して認証を実装：
 
 ```typescript
-import { CognitoUserPool, CognitoUser, AuthenticationDetails } from 'amazon-cognito-identity-js';
+import {
+  CognitoUserPool,
+  CognitoUser,
+  AuthenticationDetails,
+} from "amazon-cognito-identity-js";
 
 const poolData = {
   UserPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
@@ -159,11 +166,11 @@ aws cognito-idp admin-create-user \
 
 Cognito は認証成功時に以下の3つのトークンを発行します：
 
-| トークン | 用途 | 有効期間 |
-|---------|------|---------|
-| ID Token | ユーザー情報を含む（API 認証に使用） | 1時間（デフォルト） |
-| Access Token | リソースへのアクセス権限 | 1時間（デフォルト） |
-| Refresh Token | 新しいトークンの取得 | 30日（デフォルト） |
+| トークン      | 用途                                 | 有効期間            |
+| ------------- | ------------------------------------ | ------------------- |
+| ID Token      | ユーザー情報を含む（API 認証に使用） | 1時間（デフォルト） |
+| Access Token  | リソースへのアクセス権限             | 1時間（デフォルト） |
+| Refresh Token | 新しいトークンの取得                 | 30日（デフォルト）  |
 
 ### ID Token の構造
 
@@ -188,10 +195,10 @@ JWT 形式で、以下のようなクレームを含みます：
 フロントエンドから API を呼び出す際、Authorization ヘッダーに ID Token を含めます：
 
 ```typescript
-const response = await fetch('https://api.example.com/recipes', {
+const response = await fetch("https://api.example.com/recipes", {
   headers: {
-    'Authorization': `Bearer ${idToken}`,
-    'Content-Type': 'application/json',
+    Authorization: `Bearer ${idToken}`,
+    "Content-Type": "application/json",
   },
 });
 ```
@@ -201,7 +208,7 @@ const response = await fetch('https://api.example.com/recipes', {
 ### User Pool の定義
 
 ```typescript
-const userPool = new cognito.UserPool(this, 'UserPool', {
+const userPool = new cognito.UserPool(this, "UserPool", {
   userPoolName: `CookingPlanner-UserPool-${stage}`,
   selfSignUpEnabled: false,
   signInAliases: {
@@ -224,14 +231,15 @@ const userPool = new cognito.UserPool(this, 'UserPool', {
     requireSymbols: false,
   },
   accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
-  removalPolicy: stage === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
+  removalPolicy:
+    stage === "prod" ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
 });
 ```
 
 ### User Pool Client の定義
 
 ```typescript
-const userPoolClient = userPool.addClient('UserPoolClient', {
+const userPoolClient = userPool.addClient("UserPoolClient", {
   userPoolClientName: `CookingPlanner-Client-${stage}`,
   authFlows: {
     userPassword: true,
@@ -241,7 +249,19 @@ const userPoolClient = userPool.addClient('UserPoolClient', {
     flows: {
       authorizationCodeGrant: true,
     },
-    scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
+    scopes: [
+      cognito.OAuthScope.OPENID,
+      cognito.OAuthScope.EMAIL,
+      cognito.OAuthScope.PROFILE,
+    ],
+    callbackUrls: [
+      "http://localhost:5173",
+      `https://${distribution.distributionDomainName}`,
+    ],
+    logoutUrls: [
+      "http://localhost:5173",
+      `https://${distribution.distributionDomainName}`,
+    ],
   },
   generateSecret: false,
 });
@@ -250,15 +270,15 @@ const userPoolClient = userPool.addClient('UserPoolClient', {
 ### CloudFormation Outputs
 
 ```typescript
-new cdk.CfnOutput(this, 'UserPoolId', {
+new cdk.CfnOutput(this, "UserPoolId", {
   value: userPool.userPoolId,
-  description: 'Cognito User Pool ID',
+  description: "Cognito User Pool ID",
   exportName: `CookingPlanner-UserPoolId-${stage}`,
 });
 
-new cdk.CfnOutput(this, 'UserPoolClientId', {
+new cdk.CfnOutput(this, "UserPoolClientId", {
   value: userPoolClient.userPoolClientId,
-  description: 'Cognito User Pool Client ID',
+  description: "Cognito User Pool Client ID",
   exportName: `CookingPlanner-UserPoolClientId-${stage}`,
 });
 ```
@@ -266,12 +286,14 @@ new cdk.CfnOutput(this, 'UserPoolClientId', {
 ## セキュリティベストプラクティス
 
 ### 実装済み
+
 - ✅ セルフサインアップ無効（管理者のみがユーザー作成可能）
 - ✅ 強固なパスワードポリシー
 - ✅ Email 検証必須
 - ✅ Client Secret なし（SPA では安全に保管できないため）
 
 ### 今後の検討事項
+
 - MFA（多要素認証）の有効化
 - IP アドレス制限
 - カスタムドメインの使用
