@@ -1,4 +1,4 @@
-# PR Review Automation
+# PRレビュー自動化
 
 GitHub PR の未解決 review thread を取得し、変化がある時だけ Codex を起動するためのローカル運用用ツールです。
 
