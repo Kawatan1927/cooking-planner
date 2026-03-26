@@ -1,4 +1,4 @@
-# Codex Automation Prompt
+# PR レビュー自動化プロンプト
 
 以下の手順で PR レビュー対応を進めてください。
 
