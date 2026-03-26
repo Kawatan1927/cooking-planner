@@ -1,4 +1,4 @@
-# Codex Automation Short Prompt
+# Codex Automation ショートプロンプト
 
 指定された review inbox の Markdown を読み、未解決 thread のみを対象に対応してください。
 
