@@ -37,11 +37,20 @@ if (-not $Body) {
 
 if ($ReviewCommentId) {
   if (-not $PrNumber) {
-    $comment = & gh api "repos/$Repo/pulls/comments/$ReviewCommentId" | ConvertFrom-Json
-    if ($LASTEXITCODE -ne 0 -or -not $comment) {
-      throw "review comment の取得に失敗しました: repos/$Repo/pulls/comments/$ReviewCommentId"
+    $commentJson = & gh api "repos/$Repo/pulls/comments/$ReviewCommentId" 2>&1
+    if ($LASTEXITCODE -ne 0 -or -not $commentJson) {
+      $errorMessage = "review comment の取得に失敗しました: repos/$Repo/pulls/comments/$ReviewCommentId"
+      if ($commentJson) {
+        $errorMessage += "`n`n" + ($commentJson | Out-String)
+      }
+      throw $errorMessage
     }
 
+    try {
+      $comment = $commentJson | ConvertFrom-Json
+    } catch {
+      throw "review comment の JSON 解析に失敗しました: repos/$Repo/pulls/comments/$ReviewCommentId`n`n$commentJson"
+    }
     $pullRequestUrl = [string]$comment.pull_request_url
     if (-not $pullRequestUrl) {
       throw "review comment から pull_request_url を取得できませんでした: $ReviewCommentId"
