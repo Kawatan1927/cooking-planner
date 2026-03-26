@@ -21,3 +21,8 @@ frontend/*.local
 # Lambda build artifacts
 infra/lambda/dist
 infra/lambda/node_modules
+
+# Docusaurus build artifacts
+docs/.docusaurus
+docs/build
+docs/node_modules
