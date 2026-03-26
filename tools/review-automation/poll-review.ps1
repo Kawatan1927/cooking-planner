@@ -12,6 +12,8 @@ param(
   [switch]$IncludeConversationComments,
   [switch]$IncludeResolved,
   [switch]$IncludeOutdated,
+  [ValidateRange(1, 168)]
+  [int]$LockTimeoutHours = 6,
   [switch]$DryRunCodexLaunch
 )
 
@@ -142,6 +144,91 @@ function Get-ThreadCountFromInbox {
   return [int]$match.Matches[0].Groups['count'].Value
 }
 
+function Read-LockState {
+  param([string]$Path)
+
+  if (-not (Test-Path $Path)) {
+    return $null
+  }
+
+  $raw = Get-Content -Raw -Encoding UTF8 -Path $Path
+  if ([string]::IsNullOrWhiteSpace($raw)) {
+    return $null
+  }
+
+  try {
+    return $raw | ConvertFrom-Json -AsHashtable
+  }
+  catch {
+    return [ordered]@{
+      timestamp = $raw.Trim()
+      pid = 0
+      processStartTime = ''
+    }
+  }
+}
+
+function Test-LockProcessRunning {
+  param([hashtable]$LockState)
+
+  $lockPid = [int]($LockState.pid ?? 0)
+  if ($lockPid -le 0) {
+    return $false
+  }
+
+  try {
+    $process = Get-Process -Id $lockPid -ErrorAction Stop
+  }
+  catch {
+    return $false
+  }
+
+  $expectedStartTime = [string]($LockState.processStartTime ?? '')
+  if (-not $expectedStartTime) {
+    return $true
+  }
+
+  try {
+    $actualStartTime = $process.StartTime.ToUniversalTime().ToString('o')
+  }
+  catch {
+    return $true
+  }
+
+  return $actualStartTime -eq $expectedStartTime
+}
+
+function Get-LockTimestamp {
+  param(
+    [hashtable]$LockState,
+    [string]$Path
+  )
+
+  $timestamp = [string]($LockState.timestamp ?? '')
+  if ($timestamp) {
+    try {
+      return [DateTimeOffset]::Parse($timestamp).UtcDateTime
+    }
+    catch {
+    }
+  }
+
+  return (Get-Item $Path).LastWriteTimeUtc
+}
+
+function Write-LockState {
+  param([string]$Path)
+
+  $currentProcess = Get-Process -Id $PID
+  $lockState = [ordered]@{
+    timestamp = (Get-Date).ToUniversalTime().ToString('o')
+    pid = $PID
+    processStartTime = $currentProcess.StartTime.ToUniversalTime().ToString('o')
+  }
+
+  ($lockState | ConvertTo-Json -Depth 10) | Set-Content -Path $Path -Encoding UTF8
+}
+
 function New-RequestPrompt {
   param(
     [string]$TemplatePath,
@@ -194,16 +281,24 @@ New-Item -ItemType Directory -Force $reviewInboxRoot | Out-Null
 New-Item -ItemType Directory -Force $reviewRunsRoot | Out-Null
 
 if (Test-Path $lockFile) {
-  $lockAge = (Get-Date) - (Get-Item $lockFile).LastWriteTime
-  if ($lockAge.TotalHours -lt 6) {
-    Write-Output "lock が存在するためスキップします: $lockFile"
+  $lockState = Read-LockState -Path $lockFile
+  if ($lockState -and (Test-LockProcessRunning -LockState $lockState)) {
+    $lockPid = [int]($lockState.pid ?? 0)
+    Write-Output "lock が存在し、PID $lockPid の処理が実行中のためスキップします: $lockFile"
+    exit 0
+  }
+
+  $lockTimestamp = if ($lockState) { Get-LockTimestamp -LockState $lockState -Path $lockFile } else { (Get-Item $lockFile).LastWriteTimeUtc }
+  $lockAge = (Get-Date).ToUniversalTime() - $lockTimestamp
+  if ($lockAge.TotalHours -lt $LockTimeoutHours) {
+    Write-Output "lock が存在し、作成から ${LockTimeoutHours} 時間以内のためスキップします: $lockFile"
     exit 0
   }
 
   Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
 }
 
-Set-Content -Path $lockFile -Value (Get-Date -Format o) -Encoding UTF8
+Write-LockState -Path $lockFile
 
 try {
   $repoName = Resolve-RepoName -RepoName $Repo -Workspace $workspace
