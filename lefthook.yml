@@ -19,6 +19,18 @@ pre-commit:
       run: npm exec --prefix frontend -- eslint --config frontend/eslint.config.js {staged_files}
       stage_fixed: false
 
+    # Lambdaのフォーマットチェック
+    lambda-format:
+      glob: "infra/lambda/**/*.{ts,js,json,md}"
+      run: npm exec --prefix infra/lambda -- prettier --check {staged_files}
+      stage_fixed: false
+
+    # Lambdaのlint
+    lambda-lint:
+      glob: "infra/lambda/**/*.ts"
+      run: npm exec --prefix infra/lambda -- eslint --config infra/lambda/eslint.config.mjs {staged_files}
+      stage_fixed: false
+
 # pre-push: やや重めのチェック（変更がある領域だけ）
 pre-push:
   parallel: false

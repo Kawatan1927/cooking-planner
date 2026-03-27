@@ -63,7 +63,9 @@ Lambda 実行時に必要な環境変数 (CDK 側で設定):
 ## ディレクトリ別の役割
 
 ### `recipes/`
+
 レシピの CRUD 操作を実装:
+
 - GET /recipes - レシピ一覧取得
 - POST /recipes - レシピ新規作成
 - GET /recipes/{recipeId} - レシピ詳細取得
@@ -71,17 +73,23 @@ Lambda 実行時に必要な環境変数 (CDK 側で設定):
 - DELETE /recipes/{recipeId} - レシピ削除
 
 ### `menus/`
+
 献立の CRUD 操作を実装:
+
 - GET /menus - 献立一覧取得 (期間指定)
 - POST /menus - 献立新規作成
 - PUT /menus/{menuId} - 献立更新
 - DELETE /menus/{menuId} - 献立削除
 
 ### `shoppingList/`
+
 買い物リストの生成ロジックを実装:
+
 - GET /shopping-list - 指定期間の献立から材料を集計
 
 ### `shared/`
+
 共通のユーティリティや型定義:
+
 - `types.ts` - エンティティの型定義
 - `dynamodb.ts` - DynamoDB クライアント設定

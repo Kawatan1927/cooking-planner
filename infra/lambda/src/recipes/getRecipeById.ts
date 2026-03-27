@@ -1,7 +1,4 @@
-import {
-  APIGatewayProxyEventV2WithJWTAuthorizer,
-  APIGatewayProxyResultV2,
-} from 'aws-lambda';
+import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeIngredient } from '../shared/types';
@@ -102,7 +99,7 @@ export const getRecipeById = async (
       memo: recipe.memo ?? null,
       createdAt: recipe.createdAt,
       updatedAt: recipe.updatedAt,
-      ingredients: ingredientItems.map((ingredient) => ({
+      ingredients: ingredientItems.map(ingredient => ({
         ingredientName: ingredient.ingredientName,
         quantity: ingredient.quantity,
         unit: ingredient.unit,

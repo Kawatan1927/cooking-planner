@@ -6,6 +6,9 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
+    "lint": "eslint . --config eslint.config.mjs",
+    "format": "prettier --write \"src/**/*.ts\" \"README.md\" \"package.json\" \"tsconfig.json\" \"eslint.config.mjs\" \".prettierrc\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"README.md\" \"package.json\" \"tsconfig.json\" \"eslint.config.mjs\" \".prettierrc\"",
     "rebuild": "npm run clean && npm run build",
     "watch": "tsc --watch"
   },
@@ -13,9 +16,15 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/aws-lambda": "^8.10.145",
     "@types/node": "^22.10.5",
-    "typescript": "^5.7.2"
+    "eslint": "^10.1.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.57.2"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.717.0",
