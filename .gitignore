@@ -1,24 +1,36 @@
+# ルート直下の一時出力
 /tmp
 /out-tsc
+/dist/
 
+# 依存ディレクトリとパッケージマネージャ生成物
 /node_modules
+/.pnp
+/.pnp.js
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-/.pnp
-.pnp.js
 
-.vscode/*
-.idea
+# エディタ / OS 依存ファイル
+/.vscode/*
+/.idea
 .DS_Store
-.serena/project.local.yml
 
-# Frontend build artifacts
-frontend/dist
-frontend/dist-ssr
-frontend/node_modules
-frontend/*.local
+# フロントエンドのビルド成果物とローカル設定
+/frontend/dist
+/frontend/dist-ssr
+/frontend/node_modules
+/frontend/*.local
 
-# Lambda build artifacts
-infra/lambda/dist
-infra/lambda/node_modules
+# Lambda のビルド成果物
+/infra/lambda/dist
+/infra/lambda/node_modules
+
+# CDK の作業ディレクトリと依存
+/infra/cdk.out/
+/infra/node_modules/
+
+# Serena のローカル状態
+/.serena/cache/
+/.serena/project.local.yml
+/.serena/memories/
