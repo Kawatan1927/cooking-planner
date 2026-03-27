@@ -39,6 +39,14 @@ jobs:
       working-directory: ./infra/lambda
       run: npx tsc --noEmit
 
+    - name: ESLint の実行
+      working-directory: ./infra/lambda
+      run: npm run lint
+
+    - name: Prettier のチェック
+      working-directory: ./infra/lambda
+      run: npm run format:check
+
     - name: ビルドの実行
       working-directory: ./infra/lambda
       run: npm run build

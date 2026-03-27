@@ -62,8 +62,18 @@ npm run prepare
 
 #### Lambda
 
+- **Formatter**: Prettier
+  - 設定: `infra/lambda/.prettierrc`
+  - セミコロン: あり
+  - シングルクォート: あり
+  - タブ幅: 2スペース
+  - 行の長さ: 100文字
+
+- **Linter**: ESLint
+  - 設定: `infra/lambda/eslint.config.mjs`
+  - ルール: TypeScript ESLint + Prettier 競合ルールの無効化
+
 - **TypeScript**: 厳格モードを有効化
-- 将来的にlint/formatツールを追加予定
 
 ### Gitフックによる自動チェック
 
@@ -71,7 +81,7 @@ npm run prepare
 
 #### pre-commit フック（コミット前）
 
-コミットに含める `frontend/` 配下の staged ファイルに対して以下のチェックを並列実行します：
+コミットに含める `frontend/` と `infra/lambda/` 配下の staged ファイルに対して以下のチェックを並列実行します：
 
 1. **フォーマットチェック** (`frontend-format`)
    - 対象: `frontend/**/*.{ts,tsx,js,jsx,json,css,md,html}`
@@ -80,6 +90,16 @@ npm run prepare
 
 2. **Lint** (`frontend-lint`)
    - 対象: `frontend/**/*.{ts,tsx,js,jsx}`
+   - コマンド: `eslint {staged_files}`
+   - 失敗時: コミットがブロックされます
+
+3. **フォーマットチェック** (`lambda-format`)
+   - 対象: `infra/lambda/**/*.{ts,js,json,md}`
+   - コマンド: `prettier --check {staged_files}`
+   - 失敗時: コミットがブロックされます
+
+4. **Lint** (`lambda-lint`)
+   - 対象: `infra/lambda/**/*.ts`
    - コマンド: `eslint {staged_files}`
    - 失敗時: コミットがブロックされます
 
@@ -95,13 +115,21 @@ npm run prepare
    - 対象: `frontend/**`
    - 所要時間: 約3秒
 
-2. **Lambdaのビルド** (`lambda-build`)
+2. **Lambdaのフォーマットチェック** (`lambda-format-check`)
+   - Prettier による整形ルール検証
+   - 対象: `infra/lambda/**`
+
+3. **LambdaのLint** (`lambda-lint`)
+   - ESLint による静的解析
+   - 対象: `infra/lambda/**`
+
+4. **Lambdaのビルド** (`lambda-build`)
    - TypeScriptコンパイル
    - コンパイル時に型エラーも検出
    - 対象: `infra/lambda/**`
    - 所要時間: 約1秒
 
-3. **テスト** (`tests`)
+5. **テスト** (`tests`)
    - 現在はプレースホルダー（将来的にテストを追加予定）
 
 **目的**: 関連する変更に対して、CIで実行されるチェックをローカルで事前検証
@@ -167,6 +195,15 @@ npm run frontend:format:check
 #### Lambda
 
 ```bash
+# Lint実行
+npm run lambda:lint
+
+# フォーマット適用
+npm run lambda:format
+
+# フォーマットチェックのみ
+npm run lambda:format:check
+
 # ビルド
 npm run lambda:build
 
@@ -197,6 +234,8 @@ GitHub Actionsを使用してCI/CDを実行しています。
 2. **Lambda CI** (`.github/workflows/lambda-ci.yml`)
    - トリガー: `infra/lambda/**` の変更がプッシュまたはPR
    - チェック項目:
+     - ESLint
+     - Prettier
      - TypeScript型チェック
      - ビルド
 
@@ -231,6 +270,12 @@ cd frontend
 npx prettier --write "path/to/file.tsx"
 ```
 
+Lambda 側の場合：
+
+```bash
+npm run lambda:format
+```
+
 ### Lintエラーが出る場合
 
 ```bash
@@ -240,6 +285,12 @@ npm run frontend:lint
 # 自動修正可能なものを修正
 cd frontend
 npx eslint . --fix
+```
+
+Lambda 側の場合：
+
+```bash
+npm run lambda:lint
 ```
 
 ### ビルドエラーが出る場合
