@@ -174,6 +174,17 @@ CDK スタック内で DynamoDB テーブル生成時に名前を決め、
         * フロントのビルド＆S3デプロイ
           を自動化
 
+### 5.3 ドキュメントサイト（GitHub Pages）
+
+* Docusaurus で生成したドキュメントサイトを GitHub Pages で公開する。
+* ワークフロー：`.github/workflows/docs-deploy.yml`
+
+    * `main` ブランチへの push（`docs/**` 配下の変更時）に自動トリガー
+    * `workflow_dispatch` で手動実行も可能
+    * Bun でビルドし、`actions/deploy-pages` で GitHub Pages へデプロイ
+
+* 公開 URL：`https://kawatan1927.github.io/cooking-planner/`
+
 ---
 
 ## 6. セキュリティ・アクセス制御
