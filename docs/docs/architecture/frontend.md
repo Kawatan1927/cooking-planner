@@ -4,8 +4,6 @@ title: フロントエンド
 sidebar_position: 2
 ---
 
-# フロントエンド
-
 ## 技術スタック
 
 - Vite + React + TypeScript の SPA
@@ -25,7 +23,7 @@ sidebar_position: 2
 
 ### ホスティング構成
 
-- `npm run build` で `dist/` を生成し、S3 に `sync`
+- `npm run frontend:build` で `frontend/dist/` を生成し、S3 に `sync`
 - CloudFront 経由で HTTPS 配信（ACM 証明書）
 - CloudFront のキャッシュは必要に応じて無効化
 

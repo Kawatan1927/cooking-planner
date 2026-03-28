@@ -4,8 +4,6 @@ title: 機能と画面
 sidebar_position: 2
 ---
 
-# 機能と画面
-
 ## 1. 画面一覧（Routes）
 
 | パス | タイトル | 概要 |

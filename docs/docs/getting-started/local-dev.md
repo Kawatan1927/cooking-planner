@@ -4,8 +4,6 @@ title: ローカル開発環境のセットアップ
 sidebar_position: 1
 ---
 
-# ローカル開発環境のセットアップ
-
 ## 前提条件
 
 - Node.js 20.x 以上
@@ -101,7 +99,8 @@ npm run type-check
 # フロントエンドと Lambda のビルド
 npm run build:all
 
-# テスト実行
+# テスト実行（現時点では未設定）
+# "No tests configured yet" と表示されて終了します
 npm run test
 ```
 

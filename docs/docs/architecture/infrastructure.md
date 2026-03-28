@@ -4,8 +4,6 @@ title: インフラストラクチャ
 sidebar_position: 5
 ---
 
-# インフラストラクチャ
-
 ## 環境構成
 
 ### 想定環境
@@ -48,11 +46,11 @@ CDK スタック内で DynamoDB テーブル生成時に名前を決め、その
 **フロントエンド**
 
 ```bash
-# ビルド
-npm run build
+# ビルド（リポジトリ root から実行）
+npm run frontend:build
 
-# S3 へ同期
-aws s3 sync dist/ s3://<bucket>/
+# S3 へ同期（ビルド成果物の出力先を指定）
+aws s3 sync frontend/dist/ s3://<bucket>/
 
 # CloudFront のキャッシュ無効化（必要に応じて）
 aws cloudfront create-invalidation --distribution-id <id> --paths "/*"

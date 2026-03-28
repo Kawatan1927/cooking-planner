@@ -4,8 +4,6 @@ title: バックエンド
 sidebar_position: 3
 ---
 
-# バックエンド
-
 ## 技術スタック
 
 - AWS Lambda (Node.js + TypeScript)

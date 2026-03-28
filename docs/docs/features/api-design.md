@@ -4,8 +4,6 @@ title: API 設計
 sidebar_position: 3
 ---
 
-# API 設計
-
 このドキュメントでは、フロントエンド（SPA）から呼び出す
 **HTTP API の設計**を定義する。
 
