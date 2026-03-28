@@ -1,0 +1,59 @@
+---
+id: testing
+title: テスト
+sidebar_position: 2
+---
+
+## 現状
+
+現時点では、フロントエンド・Lambda ともにテストは**未設定**です。
+`npm run test` を実行すると `No tests configured yet` と表示して正常終了します。
+
+:::note
+テストフレームワークの導入は今後のタスクとして管理されています。
+テストを追加する際は、本ページを更新してください。
+:::
+
+## テスト実行コマンド
+
+```bash
+# リポジトリ全体のテスト実行
+npm run test
+```
+
+将来的にフロントエンド・Lambda それぞれにテストが追加された場合は、以下のコマンドを使います。
+
+```bash
+# フロントエンドのテスト（追加後）
+npm run frontend:test
+
+# Lambda のテスト（追加後）
+npm run lambda:test
+```
+
+## 今後の方針
+
+### フロントエンド
+
+- フレームワーク候補: [Vitest](https://vitest.dev/)（Vite との親和性が高い）
+- テスト対象の優先度:
+  1. ユーティリティ関数・ビジネスロジック
+  2. カスタムフック（React Query フックなど）
+  3. コンポーネント（必要に応じて）
+
+### Lambda
+
+- フレームワーク候補: [Jest](https://jestjs.io/) または [Vitest](https://vitest.dev/)
+- テスト対象の優先度:
+  1. DynamoDB 操作を含むハンドラーのユニットテスト（AWS SDK をモック）
+  2. バリデーションロジック
+
+## CI との連携
+
+テストが追加されたら、以下の CI ワークフローにステップを追加します。
+
+- `.github/workflows/frontend-ci.yml` — フロントエンドのテストステップ
+- `.github/workflows/lambda-ci.yml` — Lambda のテストステップ
+
+また、lefthook の `pre-push` フック（`tests` コマンド）もあわせて更新してください。
+詳細は [GitHub ワークフロー](github-workflow) を参照してください。

@@ -1,0 +1,154 @@
+---
+id: coding-conventions
+title: コーディング規約とドキュメント記法
+sidebar_position: 3
+---
+
+## コーディング規約
+
+### 共通方針
+
+- TypeScript の厳格モード（`strict: true`）を有効化する
+- フォーマッターは **Prettier**、リンターは **ESLint** を使用する
+- 自動チェックは lefthook の Git フックと CI で担保する
+
+### Prettier 設定（フロントエンド・Lambda 共通）
+
+| オプション | 値 |
+|---|---|
+| `semi` | `true`（セミコロンあり） |
+| `singleQuote` | `true`（シングルクォート） |
+| `tabWidth` | `2` |
+| `trailingComma` | `"es5"` |
+| `printWidth` | `100` |
+| `arrowParens` | `"avoid"` |
+
+設定ファイル: `frontend/.prettierrc` / `infra/lambda/.prettierrc`
+
+### ESLint 設定
+
+| 領域 | 設定ファイル | 主なルールセット |
+|---|---|---|
+| フロントエンド | `frontend/eslint.config.js` | TypeScript ESLint + React Hooks + React Refresh |
+| Lambda | `infra/lambda/eslint.config.mjs` | TypeScript ESLint + Prettier 競合ルール無効化 |
+
+### フロントエンド固有のルール
+
+- API 呼び出しは `src/lib/apiClient.ts` 経由で行う
+- エンドポイント単位の API ラッパーは `src/features/<domain>/api/` に置く
+- サーバー状態は React Query のカスタムフックで管理する
+- 機能追加は `src/features/<domain>/` に配置する
+
+### Lambda 固有のルール
+
+- DynamoDB との通信は AWS SDK v3 を使用する
+- `userId` は Cognito の JWT claims から取得する
+- DynamoDB 操作には必ず `userId` を条件に含める
+- エラーレスポンスは `docs/04-api-design.md` の形式に従う
+
+---
+
+## ドキュメント記法ルール
+
+Docusaurus（MDX）で書くドキュメントの統一ルールです。
+
+### Frontmatter 標準
+
+すべての `.md` / `.mdx` ファイルの先頭に以下の Frontmatter を記載します。
+
+```yaml
+---
+id: <ファイル名と同じ kebab-case の識別子>
+title: <日本語のページタイトル>
+sidebar_position: <カテゴリ内の並び順（数値）>
+---
+```
+
+| フィールド | 必須 | 説明 |
+|---|---|---|
+| `id` | ✅ | ファイル名と一致させる（kebab-case） |
+| `title` | ✅ | サイドバー・ページ見出しに使われる日本語タイトル |
+| `sidebar_position` | ✅ | カテゴリ内での表示順（`1` が先頭） |
+| `slug` | 任意 | URL パスを変更したい場合のみ指定 |
+
+### 見出し規約
+
+- `# H1` はページタイトルとして Frontmatter の `title` が担うため、本文中では使わない
+- 最上位見出しは `## H2` から始める
+- 見出しは意味的な階層に従い、レベルを飛ばさない（`##` の次は `###`）
+
+```mdx
+## セクション名       ✅
+### サブセクション名   ✅
+
+## セクション名       ❌ （##→#### のように飛ばすのは NG）
+#### 細かい項目
+```
+
+### コードブロック規約
+
+コードブロックには必ず言語識別子を付けます。
+
+````mdx
+```bash
+npm install
+```
+
+```ts
+const foo: string = 'hello';
+```
+
+```yaml
+key: value
+```
+````
+
+よく使う言語識別子:
+
+| 識別子 | 用途 |
+|---|---|
+| `bash` | シェルコマンド |
+| `ts` / `tsx` | TypeScript / React |
+| `js` | JavaScript |
+| `json` | JSON |
+| `yaml` | YAML |
+| `mdx` | MDX サンプル |
+| `mermaid` | Mermaid 図 |
+
+### Admonition（callout）利用方針
+
+Docusaurus の [Admonitions](https://docusaurus.io/docs/markdown-features/admonitions) を以下の基準で使い分けます。
+
+| 種別 | 用途 | 例 |
+|---|---|---|
+| `:::note` | 補足情報・背景説明 | 将来実装予定の補足など |
+| `:::tip` | 推奨の操作・ショートカット | 便利なコマンドのヒント |
+| `:::info` | 参照先・関連情報の案内 | 関連ドキュメントへのリンクなど |
+| `:::warning` | 注意が必要な操作 | フックのスキップ時のリスクなど |
+| `:::danger` | データ損失・破壊的変更の警告 | 本番データへの操作など |
+
+```mdx
+:::tip
+`npm run frontend:format` を実行すると自動修正されます。
+:::
+
+:::warning
+フックをスキップすると CI が失敗するリスクがあります。
+:::
+```
+
+### カテゴリ（`_category_.json`）
+
+新しいカテゴリディレクトリを作成する際は `_category_.json` を配置します。
+
+```json
+{
+  "label": "カテゴリ名（日本語）",
+  "position": 5,
+  "link": {
+    "type": "generated-index"
+  }
+}
+```
+
+`position` は既存カテゴリとの並び順が重複しないよう確認してください。
