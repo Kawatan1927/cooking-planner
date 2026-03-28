@@ -39,22 +39,22 @@ sidebar_position: 1
 ```mermaid
 flowchart LR
   subgraph Browser
-    UI[React SPA]
+    UI["React SPA"]
   end
 
   subgraph AWS
-    CF[CloudFront]
-    S3[S3 Static Hosting]
-    APIGW[API Gateway HTTP API]
-    LAMBDA[Lambda (Node.js)]
-    DDB[(DynamoDB)]
-    COG[Cognito User Pool]
+    CF["CloudFront"]
+    S3["S3 Static Hosting"]
+    APIGW["API Gateway HTTP API"]
+    LAMBDA["Lambda (Node.js)"]
+    DDB[("DynamoDB")]
+    COG["Cognito User Pool"]
   end
 
-  UI -->|HTTPS (HTML/JS/CSS)| CF --> S3
-  UI -->|HTTPS /api/* + Authorization: Bearer JWT| APIGW --> LAMBDA --> DDB
-  UI -->|OIDC/OAuth| COG
-  APIGW -->|JWT Authorizer| COG
+  UI -->|"HTTPS (HTML/JS/CSS)"| CF --> S3
+  UI -->|"HTTPS /api/* + Authorization: Bearer JWT"| APIGW --> LAMBDA --> DDB
+  UI -->|"OIDC/OAuth"| COG
+  APIGW -->|"JWT Authorizer"| COG
 ```
 
 ## セクション一覧
