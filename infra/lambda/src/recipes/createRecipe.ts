@@ -1,13 +1,10 @@
+import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
 import {
-  APIGatewayProxyEventV2WithJWTAuthorizer,
-  APIGatewayProxyResultV2,
-} from 'aws-lambda';
-import { 
-  PutCommand, 
+  PutCommand,
   DeleteCommand,
-  BatchWriteCommand, 
+  BatchWriteCommand,
   BatchWriteCommandInput,
-  BatchWriteCommandOutput 
+  BatchWriteCommandOutput,
 } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeIngredient } from '../shared/types';
@@ -73,9 +70,7 @@ export const createRecipe = async (
 
     const userId = subClaim;
 
-    console.log(
-      `Creating recipe for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`
-    );
+    console.log(`Creating recipe for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`);
 
     // Parse request body
     if (!event.body) {
@@ -85,7 +80,7 @@ export const createRecipe = async (
     let requestBody: CreateRecipeRequestBody;
     try {
       requestBody = JSON.parse(event.body);
-    } catch (error) {
+    } catch {
       return createErrorResponse(400, 'BAD_REQUEST', 'Invalid JSON in request body');
     }
 
@@ -99,11 +94,7 @@ export const createRecipe = async (
       typeof requestBody.baseServings !== 'number' ||
       requestBody.baseServings <= 0
     ) {
-      return createErrorResponse(
-        400,
-        'BAD_REQUEST',
-        'baseServings must be a positive number'
-      );
+      return createErrorResponse(400, 'BAD_REQUEST', 'baseServings must be a positive number');
     }
 
     if (!Array.isArray(requestBody.ingredients)) {
@@ -113,18 +104,10 @@ export const createRecipe = async (
     // Validate each ingredient
     const ingredientNames = new Set<string>();
     const sanitizedIngredientNames = new Map<string, string>(); // sanitized -> original
-    
+
     for (const ingredient of requestBody.ingredients) {
-      if (
-        typeof ingredient !== 'object' ||
-        ingredient === null ||
-        Array.isArray(ingredient)
-      ) {
-        return createErrorResponse(
-          400,
-          'BAD_REQUEST',
-          'Each ingredient must be an object'
-        );
+      if (typeof ingredient !== 'object' || ingredient === null || Array.isArray(ingredient)) {
+        return createErrorResponse(400, 'BAD_REQUEST', 'Each ingredient must be an object');
       }
 
       if (!ingredient.ingredientName || typeof ingredient.ingredientName !== 'string') {
@@ -134,10 +117,10 @@ export const createRecipe = async (
           'Each ingredient must have a valid ingredientName'
         );
       }
-      
+
       // Normalize ingredient name for duplicate checking (case-insensitive)
       const normalizedName = ingredient.ingredientName.toLowerCase().trim();
-      
+
       // Check for duplicate ingredient names (case-insensitive)
       if (ingredientNames.has(normalizedName)) {
         return createErrorResponse(
@@ -147,9 +130,11 @@ export const createRecipe = async (
         );
       }
       ingredientNames.add(normalizedName);
-      
+
       // Check for duplicates after sanitization
-      const sanitizedName = sanitizeIngredientNameForSK(ingredient.ingredientName).toLowerCase().trim();
+      const sanitizedName = sanitizeIngredientNameForSK(ingredient.ingredientName)
+        .toLowerCase()
+        .trim();
       if (sanitizedIngredientNames.has(sanitizedName)) {
         const conflictingName = sanitizedIngredientNames.get(sanitizedName);
         return createErrorResponse(
@@ -190,7 +175,7 @@ export const createRecipe = async (
     };
 
     // Prepare ingredient items
-    const ingredientItems = requestBody.ingredients.map((ingredient) => {
+    const ingredientItems = requestBody.ingredients.map(ingredient => {
       const recipeIngredient: RecipeIngredient = {
         userId,
         recipeId,
@@ -221,7 +206,7 @@ export const createRecipe = async (
           const chunk = ingredientItems.slice(i, i + BATCH_SIZE);
 
           let requestItems: BatchWriteCommandInput['RequestItems'] = {
-            [TABLE_NAMES.RECIPE_INGREDIENTS]: chunk.map((item) => ({
+            [TABLE_NAMES.RECIPE_INGREDIENTS]: chunk.map(item => ({
               PutRequest: {
                 Item: {
                   ...item,
@@ -252,7 +237,7 @@ export const createRecipe = async (
 
             if (retryCount < MAX_RETRIES) {
               const backoffTime = Math.pow(2, retryCount) * 100; // 200ms, 400ms, 800ms
-              await new Promise((resolve) => setTimeout(resolve, backoffTime));
+              await new Promise(resolve => setTimeout(resolve, backoffTime));
               console.log(`Retrying unprocessed items (attempt ${retryCount + 1}/${MAX_RETRIES})`);
             } else {
               // Max retries reached, log error and fail
@@ -275,7 +260,7 @@ export const createRecipe = async (
         const chunk = ingredientItems.slice(i, i + BATCH_SIZE);
 
         let requestItems: BatchWriteCommandInput['RequestItems'] = {
-          [TABLE_NAMES.RECIPE_INGREDIENTS]: chunk.map((item) => ({
+          [TABLE_NAMES.RECIPE_INGREDIENTS]: chunk.map(item => ({
             DeleteRequest: {
               Key: {
                 userId: item.userId,
@@ -302,11 +287,14 @@ export const createRecipe = async (
 
           if (retryCount < MAX_RETRIES) {
             const backoffTime = Math.pow(2, retryCount) * 100;
-            await new Promise((resolve) => setTimeout(resolve, backoffTime));
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
           } else {
-            console.error('Failed to delete all partially written ingredients during compensation', {
-              recipeId,
-            });
+            console.error(
+              'Failed to delete all partially written ingredients during compensation',
+              {
+                recipeId,
+              }
+            );
           }
         }
       }
@@ -344,19 +332,11 @@ export const createRecipe = async (
     });
 
     if (errorName === 'ResourceNotFoundException') {
-      return createErrorResponse(
-        500,
-        'RESOURCE_NOT_FOUND',
-        'Required table not found'
-      );
+      return createErrorResponse(500, 'RESOURCE_NOT_FOUND', 'Required table not found');
     }
 
     if (errorName === 'AccessDeniedException') {
-      return createErrorResponse(
-        500,
-        'ACCESS_DENIED',
-        'Access denied while creating recipe'
-      );
+      return createErrorResponse(500, 'ACCESS_DENIED', 'Access denied while creating recipe');
     }
 
     return createErrorResponse(500, 'INTERNAL_SERVER_ERROR', 'Failed to create recipe');

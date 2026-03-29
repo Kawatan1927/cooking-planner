@@ -1,7 +1,4 @@
-import {
-  APIGatewayProxyEventV2WithJWTAuthorizer,
-  APIGatewayProxyResultV2,
-} from 'aws-lambda';
+import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeResponse } from '../shared/types';
@@ -59,7 +56,7 @@ export const getRecipes = async (
     const recipes = (result.Items || []) as Recipe[];
 
     // Format response according to API spec - return only the necessary fields
-    const response: RecipeResponse[] = recipes.map((recipe) => ({
+    const response: RecipeResponse[] = recipes.map(recipe => ({
       recipeId: recipe.recipeId,
       name: recipe.name,
       sourceBook: recipe.sourceBook ?? null,

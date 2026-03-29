@@ -40,22 +40,24 @@
 ```mermaid
 flowchart LR
   subgraph Browser
-    UI[React SPA]
+    UI["React SPA"]
   end
 
   subgraph AWS
-    CF[CloudFront]
-    S3[S3 Static Hosting]
-    APIGW[API Gateway HTTP API]
-    LAMBDA[Lambda (Node.js)]
-    DDB[(DynamoDB)]
-    COG[Cognito User Pool]
+    CF["CloudFront"]
+    S3["S3 Static Hosting"]
+    APIGW["API Gateway HTTP API"]
+    LAMBDA["Lambda (Node.js)"]
+    DDB[("DynamoDB")]
+    COG["Cognito User Pool"]
   end
 
-  UI -->|HTTPS (HTML/JS/CSS)| CF --> S3
-  UI -->|HTTPS /api/* + Authorization: Bearer JWT| APIGW --> LAMBDA --> DDB
-  UI -->|OIDC/OAuth| COG
-  APIGW -->|JWT Authorizer| COG
+  UI -->|"HTTPS (HTML/JS/CSS)"| CF --> S3
+  UI -->|"HTTPS /api/* + Authorization: Bearer JWT"| APIGW --> LAMBDA --> DDB
+  UI -->|"OIDC/OAuth"| COG
+  APIGW -->|"JWT Authorizer"| COG
+
+```
 
 ---
 
@@ -171,6 +173,17 @@ CDK スタック内で DynamoDB テーブル生成時に名前を決め、
         * CDK デプロイ
         * フロントのビルド＆S3デプロイ
           を自動化
+
+### 5.3 ドキュメントサイト（GitHub Pages）
+
+* Docusaurus で生成したドキュメントサイトを GitHub Pages で公開する。
+* ワークフロー：`.github/workflows/docs-deploy.yml`
+
+    * `main` ブランチへの push（`docs/**` 配下の変更時）に自動トリガー
+    * `workflow_dispatch` で手動実行も可能
+    * Bun でビルドし、`actions/deploy-pages` で GitHub Pages へデプロイ
+
+* 公開 URL：`https://kawatan1927.github.io/cooking-planner/`
 
 ---
 
