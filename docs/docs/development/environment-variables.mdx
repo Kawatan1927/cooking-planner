@@ -67,7 +67,7 @@ Lambda の環境変数は CDK スタック内で設定し、DynamoDB テーブ�
 
 ### CDK での設定方法
 
-CDK スタック（`infra/lib/cooking-planner-stack.ts`）内で、DynamoDB テーブルの名前を Lambda の環境変数として渡します。
+CDK スタック（Lambda と DynamoDB テーブルを定義しているスタック）内で、DynamoDB テーブルの名前を Lambda の環境変数として渡します。
 
 ```ts
 const recipesTable = new dynamodb.Table(this, 'RecipesTable', { ... });
