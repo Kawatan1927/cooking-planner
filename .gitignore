@@ -1,5 +1,6 @@
 # ルート直下の一時出力
 /tmp
+/.codex/review-automation/
 /out-tsc
 /dist/
 

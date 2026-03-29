@@ -4,62 +4,49 @@
 
 前提:
 
-- 入力として渡される Markdown は、原則として「未解決かつ非 outdated の review thread」のみを含む
-- すでに resolved の thread や古い thread は、この作業では対象外とみなす
-- 通常の PR conversation comment は、明示的に含まれている場合のみ参考情報として扱う
-- 対応が必要な thread が 1 件もない場合は、そこで作業を終了してよい
+- 入力として渡される Markdown は、「未解決かつ non-outdated の review thread」のみを含みます
+- 通常の PR conversation comment は、この作業では対象外です
+- 対応が必要な thread が 1 件もない場合は、そこで作業を終了してよいです
 
 進め方:
 
-1. 指定されたレビュー取得ファイルを読み、対応が必要な thread が存在するか確認する。
-2. 対応が必要な thread が 0 件なら、「対応対象の thread はありません」と明記してそこで終了する。
-3. thread がある場合は、各 thread ごとに論点を 1 行で要約する。
-4. 各 thread を「コード修正が必要」「説明だけで返せる」「見送り候補」に分類する。
-5. コード修正が必要な thread から順に対応する。
-6. 1 つの thread に対して修正・確認・返信案作成までをまとめて行う。
-7. 修正後は対象リポジトリの format / lint / build を実行する。
-8. 修正がある場合は、現在の作業ブランチで commit し、origin へ push する。
-9. 各 thread に対して、日本語で短い返信案を作る。
-10. 返信案には、何を直したか、または今は見送る理由を明記する。
-11. 投稿前提ではなく、まずは返信本文ファイルをローカルに出力する。
+1. 指定された review inbox の Markdown を読み、PR の `headRefName` と各 `reviewCommentId` を確認する。
+2. PR の `headRefName` を checkout し、必要なら `origin/<headRefName>` を取得して最新化する。
+3. 各 thread の指摘が現行 head で妥当かを確認する。
+4. すでに解消済みの指摘は、現行コードで解消済みであることを説明して返信する。
+5. 妥当な指摘だけを対象に、最小限のコード修正を行う。
+6. 修正後は repo root で次の順に検証する。
+7. `npm run format:check`
+8. `npm run lint`
+9. `npm run type-check`
+10. `npm run build:all`
+11. `npm run test`
+12. 修正があり、検証がすべて通った場合のみ、日本語のコミットメッセージで commit し、現在の head ブランチを origin へ push する。
+13. 各 thread に対して、日本語で短い返信文を作成し、`gh api --method POST repos/<repo>/pulls/<pr>/comments/<reviewCommentId>/replies -f body=...` を直接使って投稿する。
+14. 最後に、確認した thread の要約、修正内容、検証結果、commit / push の成否、返信投稿の成否を日本語で報告する。
 
 判断ルール:
 
-- resolved 済み thread を掘り返さない
-- outdated thread を現行差分の指摘として扱わない
-- 対応対象が 0 件なら、無理に要約・分類・検証・commit を行わない
-- 指摘がすでに現行コードで解消済みなら、その確認結果を返信案に書く
-- 仕様判断に迷ったら docs を優先する
-- 修正は thread の指摘に必要な最小範囲にとどめる
+- inbox に載っていない thread は扱わない
+- まず妥当性確認を行い、必要な修正だけに絞る
+- 仕様判断に迷ったら `docs/` を優先する
 - 関係ないリファクタや広い整形はしない
-- commit / push に失敗した場合は、その状態を隠さず返信案と結果ファイルに書く
-
-出力してほしい内容:
-
-- 対応対象 thread がある場合:
-  - 対応対象 thread 一覧
-  - 各 thread の分類結果
-  - 実施したコード修正の要約
-  - 実行した検証コマンドと結果
-  - commit hash と push の成否
-  - thread ごとの投稿用返信文
-  - thread ごとの投稿コマンド例
-  - 今回対応しない thread がある場合は、その理由
-- 対応対象 thread がない場合:
-  - 「対応対象の thread はありません」という短い結果だけを返す
+- 検証に失敗した場合は、修正完了として返信しない
+- push に失敗した場合は、修正完了として返信しない
+- 変更が不要だった thread には、現行コードの確認結果だけを簡潔に返信する
 
 返信文のルール:
 
 - すべて日本語で書く
 - 1 thread につき 3 文以内を基本にする
 - 断定できないことは断定しない
-- 修正済みなら「何をどう直したか」を具体的に書く
+- 修正済みなら、何をどう直したかを具体的に書く
 - 修正済みの返信では、commit / push まで済ませたことを簡潔に書く
-- 見送りなら「なぜ今は対応しないか」を簡潔に書く
+- 説明のみの場合は、現行 head で確認した内容を簡潔に書く
 
 禁止事項:
 
-- Markdown に載っていない resolved thread を勝手に再対応しない
+- resolved / outdated thread を掘り返さない
 - 通常コメントを unresolved thread と同列に扱わない
-- 返信前に未確認の修正完了を宣言しない
+- 検証や push が未完了なのに、完了済みと返信しない
 - 対応対象がないのに、形式を埋めるためだけの空作業をしない

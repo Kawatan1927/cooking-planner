@@ -9,12 +9,8 @@ param(
   [string]$StateFile,
   [Parameter(Mandatory = $false)]
   [string]$PromptTemplateFile,
-  [switch]$IncludeConversationComments,
-  [switch]$IncludeResolved,
-  [switch]$IncludeOutdated,
   [ValidateRange(1, 168)]
-  [int]$LockTimeoutHours = 6,
-  [switch]$DryRunCodexLaunch
+  [int]$LockTimeoutHours = 6
 )
 
 $ErrorActionPreference = 'Stop'
@@ -55,13 +51,14 @@ function Resolve-ConfiguredPath {
   return [System.IO.Path]::GetFullPath((Join-Path $BasePath $PathValue))
 }
 
+$automationRoot = Join-PathSegments -BasePath $repoRoot -Segments @('.codex', 'review-automation')
 $workspace = if ($WorkspacePath) { (Resolve-Path $WorkspacePath).Path } else { $repoRoot }
-$stateFilePath = if ($StateFile) { Resolve-ConfiguredPath -PathValue $StateFile -BasePath $repoRoot } else { Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-automation', 'state.json') }
-$promptTemplatePath = if ($PromptTemplateFile) { Resolve-ConfiguredPath -PathValue $PromptTemplateFile -BasePath $toolRoot } else { Join-PathSegments -BasePath $toolRoot -Segments @('prompts', 'automation-short-prompt.md') }
+$stateFilePath = if ($StateFile) { Resolve-ConfiguredPath -PathValue $StateFile -BasePath $repoRoot } else { Join-Path $automationRoot 'state.json' }
+$promptTemplatePath = if ($PromptTemplateFile) { Resolve-ConfiguredPath -PathValue $PromptTemplateFile -BasePath $toolRoot } else { Join-PathSegments -BasePath $toolRoot -Segments @('prompts', 'codex-review-prompt.md') }
 $fetchScriptPath = Join-Path $toolRoot 'fetch-pr-review.ps1'
-$reviewInboxRoot = Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-inbox')
-$reviewRunsRoot = Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-runs')
-$lockFile = Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-automation', 'poll-review.lock')
+$reviewInboxRoot = Join-Path $automationRoot 'inbox'
+$reviewRunsRoot = Join-Path $automationRoot 'runs'
+$lockFile = Join-Path $automationRoot 'poll-review.lock'
 
 function Resolve-RepoName {
   param([string]$RepoName, [string]$Workspace)
@@ -257,18 +254,15 @@ $template
 
 ## Codex への追加指示
 
-- review inbox に含まれる未解決 thread のみを対象にしてください。
-- 必要な修正があれば、この workspace 上で最小限のコード修正を行ってください。
-- 修正後は format / lint / build を実行してください。
-- 検証が通り、変更ファイルがある場合は日本語のコミットメッセージで commit し、現在の作業ブランチを origin へ push してください。
-- commit / push に失敗した場合は、失敗内容を codex-result.md に明記し、返信文でも未完了として扱ってください。
-- 実行結果の要約を codex-result.md に保存してください。
-- codex-result.md には実行した検証コマンド、結果、commit hash、push の成否を必ず書いてください。
-- 各 thread への返信案は $RequestDir 配下に reply-<reviewCommentId>.md というファイル名で保存してください。
-- replyExample に含まれる reviewCommentId を使って返信ファイル名を対応づけてください。
-- 返信は dry-run 前提の文面にしてください。投稿自体は行わないでください。
-- 返信文では、修正した場合は commit / push まで済ませたことを簡潔に書いてください。
-- もしコード修正不要なら、その理由と返信案だけ保存し、空コミットは作らないでください。
+- review inbox に含まれる thread のみを対象にしてください。
+- PR の headRefName を checkout し、必要なら origin から最新化してください。
+- 各指摘が現行 head で妥当かを確認してから対応してください。
+- 修正は最小限にとどめ、関係ないリファクタや広い整形はしないでください。
+- 検証コマンドは repo root で `npm run format:check`、`npm run lint`、`npm run type-check`、`npm run build:all`、`npm run test` の順に実行してください。
+- 変更があり、上記の検証が通った場合のみ、日本語のコミットメッセージで commit し、現在の head ブランチを origin へ push してください。
+- 各 thread への返信は `gh api --method POST repos/<repo>/pulls/<pr>/comments/<reviewCommentId>/replies -f body=...` を直接使ってください。
+- 検証失敗または push 失敗の状態では、完了扱いの返信を投稿しないでください。
+- 最終メッセージでは、確認した thread の要約、実施した修正、検証結果、commit / push の成否、返信投稿の成否を日本語で報告してください。
 
 ## Review Inbox
 
@@ -276,7 +270,7 @@ $inbox
 "@
 }
 
-New-Item -ItemType Directory -Force (Join-PathSegments -BasePath $repoRoot -Segments @('tmp', 'review-automation')) | Out-Null
+New-Item -ItemType Directory -Force $automationRoot | Out-Null
 New-Item -ItemType Directory -Force $reviewInboxRoot | Out-Null
 New-Item -ItemType Directory -Force $reviewRunsRoot | Out-Null
 
@@ -317,10 +311,6 @@ try {
     '-PrNumber', "$pr"
   )
 
-  if ($IncludeConversationComments) { $fetchArgs += '-IncludeConversationComments' }
-  if ($IncludeResolved) { $fetchArgs += '-IncludeResolved' }
-  if ($IncludeOutdated) { $fetchArgs += '-IncludeOutdated' }
-
   Push-Location $workspace
   try {
     & pwsh @fetchArgs | Out-Null
@@ -343,7 +333,6 @@ try {
   $now = Get-Date -Format o
   $isPreviousStatusRetrySafe =
     ($previousCodexStatus -eq 'completed') -or
-    ($previousCodexStatus -eq 'dry-run') -or
     $previousCodexStatus.StartsWith('skipped-')
 
   $sameAsLast =
@@ -380,7 +369,6 @@ try {
   New-Item -ItemType Directory -Force $requestDir | Out-Null
 
   $promptPath = Join-Path $requestDir 'codex-request.md'
-  $resultPath = Join-Path $requestDir 'codex-result.md'
   $lastMessagePath = Join-Path $requestDir 'codex-last-message.txt'
   $stdoutLogPath = Join-Path $requestDir 'codex-stdout.log'
   $stderrLogPath = Join-Path $requestDir 'codex-stderr.log'
@@ -391,15 +379,6 @@ try {
   $state.lastPromptPath = $promptPath
   $state.lastRequestDir = $requestDir
   $state.lastCodexRunAt = $now
-
-  if ($DryRunCodexLaunch) {
-    $state.lastCodexStatus = 'dry-run'
-    $state.lastCodexMessageFile = $lastMessagePath
-    Save-State -State $state -Path $stateFilePath
-    Write-Output "Codex 起動予定: Get-Content -Raw $promptPath | codex exec --full-auto -C $workspace --add-dir $requestDir -o $lastMessagePath -"
-    Write-Output "requestDir: $requestDir"
-    exit 0
-  }
 
   $state.lastCodexStatus = 'running'
   Save-State -State $state -Path $stateFilePath
@@ -414,10 +393,6 @@ try {
 
   if ($codexExitCode -ne 0) {
     throw "Codex 実行に失敗しました。stderr: $stderrLogPath"
-  }
-
-  if (-not (Test-Path $resultPath) -and (Test-Path $lastMessagePath)) {
-    Copy-Item -Path $lastMessagePath -Destination $resultPath -Force
   }
 
   Write-Output "Codex 実行が完了しました: $requestDir"
