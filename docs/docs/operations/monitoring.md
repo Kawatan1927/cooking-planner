@@ -34,7 +34,7 @@ Lambda の標準出力（`console.log`, `console.error`）は自動的に CloudW
 #### ログの確認方法
 
 ```bash
-# AWS CLI でログを確認（最新 100 件）
+# AWS CLI でログを確認（リアルタイム）
 aws logs tail /aws/lambda/<関数名> --follow
 
 # 特定の時間帯を確認
