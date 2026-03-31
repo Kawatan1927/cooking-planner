@@ -1,0 +1,115 @@
+---
+id: github-workflow
+title: GitHub ワークフロー
+sidebar_position: 1
+---
+
+## ブランチ戦略
+
+| ブランチ | 役割 |
+|---|---|
+| `main` | プロダクションブランチ。直接 push 禁止 |
+| `develop` | 将来的に導入する場合の開発統合ブランチ。現時点では通常運用していない |
+| フィーチャーブランチ | `feature/<説明>`（人が作業する場合）または `claude/<説明>`（AI エージェントが割り当てられた Issue の場合）の形式で作成 |
+
+現時点の通常運用では、フィーチャーブランチは `main` をベースに対応する Issue から以下のコマンドで作成します。
+
+```bash
+gh issue develop <Issue番号> --name <Issue番号>-<説明> --base main --checkout
+```
+
+## Issue / PR の作成ルール
+
+- **Issue タイトル**: 日本語で簡潔に記述（Conventional Commits の prefix は不要）
+- **ラベル**: `enhancement`・`bug`・`documentation` など適切なものを付与
+- **PR タイトル**: 対応する Issue と同じタイトルにする
+- **PR 本文**: `.github/PULL_REQUEST_TEMPLATE.md` に従い、`closes #N` を含める
+
+## コミットメッセージ
+
+日本語または英語で変更内容を簡潔に記述します。必要に応じて Issue 番号を参照してください。
+
+```text
+レシピ一覧ページのレイアウトを修正
+
+- グリッドレイアウトを2カラムから3カラムに変更
+- レスポンシブ対応を追加
+
+Refs: #123
+```
+
+## CI ワークフロー
+
+GitHub Actions で以下のワークフローが自動実行されます。
+
+### Frontend CI
+
+ファイル: `.github/workflows/frontend-ci.yml`
+
+**トリガー**: `frontend/**` に変更を含む push または PR（対象ブランチ: `main`, `develop`）
+
+| ステップ | コマンド |
+|---|---|
+| 型チェック | `npx tsc -b` |
+| ESLint | `npm run lint` |
+| Prettier | `npm run format:check` |
+| ビルド | `npm run build` |
+
+### Lambda CI
+
+ファイル: `.github/workflows/lambda-ci.yml`
+
+**トリガー**: `infra/lambda/**` に変更を含む push または PR（対象ブランチ: `main`, `develop`）
+
+| ステップ | コマンド |
+|---|---|
+| 型チェック | `npx tsc --noEmit` |
+| ESLint | `npm run lint` |
+| Prettier | `npm run format:check` |
+| ビルド | `npm run build` |
+
+## ローカル Git フック（lefthook）
+
+[lefthook](https://github.com/evilmartians/lefthook) を使い、CI と同等のチェックをローカルで事前実行します。
+`npm install` 時に自動インストールされます。手動インストールは `npm run prepare` で実行できます。
+
+### pre-commit（コミット前）
+
+`frontend/` と `infra/lambda/` 配下の staged ファイルに対して並列実行します。
+
+| コマンド名 | 対象 | 内容 |
+|---|---|---|
+| `frontend-format` | `frontend/**/*.{ts,tsx,…}` | Prettier チェック |
+| `frontend-lint` | `frontend/**/*.{ts,tsx,js,jsx}` | ESLint |
+| `lambda-format` | `infra/lambda/**/*.{ts,js,…}` | Prettier チェック |
+| `lambda-lint` | `infra/lambda/**/*.ts` | ESLint |
+
+### pre-push（プッシュ前）
+
+push 対象に `frontend/**` または `infra/lambda/**` の変更が含まれる場合のみ実行します。
+
+| コマンド名 | 内容 |
+|---|---|
+| `frontend-build` | Vite ビルド（`tsc -b` を含む） |
+| `lambda-build` | TypeScript コンパイル |
+| `tests` | `npm run test`（現在はプレースホルダー） |
+
+### フックをスキップする場合
+
+:::warning
+フックをスキップした場合も、CI は実行されます。CI 失敗のリスクがあるため、スキップは極力避けてください。
+:::
+
+```bash
+git commit --no-verify   # pre-commit をスキップ
+git push --no-verify     # pre-push をスキップ
+```
+
+## プルリクエストのフロー
+
+1. `gh issue develop` でフィーチャーブランチを作成・チェックアウト
+2. コードを変更し、コミット（pre-commit フックが自動実行）
+3. push（pre-push フックが自動実行）
+4. PR を作成（タイトル・ラベル・`closes #N` を記載）
+5. CI のチェック完了を確認
+6. レビューを受けてマージ
