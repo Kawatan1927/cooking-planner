@@ -7,15 +7,15 @@ sidebar_position: 3
 ## 技術スタック
 
 - AWS Lambda (Node.js + TypeScript)
-    - 1つの Lambda 関数で複数パスをさばく小規模モノリス構成
+  - 1つの Lambda 関数で複数パスをさばく小規模モノリス構成
 - API Gateway HTTP API
-    - Cognito User Pool を用いた JWT 認証（Authorizer）
+  - Cognito User Pool を用いた JWT 認証（Authorizer）
 - DynamoDB
-    - `Recipes`, `RecipeIngredients`, `Menus` などのテーブル
-    - 当面はユーザーは 1人前提だが、`userId` 属性は持たせておく
+  - `Recipes`, `RecipeIngredients`, `Menus` などのテーブル
+  - 当面はユーザーは 1人前提だが、`userId` 属性は持たせておく
 - Amazon Cognito User Pool
-    - SPA 向けの App Client
-    - Hosted UI or フロントから直接トークン取得
+  - SPA 向けの App Client
+  - Hosted UI or フロントから直接トークン取得
 
 ## 設計方針
 
@@ -36,10 +36,10 @@ sidebar_position: 3
 
 - 一般公開はせず、**自分専用のアプリにログインをかけたい**。
 - Amazon Cognito User Pool を利用することで、
-    - ID/パスワード管理
-    - Hosted UI（ログイン画面）
-    - JWT 発行
-      をマネージドで利用できる。
+  - ID/パスワード管理
+  - Hosted UI（ログイン画面）
+  - JWT 発行
+    をマネージドで利用できる。
 - API Gateway の JWT Authorizer と相性が良い。
 
 ## セキュリティ・アクセス制御
@@ -53,7 +53,7 @@ sidebar_position: 3
 ### 認可（Lambda 側）
 
 - Lambda 内で `userId` を決定するためのルール：
-    - JWT の `sub` or `email` を `userId` として扱う
+  - JWT の `sub` or `email` を `userId` として扱う
 - DynamoDB 操作時に必ず `userId` をキー条件に含めることで、他ユーザーのデータを誤って読むことを防ぐ。
 
 （現時点ではユーザーは 1人だが、実装パターンとしては多ユーザーを前提とした書き方にしておく。）
@@ -67,11 +67,11 @@ sidebar_position: 3
 
 Lambda の環境変数として設定：
 
-| 変数名 | 説明 |
-|---|---|
-| `RECIPES_TABLE_NAME` | Recipes テーブル名 |
-| `RECIPE_INGREDIENTS_TABLE_NAME` | RecipeIngredients テーブル名 |
-| `MENUS_TABLE_NAME` | Menus テーブル名 |
-| `PANTRY_ITEMS_TABLE_NAME` | PantryItems テーブル名（将来） |
+| 変数名                          | 説明                           |
+| ------------------------------- | ------------------------------ |
+| `RECIPES_TABLE_NAME`            | Recipes テーブル名             |
+| `RECIPE_INGREDIENTS_TABLE_NAME` | RecipeIngredients テーブル名   |
+| `MENUS_TABLE_NAME`              | Menus テーブル名               |
+| `PANTRY_ITEMS_TABLE_NAME`       | PantryItems テーブル名（将来） |
 
 CDK スタック内で DynamoDB テーブル生成時に名前を決め、その名前を Lambda の環境変数として渡す。

@@ -146,29 +146,29 @@ sidebar_position: 4
 - `userId`: string
 - `recipeId`: string
 - `ingredientName`: string
-    - 材料名（例：「玉ねぎ」「鶏もも肉」）
+  - 材料名（例：「玉ねぎ」「鶏もも肉」）
 - `quantity`: number or string
-    - 分量
-    - 数値で扱える場合は number、
-      「少々」のような曖昧表現が必要な場合は string を許容する
-      → 実装では `quantityValue` (number | null), `quantityText` (string | null) に分ける案もあり
+  - 分量
+  - 数値で扱える場合は number、
+    「少々」のような曖昧表現が必要な場合は string を許容する
+    → 実装では `quantityValue` (number | null), `quantityText` (string | null) に分ける案もあり
 - `unit`: string
-    - g, 個, ml, 大さじ, 小さじ, 少々 など
+  - g, 個, ml, 大さじ, 小さじ, 少々 など
 - `note`: string (nullable)
-    - 切り方などのメモ（「薄切り」「1cm角に切る」など）
+  - 切り方などのメモ（「薄切り」「1cm角に切る」など）
 
 ### 4.4 想定アクセスパターン
 
 1. **特定レシピの材料一覧取得**
-    - 条件：`userId` + `recipeId`
-    - DynamoDB 操作：
-        - `Query` with
-            - `KeyConditionExpression: userId = :uid AND begins_with(SK, :recipeIdPrefix)`
+   - 条件：`userId` + `recipeId`
+   - DynamoDB 操作：
+     - `Query` with
+       - `KeyConditionExpression: userId = :uid AND begins_with(SK, :recipeIdPrefix)`
 
 2. **買い物リスト用の材料取得**
-    - 指定期間の `Menus` から `recipeId` リストを取得し、
-    - その `recipeId` ごとに材料を `Query` で取得
-    - Lambda 内で材料名ごとに集計
+   - 指定期間の `Menus` から `recipeId` リストを取得し、
+   - その `recipeId` ごとに材料を `Query` で取得
+   - Lambda 内で材料名ごとに集計
 
 ### 4.5 アイテム例
 
@@ -224,7 +224,7 @@ sidebar_position: 4
 - `menuId`: string（UUID）
 - `recipeId`: string
 - `servings`: number
-    - この献立における実人数（例：1人分 / 2人分）
+  - この献立における実人数（例：1人分 / 2人分）
 - `memo`: string (nullable)
 - `createdAt`: string (ISO8601)
 - `updatedAt`: string (ISO8601)
@@ -232,21 +232,21 @@ sidebar_position: 4
 ### 5.4 想定アクセスパターン
 
 1. **特定期間の献立一覧を取得する**
-    - 条件：ユーザー＋日付期間（例：2025-11-21〜2025-11-27）
-    - DynamoDB 操作：
-        - 単一 PK (`userId`) なので、純粋な日付範囲での `Query` は直接はできない
-        - 対応案：
-            - `Menus` テーブルに GSI を張る
-            - もしくは、当面は「当日 or 数日分」を前提に `Query + FilterExpression` を利用
+   - 条件：ユーザー＋日付期間（例：2025-11-21〜2025-11-27）
+   - DynamoDB 操作：
+     - 単一 PK (`userId`) なので、純粋な日付範囲での `Query` は直接はできない
+     - 対応案：
+       - `Menus` テーブルに GSI を張る
+       - もしくは、当面は「当日 or 数日分」を前提に `Query + FilterExpression` を利用
 
-    ※ 個人用＆件数が少ない前提のため、**最初の段階ではシンプルさを優先し、
-    `userId` 固定で `Query` → Lambda 側で日付フィルタ**という方針でも良い。
+   ※ 個人用＆件数が少ない前提のため、**最初の段階ではシンプルさを優先し、
+   `userId` 固定で `Query` → Lambda 側で日付フィルタ**という方針でも良い。
 
-    将来的に件数が増えた場合は、
-    `GSI: PK = date, SK = userId#mealType#menuId` のようなインデックスを追加する。
+   将来的に件数が増えた場合は、
+   `GSI: PK = date, SK = userId#mealType#menuId` のようなインデックスを追加する。
 
 2. **特定日付の献立をまとめて取得**
-    - `Query`（`userId = :uid`）＋ Filter で `date = :date` でも十分対応可能。
+   - `Query`（`userId = :uid`）＋ Filter で `date = :date` でも十分対応可能。
 
 ### 5.5 アイテム例
 
@@ -323,9 +323,9 @@ sidebar_position: 4
 - `userId`: string
 - `ingredientName`: string
 - `alwaysAvailable`: boolean
-    - true の場合、買い物リストから基本的に除外する
+  - true の場合、買い物リストから基本的に除外する
 - `quantity`: number (nullable)
-    - 在庫を数値で管理したくなった場合に使用
+  - 在庫を数値で管理したくなった場合に使用
 - `unit`: string (nullable)
 - `updatedAt`: string (ISO8601)
 
@@ -384,7 +384,7 @@ export type ShoppingListItem = {
 
 export type ShoppingList = {
   from: string; // YYYY-MM-DD
-  to: string;   // YYYY-MM-DD
+  to: string; // YYYY-MM-DD
   items: ShoppingListItem[];
 };
 ```
@@ -394,11 +394,11 @@ export type ShoppingList = {
 ## 9. 今後の見直しポイント（メモ）
 
 - `RecipeIngredients` で `quantity` を number と string に分離するか検討
-    - 例：`quantityValue` (number?) + `quantityText` (string?) 形式
+  - 例：`quantityValue` (number?) + `quantityText` (string?) 形式
 - `Menus` の期間検索の効率化
-    - 必要になったら `GSI` を追加して、`date` をキーにした検索を可能にする
+  - 必要になったら `GSI` を追加して、`date` をキーにした検索を可能にする
 - 単一テーブル設計（Single Table Design）への移行の可能性
-    - `PK: userId, SK: <type>#<id>...` という形に統合する案もあり
-    - まずは複数テーブル構成で実装し、必要に応じてリファクタリングで対応
+  - `PK: userId, SK: <type>#<id>...` という形に統合する案もあり
+  - まずは複数テーブル構成で実装し、必要に応じてリファクタリングで対応
 
 ---

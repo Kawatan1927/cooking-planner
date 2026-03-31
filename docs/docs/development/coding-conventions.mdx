@@ -14,23 +14,23 @@ sidebar_position: 3
 
 ### Prettier 設定（フロントエンド・Lambda 共通）
 
-| オプション | 値 |
-|---|---|
-| `semi` | `true`（セミコロンあり） |
-| `singleQuote` | `true`（シングルクォート） |
-| `tabWidth` | `2` |
-| `trailingComma` | `"es5"` |
-| `printWidth` | `100` |
-| `arrowParens` | `"avoid"` |
+| オプション      | 値                         |
+| --------------- | -------------------------- |
+| `semi`          | `true`（セミコロンあり）   |
+| `singleQuote`   | `true`（シングルクォート） |
+| `tabWidth`      | `2`                        |
+| `trailingComma` | `"es5"`                    |
+| `printWidth`    | `100`                      |
+| `arrowParens`   | `"avoid"`                  |
 
 設定ファイル: `frontend/.prettierrc` / `infra/lambda/.prettierrc`
 
 ### ESLint 設定
 
-| 領域 | 設定ファイル | 主なルールセット |
-|---|---|---|
-| フロントエンド | `frontend/eslint.config.js` | TypeScript ESLint + React Hooks + React Refresh |
-| Lambda | `infra/lambda/eslint.config.mjs` | TypeScript ESLint + Prettier 競合ルール無効化 |
+| 領域           | 設定ファイル                     | 主なルールセット                                |
+| -------------- | -------------------------------- | ----------------------------------------------- |
+| フロントエンド | `frontend/eslint.config.js`      | TypeScript ESLint + React Hooks + React Refresh |
+| Lambda         | `infra/lambda/eslint.config.mjs` | TypeScript ESLint + Prettier 競合ルール無効化   |
 
 ### フロントエンド固有のルール
 
@@ -64,12 +64,12 @@ sidebar_position: <カテゴリ内の並び順（数値）>
 ---
 ```
 
-| フィールド | 必須 | 説明 |
-|---|---|---|
-| `id` | ✅ | ファイル名と一致させる（kebab-case） |
-| `title` | ✅ | サイドバー・ページ見出しに使われる日本語タイトル |
-| `sidebar_position` | ✅ | カテゴリ内での表示順（`1` が先頭） |
-| `slug` | 任意 | URL パスを変更したい場合のみ指定 |
+| フィールド         | 必須 | 説明                                             |
+| ------------------ | ---- | ------------------------------------------------ |
+| `id`               | ✅   | ファイル名と一致させる（kebab-case）             |
+| `title`            | ✅   | サイドバー・ページ見出しに使われる日本語タイトル |
+| `sidebar_position` | ✅   | カテゴリ内での表示順（`1` が先頭）               |
+| `slug`             | 任意 | URL パスを変更したい場合のみ指定                 |
 
 ### 見出し規約
 
@@ -79,10 +79,12 @@ sidebar_position: <カテゴリ内の並び順（数値）>
   - 飛ばすとドキュメントの論理構造が崩れ、スクリーンリーダーなど支援技術での読み取りにも影響します
 
 ```mdx
-## セクション名       ✅
-### サブセクション名   ✅
+## セクション名 ✅
 
-## セクション名       ❌ （##→#### のようにレベルを飛ばすのは NG）
+### サブセクション名 ✅
+
+## セクション名 ❌ （##→#### のようにレベルを飛ばすのは NG）
+
 #### 細かい項目
 ```
 
@@ -96,7 +98,7 @@ npm install
 ```
 
 ```ts
-const foo: string = 'hello';
+const foo: string = "hello";
 ```
 
 ```yaml
@@ -106,27 +108,27 @@ key: value
 
 よく使う言語識別子:
 
-| 識別子 | 用途 |
-|---|---|
-| `bash` | シェルコマンド |
+| 識別子       | 用途               |
+| ------------ | ------------------ |
+| `bash`       | シェルコマンド     |
 | `ts` / `tsx` | TypeScript / React |
-| `js` | JavaScript |
-| `json` | JSON |
-| `yaml` | YAML |
-| `mdx` | MDX サンプル |
-| `mermaid` | Mermaid 図 |
+| `js`         | JavaScript         |
+| `json`       | JSON               |
+| `yaml`       | YAML               |
+| `mdx`        | MDX サンプル       |
+| `mermaid`    | Mermaid 図         |
 
 ### Admonition（callout）利用方針
 
 Docusaurus の [Admonitions](https://docusaurus.io/docs/markdown-features/admonitions) を以下の基準で使い分けます。
 
-| 種別 | 用途 | 例 |
-|---|---|---|
-| `:::note` | 補足情報・背景説明 | 将来実装予定の補足など |
-| `:::tip` | 推奨の操作・ショートカット | 便利なコマンドのヒント |
-| `:::info` | 参照先・関連情報の案内 | 関連ドキュメントへのリンクなど |
-| `:::warning` | 注意が必要な操作 | フックのスキップ時のリスクなど |
-| `:::danger` | データ損失・破壊的変更の警告 | 本番データへの操作など |
+| 種別         | 用途                         | 例                             |
+| ------------ | ---------------------------- | ------------------------------ |
+| `:::note`    | 補足情報・背景説明           | 将来実装予定の補足など         |
+| `:::tip`     | 推奨の操作・ショートカット   | 便利なコマンドのヒント         |
+| `:::info`    | 参照先・関連情報の案内       | 関連ドキュメントへのリンクなど |
+| `:::warning` | 注意が必要な操作             | フックのスキップ時のリスクなど |
+| `:::danger`  | データ損失・破壊的変更の警告 | 本番データへの操作など         |
 
 ```mdx
 :::tip

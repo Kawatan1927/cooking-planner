@@ -6,10 +6,10 @@ sidebar_position: 1
 
 ## ブランチ戦略
 
-| ブランチ | 役割 |
-|---|---|
-| `main` | プロダクションブランチ。直接 push 禁止 |
-| `develop` | 将来的に導入する場合の開発統合ブランチ。現時点では通常運用していない |
+| ブランチ             | 役割                                                                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `main`               | プロダクションブランチ。直接 push 禁止                                                                                 |
+| `develop`            | 将来的に導入する場合の開発統合ブランチ。現時点では通常運用していない                                                   |
 | フィーチャーブランチ | `feature/<説明>`（人が作業する場合）または `claude/<説明>`（AI エージェントが割り当てられた Issue の場合）の形式で作成 |
 
 現時点の通常運用では、フィーチャーブランチは `main` をベースに対応する Issue から以下のコマンドで作成します。
@@ -48,12 +48,12 @@ GitHub Actions で以下のワークフローが自動実行されます。
 
 **トリガー**: `frontend/**` に変更を含む push または PR（対象ブランチ: `main`, `develop`）
 
-| ステップ | コマンド |
-|---|---|
-| 型チェック | `npx tsc -b` |
-| ESLint | `npm run lint` |
-| Prettier | `npm run format:check` |
-| ビルド | `npm run build` |
+| ステップ   | コマンド               |
+| ---------- | ---------------------- |
+| 型チェック | `npx tsc -b`           |
+| ESLint     | `npm run lint`         |
+| Prettier   | `npm run format:check` |
+| ビルド     | `npm run build`        |
 
 ### Lambda CI
 
@@ -61,12 +61,12 @@ GitHub Actions で以下のワークフローが自動実行されます。
 
 **トリガー**: `infra/lambda/**` に変更を含む push または PR（対象ブランチ: `main`, `develop`）
 
-| ステップ | コマンド |
-|---|---|
-| 型チェック | `npx tsc --noEmit` |
-| ESLint | `npm run lint` |
-| Prettier | `npm run format:check` |
-| ビルド | `npm run build` |
+| ステップ   | コマンド               |
+| ---------- | ---------------------- |
+| 型チェック | `npx tsc --noEmit`     |
+| ESLint     | `npm run lint`         |
+| Prettier   | `npm run format:check` |
+| ビルド     | `npm run build`        |
 
 ## ローカル Git フック（lefthook）
 
@@ -77,22 +77,22 @@ GitHub Actions で以下のワークフローが自動実行されます。
 
 `frontend/` と `infra/lambda/` 配下の staged ファイルに対して並列実行します。
 
-| コマンド名 | 対象 | 内容 |
-|---|---|---|
-| `frontend-format` | `frontend/**/*.{ts,tsx,…}` | Prettier チェック |
-| `frontend-lint` | `frontend/**/*.{ts,tsx,js,jsx}` | ESLint |
-| `lambda-format` | `infra/lambda/**/*.{ts,js,…}` | Prettier チェック |
-| `lambda-lint` | `infra/lambda/**/*.ts` | ESLint |
+| コマンド名        | 対象                            | 内容              |
+| ----------------- | ------------------------------- | ----------------- |
+| `frontend-format` | `frontend/**/*.{ts,tsx,…}`      | Prettier チェック |
+| `frontend-lint`   | `frontend/**/*.{ts,tsx,js,jsx}` | ESLint            |
+| `lambda-format`   | `infra/lambda/**/*.{ts,js,…}`   | Prettier チェック |
+| `lambda-lint`     | `infra/lambda/**/*.ts`          | ESLint            |
 
 ### pre-push（プッシュ前）
 
 push 対象に `frontend/**` または `infra/lambda/**` の変更が含まれる場合のみ実行します。
 
-| コマンド名 | 内容 |
-|---|---|
-| `frontend-build` | Vite ビルド（`tsc -b` を含む） |
-| `lambda-build` | TypeScript コンパイル |
-| `tests` | `npm run test`（現在はプレースホルダー） |
+| コマンド名       | 内容                                     |
+| ---------------- | ---------------------------------------- |
+| `frontend-build` | Vite ビルド（`tsc -b` を含む）           |
+| `lambda-build`   | TypeScript コンパイル                    |
+| `tests`          | `npm run test`（現在はプレースホルダー） |
 
 ### フックをスキップする場合
 

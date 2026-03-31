@@ -27,13 +27,13 @@ CDK 上では `stage`（例：`dev` or `prod`）をパラメータとして扱�
 
 Lambda の環境変数として設定：
 
-| 変数名 | 説明 |
-|---|---|
-| `RECIPES_TABLE_NAME` | Recipes テーブル名 |
-| `RECIPE_INGREDIENTS_TABLE_NAME` | RecipeIngredients テーブル名 |
-| `MENUS_TABLE_NAME` | Menus テーブル名 |
-| `PANTRY_ITEMS_TABLE_NAME` | PantryItems テーブル名（将来） |
-| `NODE_ENV` / `LOG_LEVEL` | 必要に応じて追加 |
+| 変数名                          | 説明                           |
+| ------------------------------- | ------------------------------ |
+| `RECIPES_TABLE_NAME`            | Recipes テーブル名             |
+| `RECIPE_INGREDIENTS_TABLE_NAME` | RecipeIngredients テーブル名   |
+| `MENUS_TABLE_NAME`              | Menus テーブル名               |
+| `PANTRY_ITEMS_TABLE_NAME`       | PantryItems テーブル名（将来） |
+| `NODE_ENV` / `LOG_LEVEL`        | 必要に応じて追加               |
 
 CDK スタック内で DynamoDB テーブル生成時に名前を決め、その名前を Lambda の環境変数として渡す。
 
@@ -86,20 +86,20 @@ GitHub Actions で、main ブランチへの push / PR マージ時に
 
 - Lambda の標準出力（`console.log`, `console.error`）を CloudWatch Logs に送信。
 - ログ設計（初期方針）：
-    - API リクエストごとに最低限の情報を出す：
-        - HTTP メソッド
-        - パス
-        - userId（わかる範囲で）
-        - ステータスコード
-    - エラー時に stack trace を出力（ただし機微情報は含めない）
+  - API リクエストごとに最低限の情報を出す：
+    - HTTP メソッド
+    - パス
+    - userId（わかる範囲で）
+    - ステータスコード
+  - エラー時に stack trace を出力（ただし機微情報は含めない）
 
 ### メトリクス
 
 - 初期段階では、細かいアラートは不要。
 - 必要になれば：
-    - Lambda のエラーレート
-    - API Gateway の 5xx レート
-      に CloudWatch アラーム設定を検討。
+  - Lambda のエラーレート
+  - API Gateway の 5xx レート
+    に CloudWatch アラーム設定を検討。
 
 ---
 
@@ -107,7 +107,7 @@ GitHub Actions で、main ブランチへの push / PR マージ時に
 
 - `Menus` の期間クエリ効率向上のための GSI 追加
 - 単一テーブル設計（Single Table Design）への移行
-    - 例：`PK: userId, SK: <entityType>#<id>...`
+  - 例：`PK: userId, SK: <entityType>#<id>...`
 - PWA 対応（オフラインでの買い物リスト利用）
 - CloudFront Functions / Lambda@Edge を使ったより細かいルーティングや認証前処理
 - 家族など複数ユーザー利用を見据えた権限管理（role ベースなど）

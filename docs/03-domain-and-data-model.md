@@ -65,23 +65,23 @@
 
 ### 3.3 主な属性
 
-- `userId`: string  
+- `userId`: string
   - ユーザーの識別子（現状は固定値でも可）
-- `recipeId`: string  
+- `recipeId`: string
   - レシピのUUID
-- `name`: string  
+- `name`: string
   - レシピ名（例：「鶏の照り焼き」）
-- `sourceBook`: string (nullable)  
+- `sourceBook`: string (nullable)
   - 出典本のタイトル（例：「〇〇の和食レシピ」）
-- `sourcePage`: number (nullable)  
+- `sourcePage`: number (nullable)
   - 出典本のページ番号
-- `baseServings`: number  
+- `baseServings`: number
   - このレシピが何人分の分量で書かれているか（例：2）
-- `memo`: string (nullable)  
+- `memo`: string (nullable)
   - 味のメモ・次回の調整用コメントなど
-- `createdAt`: string (ISO8601)  
+- `createdAt`: string (ISO8601)
   - 作成日時
-- `updatedAt`: string (ISO8601)  
+- `updatedAt`: string (ISO8601)
   - 更新日時
 
 ### 3.4 想定アクセスパターン
@@ -100,7 +100,7 @@
 
 ### 3.5 アイテム例
 
-```json
+````json
 {
   "userId": "user-001",
   "recipeId": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11",
@@ -185,7 +185,7 @@
   "unit": "g",
   "note": null
 }
-```
+````
 
 ```json
 {
@@ -205,46 +205,43 @@
 
 ### 5.1 用途
 
-* 「いつ・どの食事（朝/昼/夜）で・どのレシピを・何人分作るか」を表現するテーブル。
-* 1件のアイテムが、**ある日付のある食事区分に対する1つのレシピ** に対応する。
+- 「いつ・どの食事（朝/昼/夜）で・どのレシピを・何人分作るか」を表現するテーブル。
+- 1件のアイテムが、**ある日付のある食事区分に対する1つのレシピ** に対応する。
 
 ### 5.2 キースキーマ
 
-* **Partition Key (PK)**: `userId` (string)
-* **Sort Key (SK)**: `date#mealType#menuId` (string)
+- **Partition Key (PK)**: `userId` (string)
+- **Sort Key (SK)**: `date#mealType#menuId` (string)
 
 ここで：
 
-* `date`: `YYYY-MM-DD` 形式の文字列（例：`2025-11-21`）
-* `mealType`: `"BREAKFAST" | "LUNCH" | "DINNER" | "OTHER"` など
-* `menuId`: 同じ日・同じ食事区分に複数レシピを登録する可能性を考慮した一意ID（UUID など）
+- `date`: `YYYY-MM-DD` 形式の文字列（例：`2025-11-21`）
+- `mealType`: `"BREAKFAST" | "LUNCH" | "DINNER" | "OTHER"` など
+- `menuId`: 同じ日・同じ食事区分に複数レシピを登録する可能性を考慮した一意ID（UUID など）
 
 ### 5.3 主な属性
 
-* `userId`: string
-* `date`: string (`YYYY-MM-DD`)
-* `mealType`: string（例：`"BREAKFAST"`, `"LUNCH"`, `"DINNER"`）
-* `menuId`: string（UUID）
-* `recipeId`: string
-* `servings`: number
+- `userId`: string
+- `date`: string (`YYYY-MM-DD`)
+- `mealType`: string（例：`"BREAKFAST"`, `"LUNCH"`, `"DINNER"`）
+- `menuId`: string（UUID）
+- `recipeId`: string
+- `servings`: number
+  - この献立における実人数（例：1人分 / 2人分）
 
-    * この献立における実人数（例：1人分 / 2人分）
-* `memo`: string (nullable)
-* `createdAt`: string (ISO8601)
-* `updatedAt`: string (ISO8601)
+- `memo`: string (nullable)
+- `createdAt`: string (ISO8601)
+- `updatedAt`: string (ISO8601)
 
 ### 5.4 想定アクセスパターン
 
 1. **特定期間の献立一覧を取得する**
-
-    * 条件：ユーザー＋日付期間（例：2025-11-21〜2025-11-27）
-    * DynamoDB 操作：
-
-        * 単一 PK (`userId`) なので、純粋な日付範囲での `Query` は直接はできない
-        * 対応案：
-
-            * `Menus` テーブルに GSI を張る
-            * もしくは、当面は「当日 or 数日分」を前提に `Query + FilterExpression` を利用
+   - 条件：ユーザー＋日付期間（例：2025-11-21〜2025-11-27）
+   - DynamoDB 操作：
+     - 単一 PK (`userId`) なので、純粋な日付範囲での `Query` は直接はできない
+     - 対応案：
+       - `Menus` テーブルに GSI を張る
+       - もしくは、当面は「当日 or 数日分」を前提に `Query + FilterExpression` を利用
 
 ※ 個人用＆件数が少ない前提のため、**最初の段階ではシンプルさを優先し、
 `userId` 固定で `Query` → Lambda側で日付フィルタ**という方針でも良い。
@@ -253,8 +250,7 @@
 `GSI: PK = date, SK = userId#mealType#menuId` のようなインデックスを追加する。
 
 2. **特定日付の献立をまとめて取得**
-
-    * `Query`（`userId = :uid`）＋ Filterで `date = :date` でも十分対応可能。
+   - `Query`（`userId = :uid`）＋ Filterで `date = :date` でも十分対応可能。
 
 ### 5.5 アイテム例
 
@@ -279,8 +275,8 @@
 
 ### 6.1 用途
 
-* 指定期間内の献立から必要な材料を集計し、**一時的な計算結果として返す**。
-* DynamoDB にテーブルは作らず、Lambda 内で動的に生成する。
+- 指定期間内の献立から必要な材料を集計し、**一時的な計算結果として返す**。
+- DynamoDB にテーブルは作らず、Lambda 内で動的に生成する。
 
 ### 6.2 データ構造（レスポンス例）
 
@@ -318,31 +314,31 @@
 
 ### 7.1 用途
 
-* 常備している材料（塩、醤油、砂糖など）や在庫を管理する。
-* 買い物リストから除外したい材料を指定できるようにする。
+- 常備している材料（塩、醤油、砂糖など）や在庫を管理する。
+- 買い物リストから除外したい材料を指定できるようにする。
 
 ### 7.2 キースキーマ（案）
 
-* **Partition Key (PK)**: `userId` (string)
-* **Sort Key (SK)**: `ingredientName` (string)
+- **Partition Key (PK)**: `userId` (string)
+- **Sort Key (SK)**: `ingredientName` (string)
 
 ### 7.3 主な属性（案）
 
-* `userId`: string
-* `ingredientName`: string
-* `alwaysAvailable`: boolean
+- `userId`: string
+- `ingredientName`: string
+- `alwaysAvailable`: boolean
+  - true の場合、買い物リストから基本的に除外する
 
-    * true の場合、買い物リストから基本的に除外する
-* `quantity`: number (nullable)
+- `quantity`: number (nullable)
+  - 在庫を数値で管理したくなった場合に使用
 
-    * 在庫を数値で管理したくなった場合に使用
-* `unit`: string (nullable)
-* `updatedAt`: string (ISO8601)
+- `unit`: string (nullable)
+- `updatedAt`: string (ISO8601)
 
 ### 7.4 想定アクセスパターン
 
-* ロード時に、ユーザーの `PantryItems` を全件取得してローカルにキャッシュ
-* 買い物リスト作成時に、`alwaysAvailable = true` の材料を除外または別枠表示
+- ロード時に、ユーザーの `PantryItems` を全件取得してローカルにキャッシュ
+- 買い物リスト作成時に、`alwaysAvailable = true` の材料を除外または別枠表示
 
 ---
 
@@ -394,7 +390,7 @@ export type ShoppingListItem = {
 
 export type ShoppingList = {
   from: string; // YYYY-MM-DD
-  to: string;   // YYYY-MM-DD
+  to: string; // YYYY-MM-DD
   items: ShoppingListItem[];
 };
 ```
@@ -403,15 +399,14 @@ export type ShoppingList = {
 
 ## 9. 今後の見直しポイント（メモ）
 
-* `RecipeIngredients` で `quantity` を number と string に分離するか検討
+- `RecipeIngredients` で `quantity` を number と string に分離するか検討
+  - 例：`quantityValue` (number?) + `quantityText` (string?) 形式
 
-    * 例：`quantityValue` (number?) + `quantityText` (string?) 形式
-* `Menus` の期間検索の効率化
+- `Menus` の期間検索の効率化
+  - 必要になったら `GSI` を追加して、`date` をキーにした検索を可能にする
 
-    * 必要になったら `GSI` を追加して、`date` をキーにした検索を可能にする
-* 単一テーブル設計（Single Table Design）への移行の可能性
-
-    * `PK: userId, SK: <type>#<id>...` という形に統合する案もあり
-    * まずは複数テーブル構成で実装し、必要に応じてリファクタリングで対応
+- 単一テーブル設計（Single Table Design）への移行の可能性
+  - `PK: userId, SK: <type>#<id>...` という形に統合する案もあり
+  - まずは複数テーブル構成で実装し、必要に応じてリファクタリングで対応
 
 ---

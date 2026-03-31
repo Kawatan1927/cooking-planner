@@ -20,15 +20,15 @@ sidebar_position: 4
 Vite の [環境変数機能](https://vitejs.dev/guide/env-and-mode) を使用します。
 ブラウザに公開されるため、`VITE_` プレフィックスが必須です。
 
-| 変数名 | 説明 | 例 |
-|---|---|---|
-| `VITE_API_BASE_URL` | API のベース URL | `https://xxx.cloudfront.net/api` |
-| `VITE_AUTH_TOKEN` | ローカル開発用の固定トークン（現在のフロントエンド実装で使用） | `dummy-local-token` |
-| `VITE_COGNITO_USER_POOL_ID` | Cognito User Pool ID（将来の Cognito 認証導入時に使用予定。現状は未使用） | `ap-northeast-1_XXXXXXX` |
-| `VITE_COGNITO_CLIENT_ID` | Cognito App Client ID（将来の Cognito 認証導入時に使用予定。現状は未使用） | `xxxxxxxxxxxxxxxxxxxxxxxxxx` |
-| `VITE_COGNITO_REGION` | AWS リージョン（将来の Cognito 認証導入時に使用予定。現状は未使用） | `ap-northeast-1` |
-| `VITE_COGNITO_REDIRECT_URI` | ログイン後のリダイレクト URI（将来の Cognito 認証導入時に使用予定。現状は未使用） | `http://localhost:5173/callback` |
-| `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後のリダイレクト URI（将来の Cognito 認証導入時に使用予定。現状は未使用） | `http://localhost:5173` |
+| 変数名                             | 説明                                                                                | 例                               |
+| ---------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------- |
+| `VITE_API_BASE_URL`                | API のベース URL                                                                    | `https://xxx.cloudfront.net/api` |
+| `VITE_AUTH_TOKEN`                  | ローカル開発用の固定トークン（現在のフロントエンド実装で使用）                      | `dummy-local-token`              |
+| `VITE_COGNITO_USER_POOL_ID`        | Cognito User Pool ID（将来の Cognito 認証導入時に使用予定。現状は未使用）           | `ap-northeast-1_XXXXXXX`         |
+| `VITE_COGNITO_CLIENT_ID`           | Cognito App Client ID（将来の Cognito 認証導入時に使用予定。現状は未使用）          | `xxxxxxxxxxxxxxxxxxxxxxxxxx`     |
+| `VITE_COGNITO_REGION`              | AWS リージョン（将来の Cognito 認証導入時に使用予定。現状は未使用）                 | `ap-northeast-1`                 |
+| `VITE_COGNITO_REDIRECT_URI`        | ログイン後のリダイレクト URI（将来の Cognito 認証導入時に使用予定。現状は未使用）   | `http://localhost:5173/callback` |
+| `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後のリダイレクト URI（将来の Cognito 認証導入時に使用予定。現状は未使用） | `http://localhost:5173`          |
 
 ### セットアップ手順
 
@@ -61,14 +61,14 @@ VITE_COGNITO_LOGOUT_REDIRECT_URI=http://localhost:5173
 Lambda の環境変数は CDK スタック内で設定し、DynamoDB テーブル作成時の名前をそのまま渡します。
 ローカル開発・テスト時は `.env` ファイルや環境変数を手動で設定してください。
 
-| 変数名 | 説明 |
-|---|---|
-| `RECIPES_TABLE_NAME` | Recipes テーブル名 |
-| `RECIPE_INGREDIENTS_TABLE_NAME` | RecipeIngredients テーブル名 |
-| `MENUS_TABLE_NAME` | Menus テーブル名 |
-| `PANTRY_ITEMS_TABLE_NAME` | PantryItems テーブル名（将来追加予定） |
-| `NODE_ENV` | `production` / `development` など |
-| `LOG_LEVEL` | ログレベル（必要に応じて追加） |
+| 変数名                          | 説明                                   |
+| ------------------------------- | -------------------------------------- |
+| `RECIPES_TABLE_NAME`            | Recipes テーブル名                     |
+| `RECIPE_INGREDIENTS_TABLE_NAME` | RecipeIngredients テーブル名           |
+| `MENUS_TABLE_NAME`              | Menus テーブル名                       |
+| `PANTRY_ITEMS_TABLE_NAME`       | PantryItems テーブル名（将来追加予定） |
+| `NODE_ENV`                      | `production` / `development` など      |
+| `LOG_LEVEL`                     | ログレベル（必要に応じて追加）         |
 
 ### CDK での設定方法
 
@@ -89,11 +89,11 @@ const handler = new nodejs.NodejsFunction(this, 'Handler', {
 
 ## 環境別の運用方針
 
-| 環境 | 説明 |
-|---|---|
-| ローカル開発 | `frontend/.env` にローカル用の値を設定。Lambda は dev ステージの実環境か `sam local` を使用 |
-| `dev`（任意） | 開発検証用の AWS 環境。CDK の `stage` パラメータで分岐 |
-| `prod` | 本番環境。GitHub Actions または手動 CDK デプロイで管理 |
+| 環境          | 説明                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| ローカル開発  | `frontend/.env` にローカル用の値を設定。Lambda は dev ステージの実環境か `sam local` を使用 |
+| `dev`（任意） | 開発検証用の AWS 環境。CDK の `stage` パラメータで分岐                                      |
+| `prod`        | 本番環境。GitHub Actions または手動 CDK デプロイで管理                                      |
 
 :::tip
 環境変数を追加・変更した際は、このページと CDK スタック・`docs/05-architecture-notes.md` もあわせて更新してください。
