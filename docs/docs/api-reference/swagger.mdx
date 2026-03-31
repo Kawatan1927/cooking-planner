@@ -1,0 +1,24 @@
+---
+id: swagger-ui
+title: Swagger UI
+sidebar_position: 2
+hide_table_of_contents: true
+---
+
+import BrowserOnly from '@docusaurus/BrowserOnly';
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
+export const SwaggerUIPage = () => {
+  const url = useBaseUrl('/api/cooking-planner.yaml');
+  return (
+    <BrowserOnly fallback={<div>API リファレンスを読み込み中...</div>}>
+      {() => {
+        const SwaggerUI = require('swagger-ui-react').default;
+        require('swagger-ui-react/swagger-ui.css');
+        return <SwaggerUI url={url} />;
+      }}
+    </BrowserOnly>
+  );
+};
+
+<SwaggerUIPage />
