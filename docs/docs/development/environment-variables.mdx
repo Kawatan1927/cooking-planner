@@ -23,20 +23,25 @@ Vite の [環境変数機能](https://vitejs.dev/guide/env-and-mode) を使用�
 | 変数名 | 説明 | 例 |
 |---|---|---|
 | `VITE_API_BASE_URL` | API のベース URL | `https://xxx.cloudfront.net/api` |
-| `VITE_COGNITO_USER_POOL_ID` | Cognito User Pool ID | `ap-northeast-1_XXXXXXX` |
-| `VITE_COGNITO_CLIENT_ID` | Cognito App Client ID | `xxxxxxxxxxxxxxxxxxxxxxxxxx` |
-| `VITE_COGNITO_REGION` | AWS リージョン | `ap-northeast-1` |
-| `VITE_COGNITO_REDIRECT_URI` | ログイン後のリダイレクト URI | `http://localhost:5173/callback` |
-| `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後のリダイレクト URI | `http://localhost:5173` |
+| `VITE_AUTH_TOKEN` | ローカル開発用の固定トークン（現在のフロントエンド実装で使用） | `dummy-local-token` |
+| `VITE_COGNITO_USER_POOL_ID` | Cognito User Pool ID（将来の Cognito 認証導入時に使用予定。現状は未使用） | `ap-northeast-1_XXXXXXX` |
+| `VITE_COGNITO_CLIENT_ID` | Cognito App Client ID（将来の Cognito 認証導入時に使用予定。現状は未使用） | `xxxxxxxxxxxxxxxxxxxxxxxxxx` |
+| `VITE_COGNITO_REGION` | AWS リージョン（将来の Cognito 認証導入時に使用予定。現状は未使用） | `ap-northeast-1` |
+| `VITE_COGNITO_REDIRECT_URI` | ログイン後のリダイレクト URI（将来の Cognito 認証導入時に使用予定。現状は未使用） | `http://localhost:5173/callback` |
+| `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後のリダイレクト URI（将来の Cognito 認証導入時に使用予定。現状は未使用） | `http://localhost:5173` |
 
 ### セットアップ手順
 
 1. `frontend/.env` ファイルをローカルに作成する
-2. 上記の変数を実際の値で設定する
+2. 上記のうち、**現在の実装で必要な変数**（例: `VITE_API_BASE_URL`, `VITE_AUTH_TOKEN`）を実際の値で設定する  
+   Cognito 系の変数（`VITE_COGNITO_*`）は将来の導入予定であり、現時点では設定不要です。
 
 ```bash
 # frontend/.env（例）
 VITE_API_BASE_URL=https://xxx.cloudfront.net/api
+VITE_AUTH_TOKEN=dummy-local-token
+
+# 以下は将来の Cognito 認証導入時に使用予定（現時点では未使用のため省略可）
 VITE_COGNITO_USER_POOL_ID=ap-northeast-1_XXXXXXX
 VITE_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
 VITE_COGNITO_REGION=ap-northeast-1
