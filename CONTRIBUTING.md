@@ -239,6 +239,12 @@ GitHub Actionsを使用してCI/CDを実行しています。
      - TypeScript型チェック
      - ビルド
 
+3. **Docs CI** (`.github/workflows/docs-ci.yml`)
+   - トリガー: `docs/**` の変更がプッシュまたはPR
+   - チェック項目:
+     - Prettier フォーマットチェック
+     - Docusaurus ビルド
+
 ### ローカルフックとCIの一貫性
 
 lefthookの設定は、CIで実行されるチェックと可能な限り一致するように設計されています。
@@ -352,6 +358,56 @@ Refs: #123
 - `docs/03-domain-and-data-model.md` - ドメインモデルとデータモデル
 - `docs/04-api-design.md` - API設計
 - `docs/05-architecture-notes.md` - アーキテクチャノート
+
+## ドキュメント変更ガイドライン
+
+### どの文書をどこに書くか
+
+| 変更内容 | 追記先ファイル |
+|---|---|
+| アプリのビジョン・スコープ | `docs/01-vision-and-scope.md` |
+| 機能定義・画面仕様 | `docs/02-features-and-screens.md` |
+| ドメインモデル・データモデル | `docs/03-domain-and-data-model.md` |
+| API設計（エンドポイント・スキーマ） | `docs/04-api-design.md` |
+| アーキテクチャ・インフラ構成 | `docs/05-architecture-notes.md` |
+| 開発環境・コーディング規約 | `CONTRIBUTING.md` |
+| Docusaurus サイト向けコンテンツ | `docs/docs/` 配下の対応ディレクトリ |
+
+Docusaurus サイト（`docs/docs/`）は以下のカテゴリに分かれています：
+
+- `getting-started/` - 開発環境セットアップ手順
+- `features/` - 機能・画面仕様・API設計
+- `architecture/` - アーキテクチャ・データモデル・インフラ
+- `development/` - コーディング規約・テスト・GitHub ワークフロー
+
+### ドキュメント変更時のレビュー観点
+
+docs の PR をレビューする際は、以下の点を確認してください：
+
+1. **整合性**: 変更内容がコードや他の仕様書と矛盾していないか
+2. **記載先**: 変更対象のドキュメントが上記の「どこに書くか」ルールに沿っているか
+3. **フォーマット**: Prettier の規則に従っているか（CI の Docs CI ジョブで自動チェック）
+4. **ビルド**: Docusaurus でビルドエラーが発生していないか（CI の Docs CI ジョブで自動チェック）
+5. **Mermaid 図**: 図を追加・変更した場合、レンダリング結果が意図通りか
+6. **リンク**: 内部リンクが正しく機能するか
+
+### ドキュメントのローカル確認
+
+```bash
+# Docusaurus 開発サーバーを起動してプレビュー
+cd docs
+bun install   # 初回のみ
+bun run start
+
+# フォーマットチェック（CI と同じチェック）
+bun run format:check
+
+# フォーマット自動修正
+bun run format
+
+# ビルド確認（CI と同じチェック）
+bun run build
+```
 
 ## 質問やサポート
 

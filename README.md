@@ -151,6 +151,7 @@ GitHub Actionsを使用してCI/CDを実行しています：
 
 - **Frontend CI**: フロントエンドのlint、フォーマットチェック、型チェック、ビルド
 - **Lambda CI**: Lambdaのlint、フォーマットチェック、型チェック、ビルド
+- **Docs CI**: ドキュメントのフォーマットチェック、Docusaurus ビルド
 
 詳細は `.github/workflows/` を参照してください。
 
