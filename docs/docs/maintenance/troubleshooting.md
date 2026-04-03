@@ -82,6 +82,7 @@ aws cloudformation describe-stack-events \
 
 ```bash
 # スタックを削除（注意: DynamoDB テーブルが削除される可能性がある）
+cd infra
 cdk destroy
 ```
 

@@ -45,6 +45,9 @@ sidebar_position: 1
 
 # Lambda
 (cd infra/lambda && npm update)
+
+# ドキュメント
+(cd docs && bun update)
 ```
 
 ### 3. メジャーアップデート
@@ -58,7 +61,12 @@ sidebar_position: 1
 
 # Lambda の特定パッケージを更新
 (cd infra/lambda && npm install <パッケージ名>@<バージョン>)
+
+# ドキュメントの特定パッケージを更新
+(cd docs && bun add <パッケージ名>@<バージョン>)
 ```
+
+`docs/package.json` を更新した場合は、`bun.lock` も同時に更新されていることを必ず確認する。
 
 ### 4. テスト・ビルド確認
 
