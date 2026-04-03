@@ -7,7 +7,7 @@ sidebar_position: 1
 # API リファレンス
 
 Cooking Planner バックエンドが提供する REST API の概要をまとめます。  
-インタラクティブな試用は **[Swagger UI](./swagger-ui)** ページから行えます。
+インタラクティブな試用は **[Swagger UI](/api-reference/swagger-ui)** ページから行えます。
 
 > 詳細な設計意図・背景は [`docs/04-api-design.md`](https://github.com/Kawatan1927/cooking-planner/blob/main/docs/04-api-design.md) を参照してください。  
 > OpenAPI 仕様ファイル: [`static/api/cooking-planner.yaml`](https://github.com/Kawatan1927/cooking-planner/blob/main/docs/static/api/cooking-planner.yaml)
@@ -74,6 +74,9 @@ Authorization: Bearer <Cognito JWT>
 ---
 
 ## API 一覧
+
+> 現時点でバックエンド実装済みなのは `/health`、`GET /recipes`、`POST /recipes`、`GET /recipes/{recipeId}` です。  
+> それ以外の操作は仕様先行で定義しており、現在呼び出すと `404 Not Found` になります。
 
 ### Recipes API（レシピ管理）
 

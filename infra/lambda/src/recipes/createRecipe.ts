@@ -47,7 +47,7 @@ interface CreateRecipeRequestBody {
   memo?: string | null;
   ingredients: Array<{
     ingredientName: string;
-    quantity: number;
+    quantity: number | string;
     unit: string;
     note?: string | null;
   }>;
@@ -145,11 +145,16 @@ export const createRecipe = async (
       }
       sanitizedIngredientNames.set(sanitizedName, ingredient.ingredientName);
 
-      if (typeof ingredient.quantity !== 'number' || ingredient.quantity <= 0) {
+      const hasValidNumericQuantity =
+        typeof ingredient.quantity === 'number' && ingredient.quantity > 0;
+      const hasValidTextQuantity =
+        typeof ingredient.quantity === 'string' && ingredient.quantity.trim().length > 0;
+
+      if (!hasValidNumericQuantity && !hasValidTextQuantity) {
         return createErrorResponse(
           400,
           'BAD_REQUEST',
-          'Each ingredient must have a positive quantity'
+          'Each ingredient must have a positive numeric quantity or a non-empty text quantity'
         );
       }
       if (!ingredient.unit || typeof ingredient.unit !== 'string') {

@@ -5,7 +5,7 @@ import { Recipe, RecipeIngredient } from '../shared/types';
 
 interface RecipeIngredientResponse {
   ingredientName: string;
-  quantity: number;
+  quantity: number | string;
   unit: string;
   note: string | null;
 }

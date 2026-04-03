@@ -196,8 +196,11 @@ paths:
     put:
       tags:
         - recipes
-      summary: レシピ更新
-      description: 既存レシピの情報を材料リストごと全体更新（差分ではなく置き換え）する。
+      summary: レシピ更新（未実装）
+      description: |-
+        既存レシピの情報を材料リストごと全体更新（差分ではなく置き換え）する。
+
+        **注意:** 現在このエンドポイントはバックエンド未実装のため、呼び出すと `404 Not Found` が返ります。将来の実装予定を示すための仕様です。
       operationId: updateRecipe
       requestBody:
         required: true
@@ -238,10 +241,12 @@ paths:
     get:
       tags:
         - menus
-      summary: 献立一覧取得
+      summary: 献立一覧取得（未実装）
       description: |-
         指定期間内の献立を取得する。
         `from` / `to` 未指定時は今日から7日分を返す。
+
+        **注意:** 現在このエンドポイントはバックエンド未実装のため、呼び出すと `404 Not Found` が返ります。将来の実装予定を示すための仕様です。
       operationId: listMenus
       parameters:
         - name: from
@@ -286,8 +291,11 @@ paths:
     post:
       tags:
         - menus
-      summary: 献立登録
-      description: ある日付・食事区分にレシピを紐付けた献立を登録する。同じ日付・食事区分に複数レシピを登録可能。
+      summary: 献立登録（未実装）
+      description: |-
+        ある日付・食事区分にレシピを紐付けた献立を登録する。同じ日付・食事区分に複数レシピを登録可能。
+
+        **注意:** 現在このエンドポイントはバックエンド未実装のため、呼び出すと `404 Not Found` が返ります。将来の実装予定を示すための仕様です。
       operationId: createMenu
       requestBody:
         required: true
@@ -328,8 +336,11 @@ paths:
     put:
       tags:
         - menus
-      summary: 献立更新
-      description: 既存の献立（1件）を更新する。主に `servings` や `recipeId` の変更。
+      summary: 献立更新（未実装）
+      description: |-
+        既存の献立（1件）を更新する。主に `servings` や `recipeId` の変更。
+
+        **注意:** 現在このエンドポイントはバックエンド未実装のため、呼び出すと `404 Not Found` が返ります。将来の実装予定を示すための仕様です。
       operationId: updateMenu
       requestBody:
         required: true
@@ -363,8 +374,11 @@ paths:
     delete:
       tags:
         - menus
-      summary: 献立削除
-      description: 献立から1件のレシピを削除する。
+      summary: 献立削除（未実装）
+      description: |-
+        献立から1件のレシピを削除する。
+
+        **注意:** 現在このエンドポイントはバックエンド未実装のため、呼び出すと `404 Not Found` が返ります。将来の実装予定を示すための仕様です。
       operationId: deleteMenu
       responses:
         '204':
@@ -380,7 +394,7 @@ paths:
     get:
       tags:
         - shopping-list
-      summary: 買い物リスト取得
+      summary: 買い物リスト取得（未実装）
       description: |-
         指定期間の献立から必要な材料の合計量を計算して返す。
 
@@ -388,6 +402,8 @@ paths:
         1. `Menus` から `from`〜`to` の献立を取得
         2. 各 `menuItem` の `servings / baseServings` で分量をスケーリング
         3. `ingredientName + unit` 単位で合計値を集計
+
+        **注意:** 現在このエンドポイントはバックエンド未実装のため、呼び出すと `404 Not Found` が返ります。将来の実装予定を示すための仕様です。
       operationId: getShoppingList
       parameters:
         - name: from
