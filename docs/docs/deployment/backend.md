@@ -6,12 +6,15 @@ sidebar_position: 3
 
 ## 概要
 
-バックエンド（Lambda + API Gateway）およびインフラ（DynamoDB、Cognito 等）は AWS CDK で管理する。
-変更は `cdk deploy` コマンドでデプロイする。
+バックエンド（Lambda + API Gateway）およびインフラ（DynamoDB、Cognito 等）は、将来的に AWS CDK で管理する方針とする。
+CDK アプリ実装完了後は、変更を `cdk deploy` コマンドでデプロイする運用を想定している。
+現時点では `infra/` 配下に CDK アプリ実装が存在しないため、このページの CDK 操作手順は実装完了後に有効となる予定である。
 
 ---
 
 ## 手動デプロイ手順
+
+> **TODO**: 以下の手順は `infra/` 配下の CDK アプリ実装完了後に利用する。
 
 ### 1. 差分確認
 
@@ -68,8 +71,8 @@ cdk bootstrap aws://123456789012/ap-northeast-1
 
 ## ロールバック
 
-CDK には組み込みのロールバック機能はない。
-前のバージョンに戻すには、対象コミットをチェックアウトして再度 `cdk deploy` を実行する。
+CDK のデプロイは CloudFormation 経由で行われるため、デプロイ失敗時には CloudFormation の自動ロールバック機能が既定で有効になっている。
+ただし、過去の正常な状態へ明示的に戻すための簡易なロールバックコマンドは用意されていないため、前のバージョンに戻すには対象コミットをチェックアウトして再度 `cdk deploy` を実行する。
 
 ```bash
 git checkout <前のコミット SHA>

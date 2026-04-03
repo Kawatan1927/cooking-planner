@@ -61,9 +61,10 @@ aws cloudfront create-invalidation \
 | `VITE_COGNITO_REGION` | AWS リージョン | `ap-northeast-1` |
 | `VITE_COGNITO_REDIRECT_URI` | ログイン後リダイレクト URI | `https://example.com/callback` |
 | `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後リダイレクト URI | `https://example.com` |
+| `VITE_AUTH_TOKEN` | 認証トークンをローカル開発や暫定運用で直接指定する場合に使う値 | `eyJhbGciOi...` |
 
 :::caution
-`frontend/.env.production` はリポジトリにコミットしない（`.gitignore` に追加済み）。
+`frontend/.env.production` はリポジトリにコミットしないように注意する。
 実際の値は別途安全な場所に保管すること。
 :::
 

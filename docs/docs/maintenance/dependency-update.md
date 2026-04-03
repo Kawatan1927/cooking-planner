@@ -28,23 +28,23 @@ sidebar_position: 1
 
 ```bash
 # フロントエンド
-cd frontend && npm outdated
+(cd frontend && npm outdated)
 
 # Lambda
-cd infra/lambda && npm outdated
+(cd infra/lambda && npm outdated)
 
 # ドキュメント
-cd docs && npx npm-check-updates
+(cd docs && npx npm-check-updates)
 ```
 
 ### 2. パッチ・マイナーアップデート
 
 ```bash
 # フロントエンド（patch / minor のみ）
-cd frontend && npm update
+(cd frontend && npm update)
 
 # Lambda
-cd infra/lambda && npm update
+(cd infra/lambda && npm update)
 ```
 
 ### 3. メジャーアップデート
@@ -77,13 +77,14 @@ npm run lint
 
 ```bash
 # フロントエンド
-cd frontend && npm audit
+(cd frontend && npm audit)
 
 # Lambda
-cd infra/lambda && npm audit
+(cd infra/lambda && npm audit)
 
 # 自動修正を試みる場合
-npm audit fix
+(cd frontend && npm audit fix)
+(cd infra/lambda && npm audit fix)
 ```
 
 ---
