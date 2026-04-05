@@ -1,5 +1,6 @@
 import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
+import type { Plugin } from "@docusaurus/types";
 
 const config: Config = {
   title: "Cooking Planner Docs",
@@ -24,6 +25,24 @@ const config: Config = {
   },
 
   themes: ["@docusaurus/theme-mermaid"],
+
+  plugins: [
+    function swaggerUiWebpackPlugin(): Plugin {
+      return {
+        name: "swagger-ui-webpack-plugin",
+        configureWebpack(_config, isServer) {
+          if (isServer) return {};
+          return {
+            resolve: {
+              fallback: {
+                stream: false,
+              },
+            },
+          };
+        },
+      };
+    },
+  ],
 
   presets: [
     [
