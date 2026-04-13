@@ -1,6 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Construct } from 'constructs';
+import * as path from 'path';
 
 export type Stage = 'dev' | 'prod';
 
@@ -12,11 +17,13 @@ export interface CookingPlannerStackProps extends cdk.StackProps {
 /**
  * CookingPlanner のベーススタック。
  *
- * DynamoDB テーブル（Recipes / RecipeIngredients / Menus）を定義します。
- * 後続の Issue で Lambda / API Gateway / Cognito / S3+CloudFront
+ * DynamoDB テーブル（Recipes / RecipeIngredients / Menus）と
+ * Lambda 関数、API Gateway HTTP API を定義します。
+ * 後続の Issue で Cognito User Pool / App Client、S3+CloudFront
  * などのリソースをここに追加していきます。
  *
  * @see docs/03-domain-and-data-model.md
+ * @see docs/04-api-design.md
  * @see docs/05-architecture-notes.md
  * @see infra/CDK_INTEGRATION.md
  */
@@ -26,24 +33,40 @@ export class CookingPlannerStack extends cdk.Stack {
 
   /**
    * Recipes テーブル。
-   * 後続 Issue で Lambda 環境変数 RECIPES_TABLE_NAME に渡す。
+   * Lambda 環境変数 RECIPES_TABLE_NAME に渡す。
    * @see docs/03-domain-and-data-model.md §3
    */
   public readonly recipesTable: dynamodb.Table;
 
   /**
    * RecipeIngredients テーブル。
-   * 後続 Issue で Lambda 環境変数 RECIPE_INGREDIENTS_TABLE_NAME に渡す。
+   * Lambda 環境変数 RECIPE_INGREDIENTS_TABLE_NAME に渡す。
    * @see docs/03-domain-and-data-model.md §4
    */
   public readonly recipeIngredientsTable: dynamodb.Table;
 
   /**
    * Menus テーブル。
-   * 後続 Issue で Lambda 環境変数 MENUS_TABLE_NAME に渡す。
+   * Lambda 環境変数 MENUS_TABLE_NAME に渡す。
    * @see docs/03-domain-and-data-model.md §5
    */
   public readonly menusTable: dynamodb.Table;
+
+  /**
+   * メイン Lambda 関数（小さめモノリス構成）。
+   * infra/lambda/src/index.ts をエントリーポイントとして参照する。
+   * @see docs/05-architecture-notes.md
+   * @see infra/lambda/src/index.ts
+   */
+  public readonly apiHandler: NodejsFunction;
+
+  /**
+   * API Gateway HTTP API。
+   * - GET /health: 認証不要の疎通確認エンドポイント
+   * - /{proxy+}: 業務 API（後続 Issue で JWT Authorizer を追加予定）
+   * @see docs/04-api-design.md
+   */
+  public readonly httpApi: apigatewayv2.HttpApi;
 
   constructor(scope: Construct, id: string, props: CookingPlannerStackProps) {
     super(scope, id, props);
@@ -129,8 +152,95 @@ export class CookingPlannerStack extends cdk.Stack {
     //   Lambda 環境変数名: PANTRY_ITEMS_TABLE_NAME
     //   @see docs/03-domain-and-data-model.md §7
 
-    // TODO(後続Issue): Lambda 関数をここに追加する
-    // TODO(後続Issue): API Gateway HTTP API をここに追加する
+    // -------------------------------------------------------------------------
+    // Lambda 関数定義（単一 Lambda 小さめモノリス構成）
+    //
+    // NodejsFunction を使用して TypeScript ソースを esbuild で自動バンドルする。
+    // @aws-sdk/* は Node.js 20 ランタイムに同梱されているため外部化する。
+    //
+    // @see infra/CDK_INTEGRATION.md
+    // @see docs/05-architecture-notes.md
+    // -------------------------------------------------------------------------
+    this.apiHandler = new NodejsFunction(this, 'ApiHandler', {
+      functionName: `cooking-planner-api-${this.stage}`,
+      entry: path.join(__dirname, '../lambda/src/index.ts'),
+      handler: 'handler',
+      runtime: lambda.Runtime.NODEJS_20_X,
+      environment: {
+        RECIPES_TABLE_NAME: this.recipesTable.tableName,
+        RECIPE_INGREDIENTS_TABLE_NAME: this.recipeIngredientsTable.tableName,
+        MENUS_TABLE_NAME: this.menusTable.tableName,
+      },
+      bundling: {
+        // @aws-sdk/* は Lambda Node.js 20 ランタイムに含まれるため外部化する
+        externalModules: ['@aws-sdk/*'],
+      },
+    });
+
+    // DynamoDB テーブルへの読み書き権限を Lambda に付与
+    this.recipesTable.grantReadWriteData(this.apiHandler);
+    this.recipeIngredientsTable.grantReadWriteData(this.apiHandler);
+    this.menusTable.grantReadWriteData(this.apiHandler);
+
+    // -------------------------------------------------------------------------
+    // API Gateway HTTP API 定義
+    //
+    // 汎用プロキシルーティング構成:
+    //   - GET /health: 認証不要（疎通確認用）
+    //   - /{proxy+} ANY: 全メソッド・全パスを Lambda にプロキシ
+    //     （後続 Issue で業務ルートに JWT Authorizer を追加予定）
+    //
+    // /health の認証要否: 認証不要とする。
+    //   docs/04-api-design.md では GET /health は任意の疎通確認 API と定義されており、
+    //   デプロイ確認や監視の利便性を考慮して認証不要とする。
+    //
+    // @see docs/04-api-design.md
+    // @see docs/05-architecture-notes.md
+    // @see infra/CDK_INTEGRATION.md
+    // -------------------------------------------------------------------------
+    this.httpApi = new apigatewayv2.HttpApi(this, 'HttpApi', {
+      apiName: `cooking-planner-api-${this.stage}`,
+      corsPreflight: {
+        // dev 環境ではローカル開発サーバーのオリジンに限定する。
+        // prod 環境では CloudFront ドメイン設定後に適切なオリジンを指定すること。
+        // TODO(後続Issue): prod 用 CloudFront ドメインが確定したら ['https://<domain>'] に変更
+        allowOrigins: this.stage === 'dev' ? ['http://localhost:5173'] : ['*'],
+        allowMethods: [
+          apigatewayv2.CorsHttpMethod.GET,
+          apigatewayv2.CorsHttpMethod.POST,
+          apigatewayv2.CorsHttpMethod.PUT,
+          apigatewayv2.CorsHttpMethod.DELETE,
+        ],
+        allowHeaders: ['Content-Type', 'Authorization'],
+      },
+    });
+
+    const lambdaIntegration = new HttpLambdaIntegration('LambdaIntegration', this.apiHandler);
+
+    // GET /health: 認証不要の疎通確認エンドポイント
+    // Lambda の /health ルートは status と time を返す
+    this.httpApi.addRoutes({
+      path: '/health',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration: lambdaIntegration,
+    });
+
+    // /{proxy+}: 全メソッド・全パスを Lambda にプロキシ
+    // 後続 Issue でこのルートまたは業務ルート（/recipes, /menus 等）に
+    // JWT Authorizer を追加する
+    this.httpApi.addRoutes({
+      path: '/{proxy+}',
+      methods: [apigatewayv2.HttpMethod.ANY],
+      integration: lambdaIntegration,
+    });
+
+    // API エンドポイント URL を出力
+    new cdk.CfnOutput(this, 'HttpApiUrl', {
+      value: this.httpApi.apiEndpoint,
+      description: 'API Gateway HTTP API endpoint URL',
+      exportName: `cooking-planner-api-url-${this.stage}`,
+    });
+
     // TODO(後続Issue): Cognito User Pool をここに追加する
     // TODO(後続Issue): S3 + CloudFront をここに追加する
   }
