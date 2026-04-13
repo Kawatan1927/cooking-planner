@@ -1,9 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
+export type Stage = 'dev' | 'prod';
+
 export interface CookingPlannerStackProps extends cdk.StackProps {
   /** デプロイ対象の環境。"dev" または "prod" */
-  stage: string;
+  stage: Stage;
 }
 
 /**
@@ -18,7 +20,7 @@ export interface CookingPlannerStackProps extends cdk.StackProps {
  */
 export class CookingPlannerStack extends cdk.Stack {
   /** デプロイ対象の環境名 ("dev" / "prod") */
-  public readonly stage: string;
+  public readonly stage: Stage;
 
   constructor(scope: Construct, id: string, props: CookingPlannerStackProps) {
     super(scope, id, props);

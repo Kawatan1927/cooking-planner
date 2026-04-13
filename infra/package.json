@@ -12,18 +12,24 @@
     "synth": "cdk synth",
     "diff": "cdk diff",
     "deploy": "cdk deploy",
-    "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"bin/**/*.ts\" \"lib/**/*.ts\"",
-    "format:check": "prettier --check \"bin/**/*.ts\" \"lib/**/*.ts\""
+    "lint": "eslint .",
+    "format": "prettier --write \"bin/**/*.ts\" \"lib/**/*.ts\" \"eslint.config.mjs\"",
+    "format:check": "prettier --check \"bin/**/*.ts\" \"lib/**/*.ts\" \"eslint.config.mjs\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.10.5",
     "aws-cdk": "^2.1118.0",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.4.0",
     "prettier": "^3.8.1",
-    "typescript": "^5.7.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.57.2"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.248.0",

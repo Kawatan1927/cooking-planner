@@ -47,6 +47,10 @@ jobs:
         working-directory: ./infra
         run: npm run format:check
 
+      - name: ESLint の実行
+        working-directory: ./infra
+        run: npm run lint
+
       - name: ビルドの実行
         working-directory: ./infra
         run: npm run build

@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { CookingPlannerStack } from '../lib/cooking-planner-stack';
+import { CookingPlannerStack, Stage } from '../lib/cooking-planner-stack';
 
 const app = new cdk.App();
 
 // CDK context から stage を取得。未指定時は 'dev' をデフォルト値とする。
 // 例: cdk synth --context stage=prod
-const stage: string = app.node.tryGetContext('stage') ?? 'dev';
+const rawStage: string = app.node.tryGetContext('stage') ?? 'dev';
 
-if (stage !== 'dev' && stage !== 'prod') {
-  throw new Error(`Invalid stage: "${stage}". Allowed values are "dev" or "prod".`);
+if (rawStage !== 'dev' && rawStage !== 'prod') {
+  throw new Error(`Invalid stage: "${rawStage}". Allowed values are "dev" or "prod".`);
 }
+
+const stage = rawStage as Stage;
 
 new CookingPlannerStack(app, `CookingPlanner-${stage}`, {
   stage,
