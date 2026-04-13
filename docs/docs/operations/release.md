@@ -40,6 +40,7 @@ flowchart TD
 ## staging 環境でのリリース前確認
 
 > **TODO**: staging 環境が必要になった場合、以下の手順を追加する。
+>
 > - `main` マージ後に staging へデプロイ
 > - 動作確認後に prod へデプロイ
 

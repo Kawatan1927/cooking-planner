@@ -13,12 +13,12 @@ sidebar_position: 1
 
 ## 更新頻度の目安
 
-| 種別 | 頻度 | 対応方針 |
-|---|---|---|
-| セキュリティ修正（critical / high） | 発見次第 | 優先対応（1〜2 日以内） |
-| セキュリティ修正（medium 以下） | 月次 | 定期更新時にまとめて対応 |
-| 機能追加・バグ修正 | 月次〜四半期 | 破壊的変更がないか確認してから更新 |
-| メジャーバージョンアップ | 半年〜年次 | マイグレーションガイドを確認してから対応 |
+| 種別                                | 頻度         | 対応方針                                 |
+| ----------------------------------- | ------------ | ---------------------------------------- |
+| セキュリティ修正（critical / high） | 発見次第     | 優先対応（1〜2 日以内）                  |
+| セキュリティ修正（medium 以下）     | 月次         | 定期更新時にまとめて対応                 |
+| 機能追加・バグ修正                  | 月次〜四半期 | 破壊的変更がないか確認してから更新       |
+| メジャーバージョンアップ            | 半年〜年次   | マイグレーションガイドを確認してから対応 |
 
 ---
 
@@ -104,26 +104,26 @@ npm run lint
 
 ### フロントエンド
 
-| パッケージ | 用途 |
-|---|---|
-| React | UI ライブラリ |
-| Vite | ビルドツール |
-| TypeScript | 型付き JavaScript |
-| aws-amplify / amazon-cognito-identity-js | Cognito 認証 |
+| パッケージ                               | 用途              |
+| ---------------------------------------- | ----------------- |
+| React                                    | UI ライブラリ     |
+| Vite                                     | ビルドツール      |
+| TypeScript                               | 型付き JavaScript |
+| aws-amplify / amazon-cognito-identity-js | Cognito 認証      |
 
 ### Lambda
 
-| パッケージ | 用途 |
-|---|---|
-| `@aws-sdk/client-dynamodb` | DynamoDB 操作 |
-| `@aws-sdk/lib-dynamodb` | DynamoDB Document Client |
-| TypeScript | 型付き JavaScript |
+| パッケージ                 | 用途                     |
+| -------------------------- | ------------------------ |
+| `@aws-sdk/client-dynamodb` | DynamoDB 操作            |
+| `@aws-sdk/lib-dynamodb`    | DynamoDB Document Client |
+| TypeScript                 | 型付き JavaScript        |
 
 ### インフラ
 
-| パッケージ | 用途 |
-|---|---|
-| `aws-cdk-lib` | CDK コア |
-| `constructs` | CDK コンストラクト |
+| パッケージ    | 用途               |
+| ------------- | ------------------ |
+| `aws-cdk-lib` | CDK コア           |
+| `constructs`  | CDK コンストラクト |
 
 > **TODO**: CDK スタックの実装が完了した際に具体的なパッケージ一覧を更新する。

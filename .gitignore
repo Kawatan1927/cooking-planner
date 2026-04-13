@@ -39,3 +39,4 @@ yarn-error.log*
 docs/.docusaurus
 docs/build
 docs/node_modules
+docs/package-lock.json

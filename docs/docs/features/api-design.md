@@ -39,7 +39,6 @@ API Gateway で JWT Authorizer を用いて検証する。
 ### 1.3 認証
 
 - 認証方式：**Bearer Token (JWT)**
-
   - Amazon Cognito User Pool による認証
   - フロントは Cognito Hosted UI or SDK 経由でログインし、
     ID トークン or Access トークンを取得する
@@ -76,15 +75,15 @@ API Gateway で JWT Authorizer を用いて検証する。
 代表的なステータスコード：
 
 - `400 Bad Request`
-    - バリデーションエラーなど
+  - バリデーションエラーなど
 - `401 Unauthorized`
-    - JWT 不正・欠如（API Gateway 側で弾かれる場合もある）
+  - JWT 不正・欠如（API Gateway 側で弾かれる場合もある）
 - `403 Forbidden`
-    - 認証は通っているが、対象リソースの `userId` が異なるなど
+  - 認証は通っているが、対象リソースの `userId` が異なるなど
 - `404 Not Found`
-    - 該当リソースが存在しない
+  - 該当リソースが存在しない
 - `500 Internal Server Error`
-    - 予期せぬ例外
+  - 予期せぬ例外
 
 ※ 最初は雑でもよくて、必要に応じて `code` を増やす。
 
@@ -286,8 +285,8 @@ POST `/recipes` と同じ構造：
 - Method: `GET`
 - Path: `/menus`
 - Query Parameters:
-    - `from` (optional, `YYYY-MM-DD`)
-    - `to` (optional, `YYYY-MM-DD`)
+  - `from` (optional, `YYYY-MM-DD`)
+  - `to` (optional, `YYYY-MM-DD`)
 
 `from` / `to` 未指定時の挙動：
 
@@ -418,8 +417,8 @@ POST `/recipes` と同じ構造：
 - Method: `GET`
 - Path: `/shopping-list`
 - Query Parameters:
-    - `from` (required) `YYYY-MM-DD`
-    - `to` (required) `YYYY-MM-DD`
+  - `from` (required) `YYYY-MM-DD`
+  - `to` (required) `YYYY-MM-DD`
 
 **Response 200**
 
@@ -446,9 +445,9 @@ POST `/recipes` と同じ構造：
 
 1. `Menus` から `from`〜`to` の献立を取得
 2. 各 `menuItem` について：
-    - `Recipes` から `baseServings` を取得
-    - `RecipeIngredients` から材料一覧を取得
-    - `servings / baseServings` で分量をスケーリング
+   - `Recipes` から `baseServings` を取得
+   - `RecipeIngredients` から材料一覧を取得
+   - `servings / baseServings` で分量をスケーリング
 3. `ingredientName + unit` 単位で合計値を集計
 4. 上記形式でレスポンスに整形
 

@@ -17,8 +17,8 @@ sidebar_position: 2
 
 - 想定ユーザーは自分 1人（＋せいぜい少人数）で、**SEO が不要**なため SSR や SSG の必要性が低い。
 - S3 + CloudFront による静的ホスティングは
-    - コストが安く
-    - 運用も軽い
+  - コストが安く
+  - 運用も軽い
 - React SPA にすることで UI ロジックをすべてブラウザ側に集約できる。
 
 ### ホスティング構成
@@ -31,13 +31,13 @@ sidebar_position: 2
 
 `frontend/.env` で管理する環境変数：
 
-| 変数名 | 説明 |
-|---|---|
-| `VITE_API_BASE_URL` | 例：`https://xxx.cloudfront.net/api` |
-| `VITE_COGNITO_USER_POOL_ID` | Cognito User Pool ID |
-| `VITE_COGNITO_CLIENT_ID` | Cognito App Client ID |
-| `VITE_COGNITO_REGION` | AWS リージョン |
-| `VITE_COGNITO_REDIRECT_URI` | ログイン後のリダイレクト URI |
-| `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後のリダイレクト URI |
+| 変数名                             | 説明                                 |
+| ---------------------------------- | ------------------------------------ |
+| `VITE_API_BASE_URL`                | 例：`https://xxx.cloudfront.net/api` |
+| `VITE_COGNITO_USER_POOL_ID`        | Cognito User Pool ID                 |
+| `VITE_COGNITO_CLIENT_ID`           | Cognito App Client ID                |
+| `VITE_COGNITO_REGION`              | AWS リージョン                       |
+| `VITE_COGNITO_REDIRECT_URI`        | ログイン後のリダイレクト URI         |
+| `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後のリダイレクト URI       |
 
 > ※ セキュリティ上問題ない情報（User Pool ID, Client ID など）はフロントにも持たせる。

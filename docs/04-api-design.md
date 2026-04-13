@@ -35,7 +35,6 @@ API Gateway で JWT Authorizer を用いて検証する。
 ### 1.3 認証
 
 - 認証方式：**Bearer Token (JWT)**
-
   - Amazon Cognito User Pool による認証
   - フロントは Cognito Hosted UI or SDK経由でログインし、  
     IDトークン or Accessトークンを取得する
@@ -59,7 +58,7 @@ API Gateway で JWT Authorizer を用いて検証する。
 
 基本形は以下の通り：
 
-```json
+````json
 {
   "error": {
     "code": "RESOURCE_NOT_FOUND",
@@ -119,7 +118,7 @@ API Gateway で JWT Authorizer を用いて検証する。
     "updatedAt": "2025-11-21T12:00:00.000Z"
   }
 ]
-```
+````
 
 ---
 
@@ -127,13 +126,13 @@ API Gateway で JWT Authorizer を用いて検証する。
 
 **概要**
 
-* 新しいレシピを登録する。
-* 材料も一緒に登録する。
+- 新しいレシピを登録する。
+- 材料も一緒に登録する。
 
 **Request**
 
-* Method: `POST`
-* Path: `/recipes`
+- Method: `POST`
+- Path: `/recipes`
 
 **Request Body**
 
@@ -177,13 +176,13 @@ API Gateway で JWT Authorizer を用いて検証する。
 
 **概要**
 
-* 特定のレシピの詳細情報を取得する。
-* レシピ本体＋材料一覧を含めて返す。
+- 特定のレシピの詳細情報を取得する。
+- レシピ本体＋材料一覧を含めて返す。
 
 **Request**
 
-* Method: `GET`
-* Path: `/recipes/{recipeId}`
+- Method: `GET`
+- Path: `/recipes/{recipeId}`
 
 **Response 200**
 
@@ -232,13 +231,13 @@ API Gateway で JWT Authorizer を用いて検証する。
 
 **概要**
 
-* 既存レシピの情報を更新する。
-* 材料リストも含めて全体更新（差分更新ではなく置き換え）とする。
+- 既存レシピの情報を更新する。
+- 材料リストも含めて全体更新（差分更新ではなく置き換え）とする。
 
 **Request**
 
-* Method: `PUT`
-* Path: `/recipes/{recipeId}`
+- Method: `PUT`
+- Path: `/recipes/{recipeId}`
 
 **Request Body**
 
@@ -278,21 +277,20 @@ POST `/recipes` と同じ構造：
 
 **概要**
 
-* 指定期間内の献立を取得する。
-* 初期は簡易に `from` / `to` を指定し、返り値は「日付＋食事区分ごとの配列」とする。
+- 指定期間内の献立を取得する。
+- 初期は簡易に `from` / `to` を指定し、返り値は「日付＋食事区分ごとの配列」とする。
 
 **Request**
 
-* Method: `GET`
-* Path: `/menus`
-* Query Parameters:
-
-    * `from` (optional, `YYYY-MM-DD`)
-    * `to` (optional, `YYYY-MM-DD`)
+- Method: `GET`
+- Path: `/menus`
+- Query Parameters:
+  - `from` (optional, `YYYY-MM-DD`)
+  - `to` (optional, `YYYY-MM-DD`)
 
 `from` / `to` 未指定時の挙動：
 
-* 未指定の場合は「今日から7日分」など適当なデフォルトを決める。
+- 未指定の場合は「今日から7日分」など適当なデフォルトを決める。
 
 **Response 200**
 
@@ -325,13 +323,13 @@ POST `/recipes` と同じ構造：
 
 **概要**
 
-* ある日付・食事区分に、レシピを紐付ける献立を登録する。
-* 同じ日付・食事区分に複数レシピを登録可能。
+- ある日付・食事区分に、レシピを紐付ける献立を登録する。
+- 同じ日付・食事区分に複数レシピを登録可能。
 
 **Request**
 
-* Method: `POST`
-* Path: `/menus`
+- Method: `POST`
+- Path: `/menus`
 
 **Request Body**
 
@@ -359,13 +357,13 @@ POST `/recipes` と同じ構造：
 
 **概要**
 
-* 既存の献立（1件）を更新する。
-* 主に `servings` や `recipeId` の変更。
+- 既存の献立（1件）を更新する。
+- 主に `servings` や `recipeId` の変更。
 
 **Request**
 
-* Method: `PUT`
-* Path: `/menus/{menuId}`
+- Method: `PUT`
+- Path: `/menus/{menuId}`
 
 **Request Body**
 
@@ -393,16 +391,16 @@ POST `/recipes` と同じ構造：
 
 **概要**
 
-* 献立から1件のレシピを削除する。
+- 献立から1件のレシピを削除する。
 
 **Request**
 
-* Method: `DELETE`
-* Path: `/menus/{menuId}`
+- Method: `DELETE`
+- Path: `/menus/{menuId}`
 
 **Response 204**
 
-* ボディなし。
+- ボディなし。
 
 ---
 
@@ -412,16 +410,15 @@ POST `/recipes` と同じ構造：
 
 **概要**
 
-* 指定期間の献立から、必要な材料の合計量を計算して返す。
+- 指定期間の献立から、必要な材料の合計量を計算して返す。
 
 **Request**
 
-* Method: `GET`
-* Path: `/shopping-list`
-* Query Parameters:
-
-    * `from` (required) `YYYY-MM-DD`
-    * `to` (required) `YYYY-MM-DD`
+- Method: `GET`
+- Path: `/shopping-list`
+- Query Parameters:
+  - `from` (required) `YYYY-MM-DD`
+  - `to` (required) `YYYY-MM-DD`
 
 **Response 200**
 
@@ -448,10 +445,10 @@ POST `/recipes` と同じ構造：
 
 1. `Menus` から `from`〜`to` の献立を取得
 2. 各 `menuItem` について：
+   - `Recipes` から `baseServings` を取得
+   - `RecipeIngredients` から材料一覧を取得
+   - `servings / baseServings` で分量をスケーリング
 
-    * `Recipes` から `baseServings` を取得
-    * `RecipeIngredients` から材料一覧を取得
-    * `servings / baseServings` で分量をスケーリング
 3. `ingredientName + unit` 単位で合計値を集計
 4. 上記形式でレスポンスに整形
 
@@ -463,13 +460,13 @@ POST `/recipes` と同じ構造：
 
 **概要**
 
-* デバッグ・疎通確認用の簡易エンドポイント。
-* 認証不要 or 認証必須のどちらでもよい（個人用なので好み）。
+- デバッグ・疎通確認用の簡易エンドポイント。
+- 認証不要 or 認証必須のどちらでもよい（個人用なので好み）。
 
 **Request**
 
-* Method: `GET`
-* Path: `/health`
+- Method: `GET`
+- Path: `/health`
 
 **Response 200**
 
@@ -484,9 +481,8 @@ POST `/recipes` と同じ構造：
 
 ## 6. 今後の拡張余地（メモ）
 
-* `Recipes` 一覧にページング・ソートを追加
-* フリーテキスト検索（名前・出典本など）
-* `Menus` の取得形式を「日付ごとにネストした形」に変える or オプション化
-* `PantryItems` に関連するAPIの追加（常備品管理）
-* バリデーションエラー時の詳細な `details` 構造の設計
-
+- `Recipes` 一覧にページング・ソートを追加
+- フリーテキスト検索（名前・出典本など）
+- `Menus` の取得形式を「日付ごとにネストした形」に変える or オプション化
+- `PantryItems` に関連するAPIの追加（常備品管理）
+- バリデーションエラー時の詳細な `details` 構造の設計
