@@ -25,43 +25,43 @@ jobs:
         node-version: [20.x]
 
     steps:
-    - name: Checkout リポジトリ
-      uses: actions/checkout@v4
+      - name: Checkout リポジトリ
+        uses: actions/checkout@v4
 
-    - name: Node.js ${{ matrix.node-version }} のセットアップ
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: infra/package-lock.json
+      - name: Node.js ${{ matrix.node-version }} のセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: infra/package-lock.json
 
-    - name: 依存関係のインストール
-      working-directory: ./infra
-      run: npm ci
+      - name: 依存関係のインストール
+        working-directory: ./infra
+        run: npm ci
 
-    - name: TypeScript 型チェック
-      working-directory: ./infra
-      run: npx tsc --noEmit
+      - name: TypeScript 型チェック
+        working-directory: ./infra
+        run: npx tsc --noEmit
 
-    - name: Prettier のチェック
-      working-directory: ./infra
-      run: npm run format:check
+      - name: Prettier のチェック
+        working-directory: ./infra
+        run: npm run format:check
 
-    - name: ビルドの実行
-      working-directory: ./infra
-      run: npm run build
+      - name: ビルドの実行
+        working-directory: ./infra
+        run: npm run build
 
-    - name: cdk synth の実行（dev）
-      working-directory: ./infra
-      run: npx cdk synth --context stage=dev --no-staging
+      - name: cdk synth の実行（dev）
+        working-directory: ./infra
+        run: npx cdk synth --context stage=dev --no-staging
 
-    - name: cdk synth の実行（prod）
-      working-directory: ./infra
-      run: npx cdk synth --context stage=prod --no-staging
+      - name: cdk synth の実行（prod）
+        working-directory: ./infra
+        run: npx cdk synth --context stage=prod --no-staging
 
-    - name: CloudFormation テンプレートのアップロード
-      uses: actions/upload-artifact@v4
-      with:
-        name: cdk-out
-        path: infra/cdk.out
-        retention-days: 7
+      - name: CloudFormation テンプレートのアップロード
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdk-out
+          path: infra/cdk.out
+          retention-days: 7
