@@ -98,13 +98,15 @@ export class CookingPlannerStack extends cdk.Stack {
     // Menus テーブル
     // PK: userId (string), SK: date#mealType#menuId (string)
     // - date: YYYY-MM-DD 形式
-    // - mealType: "BREAKFAST" | "LUNCH" | "DINNER" | "OTHER"
+    // - mealType: "BREAKFAST" | "LUNCH" | "DINNER"
     // - menuId: UUID
     // @see docs/03-domain-and-data-model.md §5.2
     //
     // GSI（期間検索用インデックス）について:
-    //   今回は GSI を追加しない。個人利用の件数前提では、
-    //   userId 固定の Query + Lambda 側での日付フィルタで十分対応可能なため。
+    //   今回は GSI を追加しない。SK は "date#..." で始まるため、
+    //   userId を PK に固定した Query で SK の範囲条件（BETWEEN）や
+    //   begins_with(SK, `${date}#`) を使えば、日付検索・期間検索に
+    //   FilterExpression や Lambda 側フィルタなしで対応可能である。
     //   件数増加や検索要件の変化があった場合に GSI 追加を検討する。
     //   @see docs/03-domain-and-data-model.md §5.4
     // -------------------------------------------------------------------------
