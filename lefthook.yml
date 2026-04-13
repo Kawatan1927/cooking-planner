@@ -31,6 +31,18 @@ pre-commit:
       run: npm exec --prefix infra/lambda -- eslint --config infra/lambda/eslint.config.mjs {staged_files}
       stage_fixed: false
 
+    # CDKのフォーマットチェック
+    cdk-format:
+      glob: "infra/{bin,lib}/**/*.{ts,mjs}"
+      run: npm exec --prefix infra -- prettier --check {staged_files}
+      stage_fixed: false
+
+    # CDKのlint
+    cdk-lint:
+      glob: "infra/{bin,lib}/**/*.ts"
+      run: npm run cdk:lint
+      stage_fixed: false
+
 # pre-push: やや重めのチェック（変更がある領域だけ）
 pre-push:
   parallel: false
@@ -48,6 +60,14 @@ pre-push:
       run: |
         echo "🏗️ Lambdaのビルドを実行中..."
         npm run lambda:build
+
+    # CDKのビルド
+    cdk-build:
+      glob: "infra/**"
+      exclude: "infra/lambda/**"
+      run: |
+        echo "🏗️ CDKのビルドを実行中..."
+        npm run cdk:build
 
     # テスト実行（将来的にテストが追加された場合）
     tests:

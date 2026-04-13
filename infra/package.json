@@ -1,0 +1,38 @@
+{
+  "name": "cooking-planner-infra",
+  "version": "1.0.0",
+  "description": "AWS CDK infrastructure for Cooking Planner",
+  "main": "dist/bin/cooking-planner.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "rebuild": "npm run clean && npm run build",
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy",
+    "lint": "eslint .",
+    "format": "prettier --write \"bin/**/*.ts\" \"lib/**/*.ts\" \"eslint.config.mjs\"",
+    "format:check": "prettier --check \"bin/**/*.ts\" \"lib/**/*.ts\" \"eslint.config.mjs\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.10.5",
+    "aws-cdk": "^2.1118.0",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.57.2"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.248.0",
+    "constructs": "^10.0.0"
+  }
+}
