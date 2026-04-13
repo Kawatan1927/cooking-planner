@@ -58,10 +58,11 @@ export class CookingPlannerStack extends cdk.Stack {
     //   プロビジョンドの方がコスト予測がしやすい場合もある。現状はオンデマンドで設定。
     //
     // RemovalPolicy:
-    //   要確認: dev 環境は DESTROY、prod 環境は RETAIN が一般的だが、
-    //   詳細な方針が docs に記載されていないため、暫定的に RETAIN を設定。
-    //   CI 環境でスタックを削除する際は明示的に変更すること。
+    //   prod 環境はデータ保護のため RETAIN、それ以外（dev など）は
+    //   スタックの作り直しを容易にするため DESTROY を設定する。
     // ---------------------------------------------------------------------------
+    const tableRemovalPolicy =
+      this.stage === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY;
 
     // -------------------------------------------------------------------------
     // Recipes テーブル
@@ -73,7 +74,7 @@ export class CookingPlannerStack extends cdk.Stack {
       partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'recipeId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST, // 要確認: 課金モード
-      removalPolicy: cdk.RemovalPolicy.RETAIN, // 要確認: 削除ポリシー
+      removalPolicy: tableRemovalPolicy,
     });
 
     // -------------------------------------------------------------------------
@@ -91,7 +92,7 @@ export class CookingPlannerStack extends cdk.Stack {
         // SK の値は "recipeId#ingredientName" 形式
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST, // 要確認: 課金モード
-      removalPolicy: cdk.RemovalPolicy.RETAIN, // 要確認: 削除ポリシー
+      removalPolicy: tableRemovalPolicy,
     });
 
     // -------------------------------------------------------------------------
@@ -119,7 +120,7 @@ export class CookingPlannerStack extends cdk.Stack {
         // SK の値は "date#mealType#menuId" 形式
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST, // 要確認: 課金モード
-      removalPolicy: cdk.RemovalPolicy.RETAIN, // 要確認: 削除ポリシー
+      removalPolicy: tableRemovalPolicy,
     });
 
     // TODO(将来拡張): PantryItems テーブル
