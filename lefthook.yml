@@ -49,6 +49,14 @@ pre-push:
         echo "🏗️ Lambdaのビルドを実行中..."
         npm run lambda:build
 
+    # CDKのビルド
+    cdk-build:
+      glob: "infra/**"
+      exclude: "infra/lambda/**"
+      run: |
+        echo "🏗️ CDKのビルドを実行中..."
+        npm run cdk:build
+
     # テスト実行（将来的にテストが追加された場合）
     tests:
       glob:
