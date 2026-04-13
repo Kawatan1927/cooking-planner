@@ -68,6 +68,59 @@ GitHub Actions で以下のワークフローが自動実行されます。
 | Prettier   | `npm run format:check` |
 | ビルド     | `npm run build`        |
 
+### CDK CI
+
+ファイル: `.github/workflows/cdk-ci.yml`
+
+**トリガー**: `infra/**`（ただし `infra/lambda/**` を除く）に変更を含む push または PR（対象ブランチ: `main`, `develop`）
+
+| ステップ                 | コマンド               |
+| ------------------------ | ---------------------- |
+| 型チェック               | `npx tsc --noEmit`     |
+| Prettier                 | `npm run format:check` |
+| ESLint                   | `npm run lint`         |
+| ビルド                   | `npm run build`        |
+| CDK Synth（dev 環境）    | `npx cdk synth --context stage=dev --no-staging` |
+| CDK Synth（prod 環境）   | `npx cdk synth --context stage=prod --no-staging` |
+
+ビルド成果物（CloudFormation テンプレート）は `cdk-out` アーティファクトとして 7 日間保存されます。
+
+### Docs CI
+
+ファイル: `.github/workflows/docs-ci.yml`
+
+**トリガー**: `docs/**` に変更を含む push または PR（対象ブランチ: `main`, `develop`）
+
+| ステップ             | コマンド               |
+| -------------------- | ---------------------- |
+| フォーマットチェック | `bun run format:check` |
+| Docusaurus ビルド    | `bun run build`        |
+
+ドキュメントサイトのビルドには [Bun](https://bun.sh/) を使用します（Node.js / npm ではありません）。
+
+### Docs Deploy
+
+ファイル: `.github/workflows/docs-deploy.yml`
+
+**トリガー**: `docs/**` に変更を含む `main` ブランチへの push（または手動実行 `workflow_dispatch`）
+
+`main` ブランチへのマージ後、Docusaurus ドキュメントサイトを自動的に **GitHub Pages** へデプロイします。
+CI（Docs CI）とは別ワークフローで、`main` push 時のみデプロイが走ります。
+
+### Update Docs（エージェントワークフロー）
+
+ファイル: `.github/workflows/update-docs.lock.yml`
+
+**トリガー**: `main` ブランチへの push（または手動実行 `workflow_dispatch`）
+
+AI エージェントがコードの差分を分析し、必要なドキュメント更新を検出して**ドラフト PR** を自動生成します。
+設定ファイル: `.github/workflows/update-docs.md`
+
+:::note
+Update Docs ワークフローはコード変更がドキュメントに反映されているかを継続的にチェックします。
+ドキュメント更新が必要な場合は、自動的にドラフト PR が作成されます。
+:::
+
 ## ローカル Git フック（lefthook）
 
 [lefthook](https://github.com/evilmartians/lefthook) を使い、CI と同等のチェックをローカルで事前実行します。
