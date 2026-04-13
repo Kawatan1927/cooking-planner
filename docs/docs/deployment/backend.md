@@ -48,12 +48,12 @@ CDK が差分を検出して Lambda 関数のみ更新する。
 Lambda の環境変数は CDK スタック内で定義し、DynamoDB テーブル名等を自動的に渡す。
 手動で変更する必要は基本的にない。
 
-| 変数名 | 説明 |
-|---|---|
-| `RECIPES_TABLE_NAME` | Recipes テーブル名 |
-| `RECIPE_INGREDIENTS_TABLE_NAME` | RecipeIngredients テーブル名 |
-| `MENUS_TABLE_NAME` | Menus テーブル名 |
-| `PANTRY_ITEMS_TABLE_NAME` | PantryItems テーブル名（将来） |
+| 変数名                          | 説明                           |
+| ------------------------------- | ------------------------------ |
+| `RECIPES_TABLE_NAME`            | Recipes テーブル名             |
+| `RECIPE_INGREDIENTS_TABLE_NAME` | RecipeIngredients テーブル名   |
+| `MENUS_TABLE_NAME`              | Menus テーブル名               |
+| `PANTRY_ITEMS_TABLE_NAME`       | PantryItems テーブル名（将来） |
 
 ---
 
