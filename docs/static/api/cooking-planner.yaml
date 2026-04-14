@@ -586,6 +586,7 @@ components:
         - BREAKFAST
         - LUNCH
         - DINNER
+        - OTHER
       description: 食事区分
 
     MenuItem:
