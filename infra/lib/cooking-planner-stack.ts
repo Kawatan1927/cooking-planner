@@ -99,7 +99,7 @@ export class CookingPlannerStack extends cdk.Stack {
     // Menus テーブル
     // PK: userId (string), SK: date#mealType#menuId (string)
     // - date: YYYY-MM-DD 形式
-    // - mealType: "BREAKFAST" | "LUNCH" | "DINNER"
+    // - mealType: "BREAKFAST" | "LUNCH" | "DINNER" | "OTHER"
     // - menuId: UUID
     // @see docs/03-domain-and-data-model.md §5.2
     //
