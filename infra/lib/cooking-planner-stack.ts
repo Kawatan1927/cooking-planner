@@ -21,6 +21,20 @@ export interface CookingPlannerStackProps extends cdk.StackProps {
    *   例: cdk deploy --context allowedOrigins=https://xxx.cloudfront.net
    */
   allowedOrigins?: string[];
+  /**
+   * Cognito Hosted UI のコールバック URL 一覧（ログイン後リダイレクト先）。
+   * - dev 環境: 省略可（デフォルト: ['http://localhost:5173/callback']）
+   * - prod 環境: 必須。省略・空を指定すると synth 時にエラー
+   *   例: cdk deploy --context callbackUrls=https://xxx.cloudfront.net/callback
+   */
+  callbackUrls?: string[];
+  /**
+   * Cognito Hosted UI のログアウト URL 一覧（ログアウト後リダイレクト先）。
+   * - dev 環境: 省略可（デフォルト: ['http://localhost:5173']）
+   * - prod 環境: 必須。省略・空を指定すると synth 時にエラー
+   *   例: cdk deploy --context logoutUrls=https://xxx.cloudfront.net
+   */
+  logoutUrls?: string[];
 }
 
 /**
@@ -89,6 +103,13 @@ export class CookingPlannerStack extends cdk.Stack {
    * SPA から SRP 認証フローで使用。
    */
   public readonly userPoolClient: cognito.UserPoolClient;
+
+  /**
+   * Cognito User Pool Domain（Hosted UI 用）。
+   * ドメインプレフィックスは `cooking-planner-{stage}`。
+   * @see docs/05-architecture-notes.md §2.4
+   */
+  public readonly userPoolDomain: cognito.UserPoolDomain;
 
   constructor(scope: Construct, id: string, props: CookingPlannerStackProps) {
     super(scope, id, props);
@@ -208,8 +229,8 @@ export class CookingPlannerStack extends cdk.Stack {
     // Cognito User Pool / App Client 定義
     //
     // 個人利用アプリのため自己登録不可。メールアドレスでサインイン。
-    // SPA は SRP 認証フローでトークンを取得し、API 呼び出し時に
-    // Authorization: Bearer <JWT> として渡す。
+    // SPA は SRP 認証フローまたは Hosted UI（Authorization Code Grant）で
+    // トークンを取得し、API 呼び出し時に Authorization: Bearer <JWT> として渡す。
     //
     // @see docs/05-architecture-notes.md §2.4
     // @see docs/04-api-design.md §1.3
@@ -228,9 +249,64 @@ export class CookingPlannerStack extends cdk.Stack {
       removalPolicy: tableRemovalPolicy,
     });
 
+    // -------------------------------------------------------------------------
+    // Hosted UI 用 callback URL / logout URL の検証・設定
+    //
+    // prod/dev の切り替え方針:
+    //   - dev 環境: Vite dev server のデフォルト URL をフォールバックとして使用。
+    //     テスト・検証目的であれば `--context callbackUrls=...` で上書き可能。
+    //   - prod 環境: CloudFront 配信 URL を必ず明示する（省略不可）。
+    //     `cdk deploy --context callbackUrls=https://xxx.cloudfront.net/callback
+    //                 --context logoutUrls=https://xxx.cloudfront.net`
+    //
+    // @see docs/05-architecture-notes.md §4.1
+    // -------------------------------------------------------------------------
+    let cognitoCallbackUrls: string[];
+    let cognitoLogoutUrls: string[];
+    if (this.stage === 'dev') {
+      cognitoCallbackUrls = props.callbackUrls ?? ['http://localhost:5173/callback'];
+      cognitoLogoutUrls = props.logoutUrls ?? ['http://localhost:5173'];
+    } else {
+      const filteredCallback = (props.callbackUrls ?? [])
+        .map(u => u.trim())
+        .filter(u => u.length > 0);
+      const filteredLogout = (props.logoutUrls ?? []).map(u => u.trim()).filter(u => u.length > 0);
+      if (filteredCallback.length === 0) {
+        throw new Error(
+          'prod 環境では callbackUrls が必須です。' +
+            'cdk deploy 時に --context callbackUrls=https://xxx.cloudfront.net/callback を指定してください。'
+        );
+      }
+      if (filteredLogout.length === 0) {
+        throw new Error(
+          'prod 環境では logoutUrls が必須です。' +
+            'cdk deploy 時に --context logoutUrls=https://xxx.cloudfront.net を指定してください。'
+        );
+      }
+      cognitoCallbackUrls = filteredCallback;
+      cognitoLogoutUrls = filteredLogout;
+    }
+
     this.userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
       userPool: this.userPool,
       authFlows: { userSrp: true },
+      oAuth: {
+        flows: { authorizationCodeGrant: true },
+        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
+        callbackUrls: cognitoCallbackUrls,
+        logoutUrls: cognitoLogoutUrls,
+      },
+    });
+
+    // Hosted UI 用 User Pool Domain
+    // ドメインプレフィックスはグローバルで一意である必要があるため、
+    // アプリ名＋ステージ名で構成する（例: cooking-planner-prod）。
+    const userPoolDomainPrefix = `cooking-planner-${this.stage}`;
+    this.userPoolDomain = new cognito.UserPoolDomain(this, 'UserPoolDomain', {
+      userPool: this.userPool,
+      cognitoDomain: {
+        domainPrefix: userPoolDomainPrefix,
+      },
     });
 
     // -------------------------------------------------------------------------
@@ -323,6 +399,14 @@ export class CookingPlannerStack extends cdk.Stack {
       value: this.userPoolClient.userPoolClientId,
       description: 'Cognito User Pool App Client ID',
       exportName: `cooking-planner-user-pool-client-id-${this.stage}`,
+    });
+
+    // Cognito Hosted UI ドメインを出力（フロントエンドの VITE_COGNITO_DOMAIN に設定する）
+    // 形式: <prefix>.auth.<region>.amazoncognito.com
+    new cdk.CfnOutput(this, 'UserPoolDomainName', {
+      value: `${userPoolDomainPrefix}.auth.${this.region}.amazoncognito.com`,
+      description: 'Cognito Hosted UI ドメイン（VITE_COGNITO_DOMAIN に設定する値）',
+      exportName: `cooking-planner-user-pool-domain-${this.stage}`,
     });
 
     // TODO(後続Issue): S3 + CloudFront をここに追加する
