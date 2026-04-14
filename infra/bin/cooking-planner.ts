@@ -15,8 +15,21 @@ if (rawStage !== 'dev' && rawStage !== 'prod') {
 
 const stage = rawStage as Stage;
 
+// CORS 許可オリジンを context から取得。
+// prod では allowedOrigins が必須（スタック側でバリデーションする）。
+// 複数オリジンはカンマ区切りで指定可能。
+// 例: cdk deploy --context stage=prod --context allowedOrigins=https://xxx.cloudfront.net
+const allowedOriginsRaw: string | undefined = app.node.tryGetContext('allowedOrigins');
+const allowedOrigins = allowedOriginsRaw
+  ? allowedOriginsRaw
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0)
+  : undefined;
+
 new CookingPlannerStack(app, `CookingPlanner-${stage}`, {
   stage,
+  allowedOrigins,
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION ?? 'ap-northeast-1',
