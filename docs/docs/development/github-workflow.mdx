@@ -74,14 +74,14 @@ GitHub Actions で以下のワークフローが自動実行されます。
 
 **トリガー**: `infra/**`（ただし `infra/lambda/**` を除く）に変更を含む push または PR（対象ブランチ: `main`, `develop`）
 
-| ステップ                 | コマンド               |
-| ------------------------ | ---------------------- |
-| 型チェック               | `npx tsc --noEmit`     |
-| Prettier                 | `npm run format:check` |
-| ESLint                   | `npm run lint`         |
-| ビルド                   | `npm run build`        |
-| CDK Synth（dev 環境）    | `npx cdk synth --context stage=dev --no-staging` |
-| CDK Synth（prod 環境）   | `npx cdk synth --context stage=prod --no-staging` |
+| ステップ               | コマンド                                          |
+| ---------------------- | ------------------------------------------------- |
+| 型チェック             | `npx tsc --noEmit`                                |
+| Prettier               | `npm run format:check`                            |
+| ESLint                 | `npm run lint`                                    |
+| ビルド                 | `npm run build`                                   |
+| CDK Synth（dev 環境）  | `npx cdk synth --context stage=dev --no-staging`  |
+| CDK Synth（prod 環境） | `npx cdk synth --context stage=prod --no-staging` |
 
 ビルド成果物（CloudFormation テンプレート）は `cdk-out` アーティファクトとして 7 日間保存されます。
 
