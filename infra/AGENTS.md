@@ -9,7 +9,7 @@ infra/
   bin/
     cooking-planner.ts   # CDK アプリのエントリポイント
   lib/
-    cooking-planner-stack.ts  # ベーススタック（後続 Issue でリソースを追加）
+    cooking-planner-stack.ts  # ベーススタック（DynamoDB / Lambda / API Gateway / Cognito 定義済み）
   cdk.json             # CDK 設定・context デフォルト値
   package.json         # CDK 依存関係
   tsconfig.json        # TypeScript 設定
@@ -62,12 +62,15 @@ npx cdk synth --context stage=prod
 ## スタックへのリソース追加方針
 
 `infra/lib/cooking-planner-stack.ts` にリソースを追加する。  
-後続 Issue での追加予定リソース（順序は目安）:
+現在実装済みのリソース:
 
-1. DynamoDB テーブル（Recipes, RecipeIngredients, Menus など）
-2. Lambda 関数（NodejsFunction を使用）
-3. API Gateway HTTP API（Cognito JWT Authorizer 付き）
-4. Cognito User Pool / App Client
+1. ✅ DynamoDB テーブル（Recipes, RecipeIngredients, Menus）
+2. ✅ Lambda 関数（NodejsFunction を使用）
+3. ✅ API Gateway HTTP API（Cognito JWT Authorizer 付き）
+4. ✅ Cognito User Pool / App Client
+
+今後の追加予定リソース（順序は目安）:
+
 5. S3 バケット + CloudFront ディストリビューション
 
 詳細は `infra/CDK_INTEGRATION.md` を参照してください。
