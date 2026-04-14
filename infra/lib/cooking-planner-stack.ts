@@ -205,12 +205,9 @@ export class CookingPlannerStack extends cdk.Stack {
         // prod 環境では CloudFront ドメイン設定後に適切なオリジンを指定すること。
         // TODO(後続Issue): prod 用 CloudFront ドメインが確定したら ['https://<domain>'] に変更
         allowOrigins: this.stage === 'dev' ? ['http://localhost:5173'] : ['*'],
-        allowMethods: [
-          apigatewayv2.CorsHttpMethod.GET,
-          apigatewayv2.CorsHttpMethod.POST,
-          apigatewayv2.CorsHttpMethod.PUT,
-          apigatewayv2.CorsHttpMethod.DELETE,
-        ],
+        // /{proxy+} で HttpMethod.ANY を受け付けているため、
+        // CORS でも許可メソッドを包括的に揃えて不整合を防ぐ。
+        allowMethods: [apigatewayv2.CorsHttpMethod.ANY],
         allowHeaders: ['Content-Type', 'Authorization'],
       },
     });
