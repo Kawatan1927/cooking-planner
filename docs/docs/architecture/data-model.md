@@ -137,6 +137,7 @@ sidebar_position: 4
 > - `recipeId` と `ingredientName` を結合した文字列を SK として使用する。
 > - これにより `PK = userId AND begins_with(SK, recipeId#)` で、
 >   あるレシピに紐づく材料一覧を `Query` で取得できる。
+> - **実装上の注意**: 材料名に `#` が含まれる場合、DynamoDB の SK 構築時に `#` を `_` に置換してサニタイズする。API のリクエスト・レスポンスでは元の材料名をそのまま使用する。`#` と `_` のみが異なる材料名（例：`a#b` と `a_b`）は同一視されるためリクエスト時にバリデーションエラーとなる。
 
 別案として `PK: recipeId, SK: ingredientName` もあるが、
 マルチユーザー化を見据えて `userId` を PK に統一する構成にしている。
@@ -220,7 +221,7 @@ sidebar_position: 4
 
 - `userId`: string
 - `date`: string (`YYYY-MM-DD`)
-- `mealType`: string（例：`"BREAKFAST"`, `"LUNCH"`, `"DINNER"`）
+- `mealType`: `"BREAKFAST" | "LUNCH" | "DINNER" | "OTHER"`
 - `menuId`: string（UUID）
 - `recipeId`: string
 - `servings`: number

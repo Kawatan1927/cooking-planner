@@ -45,7 +45,7 @@ export interface Menu {
   menuId: string;
   userId: string;
   date: string; // YYYY-MM-DD
-  mealType: 'BREAKFAST' | 'LUNCH' | 'DINNER';
+  mealType: 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'OTHER';
   recipeId: string;
   servings: number;
   memo?: string;

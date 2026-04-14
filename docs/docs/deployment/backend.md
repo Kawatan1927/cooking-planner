@@ -6,15 +6,15 @@ sidebar_position: 3
 
 ## 概要
 
-バックエンド（Lambda + API Gateway）およびインフラ（DynamoDB、Cognito 等）は、将来的に AWS CDK で管理する方針とする。
-CDK アプリ実装完了後は、変更を `cdk deploy` コマンドでデプロイする運用を想定している。
-現時点では `infra/` 配下に CDK アプリ実装が存在しないため、このページの CDK 操作手順は実装完了後に有効となる予定である。
+バックエンド（Lambda + API Gateway）およびインフラ（DynamoDB、Cognito 等）は AWS CDK で管理する方針とする。
+変更は `cdk deploy` コマンドでデプロイする運用を想定している。
+
+`infra/lib/cooking-planner-stack.ts` に CDK スタックが実装されており、現時点では **DynamoDB テーブル**（Recipes / RecipeIngredients / Menus）が定義されている。
+Lambda・API Gateway・Cognito・S3+CloudFront などのリソースは今後の Issue で順次追加予定。
 
 ---
 
 ## 手動デプロイ手順
-
-> **TODO**: 以下の手順は `infra/` 配下の CDK アプリ実装完了後に利用する。
 
 ### 1. 差分確認
 
@@ -84,8 +84,8 @@ cdk deploy
 
 ---
 
-## 初回デプロイ（CDK スタック未作成時）
+## 初回デプロイ（CDK スタック未完成時）
 
-> **TODO**: CDK スタックの実装完了後に手順を追記する。
-> 現在 `infra/` 配下には CDK アプリ実装（`infra/lib` 等）はなく、Lambda コードと統合メモのみ存在する。
+> **TODO**: Lambda・API Gateway・Cognito・S3+CloudFront などのリソースが CDK スタックに追加され次第、手順を追記する。
+> 現在 `infra/lib/cooking-planner-stack.ts` には DynamoDB テーブルのみ定義されている。
 > 参考: `infra/CDK_INTEGRATION.md`
