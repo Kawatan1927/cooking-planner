@@ -256,9 +256,7 @@ export class CookingPlannerStack extends cdk.Stack {
     if (this.stage === 'dev') {
       corsAllowOrigins = props.allowedOrigins ?? ['http://localhost:5173'];
     } else {
-      const filtered = (props.allowedOrigins ?? [])
-        .map(o => o.trim())
-        .filter(o => o.length > 0);
+      const filtered = (props.allowedOrigins ?? []).map(o => o.trim()).filter(o => o.length > 0);
       if (filtered.length === 0) {
         throw new Error(
           'prod 環境では allowedOrigins が必須です。' +
