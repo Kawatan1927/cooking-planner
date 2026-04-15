@@ -7,7 +7,7 @@
     "build": "tsc",
     "prepare": "lefthook install",
     "frontend:dev": "cd frontend && bun run dev",
-    "frontend:type-check": "cd frontend && npx tsc -b",
+    "frontend:type-check": "cd frontend && bunx tsc -b",
     "frontend:build": "cd frontend && bun run build",
     "frontend:preview": "cd frontend && bun run preview",
     "frontend:lint": "cd frontend && bun run lint",
