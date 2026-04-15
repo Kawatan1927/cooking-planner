@@ -32,36 +32,39 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: infra/package-lock.json
+
+      - name: Bun のセットアップ
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
 
       - name: 依存関係のインストール
         working-directory: ./infra
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: TypeScript 型チェック
         working-directory: ./infra
-        run: npx tsc --noEmit
+        run: bunx tsc --noEmit
 
       - name: Prettier のチェック
         working-directory: ./infra
-        run: npm run format:check
+        run: bun run format:check
 
       - name: ESLint の実行
         working-directory: ./infra
-        run: npm run lint
+        run: bun run lint
 
       - name: ビルドの実行
         working-directory: ./infra
-        run: npm run build
+        run: bun run build
 
       - name: cdk synth の実行（dev）
         working-directory: ./infra
-        run: npx cdk synth --context stage=dev --no-staging
+        run: bunx cdk synth --context stage=dev --no-staging
 
       - name: cdk synth の実行（prod）
         working-directory: ./infra
-        run: npx cdk synth --context stage=prod --context allowedOrigins=https://placeholder.example.com --no-staging
+        run: bunx cdk synth --context stage=prod --context allowedOrigins=https://placeholder.example.com --no-staging
 
       - name: CloudFormation テンプレートのアップロード
         uses: actions/upload-artifact@v4
