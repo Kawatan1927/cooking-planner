@@ -264,8 +264,15 @@ export class CookingPlannerStack extends cdk.Stack {
     let cognitoCallbackUrls: string[];
     let cognitoLogoutUrls: string[];
     if (this.stage === 'dev') {
-      cognitoCallbackUrls = props.callbackUrls ?? ['http://localhost:5173/callback'];
-      cognitoLogoutUrls = props.logoutUrls ?? ['http://localhost:5173'];
+      const filteredCallback = (props.callbackUrls ?? [])
+        .map(u => u.trim())
+        .filter(u => u.length > 0);
+      const filteredLogout = (props.logoutUrls ?? [])
+        .map(u => u.trim())
+        .filter(u => u.length > 0);
+      cognitoCallbackUrls =
+        filteredCallback.length > 0 ? filteredCallback : ['http://localhost:5173/callback'];
+      cognitoLogoutUrls = filteredLogout.length > 0 ? filteredLogout : ['http://localhost:5173'];
     } else {
       const filteredCallback = (props.callbackUrls ?? [])
         .map(u => u.trim())
