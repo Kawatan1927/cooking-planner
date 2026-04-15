@@ -409,9 +409,9 @@ export class CookingPlannerStack extends cdk.Stack {
     });
 
     // Cognito Hosted UI ドメインを出力（フロントエンドの VITE_COGNITO_DOMAIN に設定する）
-    // 形式: <prefix>.auth.<region>.amazoncognito.com
+    // CDK の UserPoolDomain construct から実際のドメイン名を取得する
     new cdk.CfnOutput(this, 'UserPoolDomainName', {
-      value: `${userPoolDomainPrefix}.auth.${this.region}.amazoncognito.com`,
+      value: userPoolDomain.domainName,
       description: 'Cognito Hosted UI ドメイン（VITE_COGNITO_DOMAIN に設定する値）',
       exportName: `cooking-planner-user-pool-domain-${this.stage}`,
     });
