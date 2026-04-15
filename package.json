@@ -17,7 +17,7 @@
     "lambda:lint": "cd infra/lambda && bun run lint",
     "lambda:format": "cd infra/lambda && bun run format",
     "lambda:format:check": "cd infra/lambda && bun run format:check",
-    "lambda:type-check": "cd infra/lambda && npx tsc --noEmit",
+    "lambda:type-check": "cd infra/lambda && bunx tsc --noEmit",
     "lambda:build": "cd infra/lambda && bun run build",
     "lambda:clean": "cd infra/lambda && bun run clean",
     "lambda:rebuild": "cd infra/lambda && bun run rebuild",
