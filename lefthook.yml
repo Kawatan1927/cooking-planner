@@ -10,37 +10,37 @@ pre-commit:
     # フロントエンドのフォーマットチェック
     frontend-format:
       glob: "frontend/**/*.{ts,tsx,js,jsx,json,css,md,html}"
-      run: npm exec --prefix frontend -- prettier --check {staged_files}
+      run: ./frontend/node_modules/.bin/prettier --check {staged_files}
       stage_fixed: false
 
     # フロントエンドのlint
     frontend-lint:
       glob: "frontend/**/*.{ts,tsx,js,jsx}"
-      run: npm exec --prefix frontend -- eslint --config frontend/eslint.config.js {staged_files}
+      run: ./frontend/node_modules/.bin/eslint --config frontend/eslint.config.js {staged_files}
       stage_fixed: false
 
     # Lambdaのフォーマットチェック
     lambda-format:
       glob: "infra/lambda/**/*.{ts,js,json,md}"
-      run: npm exec --prefix infra/lambda -- prettier --check {staged_files}
+      run: ./infra/lambda/node_modules/.bin/prettier --check {staged_files}
       stage_fixed: false
 
     # Lambdaのlint
     lambda-lint:
       glob: "infra/lambda/**/*.ts"
-      run: npm exec --prefix infra/lambda -- eslint --config infra/lambda/eslint.config.mjs {staged_files}
+      run: ./infra/lambda/node_modules/.bin/eslint --config infra/lambda/eslint.config.mjs {staged_files}
       stage_fixed: false
 
     # CDKのフォーマットチェック
     cdk-format:
       glob: "infra/{bin,lib}/**/*.{ts,mjs}"
-      run: npm exec --prefix infra -- prettier --check {staged_files}
+      run: ./infra/node_modules/.bin/prettier --check {staged_files}
       stage_fixed: false
 
     # CDKのlint
     cdk-lint:
       glob: "infra/{bin,lib}/**/*.ts"
-      run: npm run cdk:lint
+      run: bun run cdk:lint
       stage_fixed: false
 
 # pre-push: やや重めのチェック（変更がある領域だけ）
@@ -52,14 +52,14 @@ pre-push:
       glob: "frontend/**"
       run: |
         echo "🏗️ フロントエンドのビルドを実行中..."
-        npm run frontend:build
+        bun run frontend:build
 
     # Lambdaのビルド
     lambda-build:
       glob: "infra/lambda/**"
       run: |
         echo "🏗️ Lambdaのビルドを実行中..."
-        npm run lambda:build
+        bun run lambda:build
 
     # CDKのビルド
     cdk-build:
@@ -67,7 +67,7 @@ pre-push:
       exclude: "infra/lambda/**"
       run: |
         echo "🏗️ CDKのビルドを実行中..."
-        npm run cdk:build
+        bun run cdk:build
 
     # テスト実行（将来的にテストが追加された場合）
     tests:
@@ -76,7 +76,7 @@ pre-push:
         - "infra/lambda/**"
       run: |
         echo "🧪 テストを実行中..."
-        npm run test
+        bun run test
 
 # 設定
 skip_output:

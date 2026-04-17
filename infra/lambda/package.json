@@ -9,7 +9,7 @@
     "lint": "eslint . --config eslint.config.mjs",
     "format": "prettier --write \"src/**/*.ts\" \"README.md\" \"package.json\" \"tsconfig.json\" \"eslint.config.mjs\" \".prettierrc\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"README.md\" \"package.json\" \"tsconfig.json\" \"eslint.config.mjs\" \".prettierrc\"",
-    "rebuild": "npm run clean && npm run build",
+    "rebuild": "bun run clean && bun run build",
     "watch": "tsc --watch"
   },
   "keywords": [],

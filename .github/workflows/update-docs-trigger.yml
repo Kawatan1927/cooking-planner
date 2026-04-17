@@ -1,0 +1,40 @@
+name: Update Docs Trigger
+
+on:
+  schedule:
+    - cron: "0 0 * * *"   # 毎朝9:00 JST = 0:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  check-main-updated:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main
+        run: git fetch origin main --quiet
+
+      - name: Check whether main changed in the last 25 hours
+        id: check
+        shell: bash
+        run: |
+          if git log origin/main --since="25 hours ago" --oneline | grep . >/dev/null; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  run-update-docs:
+    needs: check-main-updated
+    if: needs.check-main-updated.outputs.should_run == 'true'
+    uses: ./.github/workflows/update-docs.lock.yml
+    secrets: inherit
