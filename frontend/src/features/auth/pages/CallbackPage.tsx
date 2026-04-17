@@ -36,14 +36,16 @@ export function CallbackPage() {
   const navigate = useNavigate();
 
   // URL パラメータは初回レンダー時に一度だけ評価する（lazy initializer）
-  const [status, setStatus] = useState<CallbackStatus>(() => {
+  // 二重評価を避けるためモジュールスコープで結果を保持する
+  const [{ status: initialStatus, errorMessage: initialErrorMessage }] = useState(() => {
     const { errorMessage } = parseCallbackParams();
-    return errorMessage ? 'error' : 'loading';
+    return {
+      status: (errorMessage ? 'error' : 'loading') as CallbackStatus,
+      errorMessage: errorMessage ?? '',
+    };
   });
-  const [errorMessage, setErrorMessage] = useState<string>(() => {
-    const { errorMessage } = parseCallbackParams();
-    return errorMessage ?? '';
-  });
+  const [status, setStatus] = useState<CallbackStatus>(initialStatus);
+  const [errorMessage, setErrorMessage] = useState<string>(initialErrorMessage);
 
   const exchanged = useRef(false);
 
