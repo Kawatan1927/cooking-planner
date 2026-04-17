@@ -7,7 +7,7 @@
  * @see docs/02-features-and-screens.md §2.1
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthToken } from '../hooks/useAuthToken';
 import { buildLoginUrl, getCognitoConfig } from '../utils/cognito';
@@ -15,15 +15,15 @@ import { buildLoginUrl, getCognitoConfig } from '../utils/cognito';
 export function LoginPage() {
   const navigate = useNavigate();
   const token = useAuthToken();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Cognito 設定を検証してログイン URL を生成（レンダー時に一度だけ計算）
-  const { loginUrl, configError } = useMemo(() => {
+  // Cognito 設定を検証（レンダー時に一度だけ計算）
+  const { config, configError } = useMemo(() => {
     try {
-      const config = getCognitoConfig();
-      return { loginUrl: buildLoginUrl(config), configError: null };
+      return { config: getCognitoConfig(), configError: null };
     } catch (err) {
       return {
-        loginUrl: null,
+        config: null,
         configError: err instanceof Error ? err.message : String(err),
       };
     }
@@ -35,6 +35,17 @@ export function LoginPage() {
       void navigate('/', { replace: true });
     }
   }, [token, navigate]);
+
+  const handleLogin = async () => {
+    if (!config) return;
+    try {
+      setIsRedirecting(true);
+      const url = await buildLoginUrl(config);
+      window.location.href = url;
+    } catch {
+      setIsRedirecting(false);
+    }
+  };
 
   // ログイン済みの場合はリダイレクト中の表示
   if (token) {
@@ -61,9 +72,13 @@ export function LoginPage() {
             </p>
           </div>
         ) : (
-          <a href={loginUrl ?? '#'} style={styles.loginButton}>
-            ログイン
-          </a>
+          <button
+            style={isRedirecting ? styles.loginButtonDisabled : styles.loginButton}
+            onClick={() => void handleLogin()}
+            disabled={isRedirecting}
+          >
+            {isRedirecting ? 'リダイレクト中...' : 'ログイン'}
+          </button>
         )}
       </div>
     </div>
@@ -105,11 +120,21 @@ const styles = {
     backgroundColor: '#2563eb',
     color: '#ffffff',
     borderRadius: '6px',
-    textDecoration: 'none',
+    border: 'none',
     fontSize: '1rem',
     fontWeight: 'bold' as const,
     cursor: 'pointer',
-    transition: 'background-color 0.2s',
+  },
+  loginButtonDisabled: {
+    display: 'inline-block',
+    padding: '0.8rem 2.5rem',
+    backgroundColor: '#93c5fd',
+    color: '#ffffff',
+    borderRadius: '6px',
+    border: 'none',
+    fontSize: '1rem',
+    fontWeight: 'bold' as const,
+    cursor: 'not-allowed',
   },
   errorBox: {
     backgroundColor: '#fef2f2',

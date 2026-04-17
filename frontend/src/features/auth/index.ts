@@ -17,6 +17,8 @@ export {
   getCognitoConfig,
   buildLoginUrl,
   exchangeCodeForTokens,
+  validateAndClearAuthState,
+  getAndClearCodeVerifier,
   saveAuthToken,
   clearAuthToken,
 } from './utils/cognito';

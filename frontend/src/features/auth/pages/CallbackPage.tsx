@@ -9,7 +9,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { exchangeCodeForTokens, getCognitoConfig, saveAuthToken } from '../utils/cognito';
+import {
+  exchangeCodeForTokens,
+  getAndClearCodeVerifier,
+  getCognitoConfig,
+  saveAuthToken,
+  validateAndClearAuthState,
+} from '../utils/cognito';
 
 type CallbackStatus = 'loading' | 'error';
 
@@ -20,7 +26,9 @@ function parseCallbackParams(): { code: string | null; errorMessage: string | nu
   const errorDescription = params.get('error_description');
 
   if (error) {
-    const msg = errorDescription ? decodeURIComponent(errorDescription) : error;
+    // URLSearchParams.get() はすでにデコードした値を返すため、
+    // decodeURIComponent の二重適用は不要
+    const msg = errorDescription ?? error;
     return { code: null, errorMessage: `認証がキャンセルされました: ${msg}` };
   }
   if (!code) {
@@ -35,8 +43,7 @@ function parseCallbackParams(): { code: string | null; errorMessage: string | nu
 export function CallbackPage() {
   const navigate = useNavigate();
 
-  // URL パラメータは初回レンダー時に一度だけ評価する（lazy initializer）
-  // 二重評価を避けるためモジュールスコープで結果を保持する
+  // URL パラメータは初回レンダー時に一度だけ評価する（useState の lazy initializer）
   const [{ status: initialStatus, errorMessage: initialErrorMessage }] = useState(() => {
     const { errorMessage } = parseCallbackParams();
     return {
@@ -60,7 +67,21 @@ export function CallbackPage() {
     const processCallback = async () => {
       try {
         const config = getCognitoConfig();
-        const tokens = await exchangeCodeForTokens(config, code);
+
+        // state を検証して CSRF を防ぐ
+        const params = new URLSearchParams(window.location.search);
+        const receivedState = params.get('state');
+        if (!receivedState || !validateAndClearAuthState(receivedState)) {
+          setErrorMessage(
+            'セキュリティ検証に失敗しました（state 不一致）。ログインをやり直してください。'
+          );
+          setStatus('error');
+          return;
+        }
+
+        // PKCE code_verifier を取得してトークンと交換する
+        const codeVerifier = getAndClearCodeVerifier() ?? undefined;
+        const tokens = await exchangeCodeForTokens(config, code, codeVerifier);
         saveAuthToken(tokens.id_token);
         void navigate('/', { replace: true });
       } catch (err) {
