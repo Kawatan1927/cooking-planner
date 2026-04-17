@@ -20,16 +20,16 @@ sidebar_position: 4
 Vite の [環境変数機能](https://vitejs.dev/guide/env-and-mode) を使用します。
 ブラウザに公開されるため、`VITE_` プレフィックスが必須です。
 
-| 変数名                             | 説明                                                                                | 例                               |
-| ---------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------- |
-| `VITE_API_BASE_URL`                | API のベース URL                                                                    | `https://xxx.cloudfront.net/api` |
-| `VITE_AUTH_TOKEN`                  | ローカル開発用の固定トークン（現在のフロントエンド実装で使用）                      | `dummy-local-token`              |
-| `VITE_COGNITO_USER_POOL_ID`        | Cognito User Pool ID                                                                | `ap-northeast-1_XXXXXXX`         |
-| `VITE_COGNITO_CLIENT_ID`           | Cognito App Client ID                                                               | `xxxxxxxxxxxxxxxxxxxxxxxxxx`     |
-| `VITE_COGNITO_REGION`              | AWS リージョン                                                                      | `ap-northeast-1`                 |
-| `VITE_COGNITO_DOMAIN`              | Cognito Hosted UI ドメイン（`<prefix>.auth.<region>.amazoncognito.com` 形式）       | `cooking-planner-prod.auth.ap-northeast-1.amazoncognito.com` |
-| `VITE_COGNITO_REDIRECT_URI`        | ログイン後のリダイレクト URI                                                        | `http://localhost:5173/callback` |
-| `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後のリダイレクト URI                                                      | `http://localhost:5173`          |
+| 変数名                             | 説明                                                                          | 例                                                           |
+| ---------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `VITE_API_BASE_URL`                | API のベース URL                                                              | `https://xxx.cloudfront.net/api`                             |
+| `VITE_AUTH_TOKEN`                  | ローカル開発用の固定トークン（現在のフロントエンド実装で使用）                | `dummy-local-token`                                          |
+| `VITE_COGNITO_USER_POOL_ID`        | Cognito User Pool ID                                                          | `ap-northeast-1_XXXXXXX`                                     |
+| `VITE_COGNITO_CLIENT_ID`           | Cognito App Client ID                                                         | `xxxxxxxxxxxxxxxxxxxxxxxxxx`                                 |
+| `VITE_COGNITO_REGION`              | AWS リージョン                                                                | `ap-northeast-1`                                             |
+| `VITE_COGNITO_DOMAIN`              | Cognito Hosted UI ドメイン（`<prefix>.auth.<region>.amazoncognito.com` 形式） | `cooking-planner-prod.auth.ap-northeast-1.amazoncognito.com` |
+| `VITE_COGNITO_REDIRECT_URI`        | ログイン後のリダイレクト URI                                                  | `http://localhost:5173/callback`                             |
+| `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後のリダイレクト URI                                                | `http://localhost:5173`                                      |
 
 ### セットアップ手順
 
@@ -55,13 +55,13 @@ VITE_COGNITO_LOGOUT_REDIRECT_URI=http://localhost:5173
 CDK デプロイ後、スタックの Outputs に以下のキーで値が出力されます。
 出力値をそのまま `.env` にコピーしてください。
 
-| CDK Output キー                            | 対応する `.env` 変数               |
-| ------------------------------------------ | ---------------------------------- |
-| `UserPoolId`                               | `VITE_COGNITO_USER_POOL_ID`        |
-| `UserPoolClientId`                         | `VITE_COGNITO_CLIENT_ID`           |
-| `UserPoolDomainName`                       | `VITE_COGNITO_DOMAIN`              |
-| （CDK デプロイ時に指定したリージョン）     | `VITE_COGNITO_REGION`              |
-| （CDK の `callbackUrls` context に指定した値） | `VITE_COGNITO_REDIRECT_URI`    |
+| CDK Output キー                                | 対応する `.env` 変数               |
+| ---------------------------------------------- | ---------------------------------- |
+| `UserPoolId`                                   | `VITE_COGNITO_USER_POOL_ID`        |
+| `UserPoolClientId`                             | `VITE_COGNITO_CLIENT_ID`           |
+| `UserPoolDomainName`                           | `VITE_COGNITO_DOMAIN`              |
+| （CDK デプロイ時に指定したリージョン）         | `VITE_COGNITO_REGION`              |
+| （CDK の `callbackUrls` context に指定した値） | `VITE_COGNITO_REDIRECT_URI`        |
 | （CDK の `logoutUrls` context に指定した値）   | `VITE_COGNITO_LOGOUT_REDIRECT_URI` |
 
 ```bash

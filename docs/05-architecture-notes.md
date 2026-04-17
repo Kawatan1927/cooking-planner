@@ -146,10 +146,10 @@ CDK 上では `stage` （例：`dev` or `prod`）をパラメータとして扱�
 
 ### 4.1.1 prod / dev の URL 切り替え方針
 
-| 環境         | callback URL                              | logout URL                          |
-| ------------ | ----------------------------------------- | ----------------------------------- |
-| `dev`        | `http://localhost:5173/callback`（デフォルト） | `http://localhost:5173`（デフォルト） |
-| `prod`       | CloudFront URL / カスタムドメイン（必須） | CloudFront URL / カスタムドメイン（必須） |
+| 環境   | callback URL                                   | logout URL                                |
+| ------ | ---------------------------------------------- | ----------------------------------------- |
+| `dev`  | `http://localhost:5173/callback`（デフォルト） | `http://localhost:5173`（デフォルト）     |
+| `prod` | CloudFront URL / カスタムドメイン（必須）      | CloudFront URL / カスタムドメイン（必須） |
 
 CDK デプロイ時に以下の context パラメータで URL を指定する：
 
