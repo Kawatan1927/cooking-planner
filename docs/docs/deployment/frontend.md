@@ -53,15 +53,34 @@ aws cloudfront create-invalidation \
 
 フロントエンドのビルドに必要な環境変数は `frontend/.env.production` で管理する。
 
-| 変数名                             | 説明                                                           | 例                                                     |
-| ---------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
-| `VITE_API_BASE_URL`                | API Gateway の URL                                             | `https://xxx.execute-api.ap-northeast-1.amazonaws.com` |
-| `VITE_COGNITO_USER_POOL_ID`        | Cognito User Pool ID                                           | `ap-northeast-1_xxxxxxxx`                              |
-| `VITE_COGNITO_CLIENT_ID`           | Cognito App Client ID                                          | `xxxxxxxxxxxxxxxxxxxxxxxxxx`                           |
-| `VITE_COGNITO_REGION`              | AWS リージョン                                                 | `ap-northeast-1`                                       |
-| `VITE_COGNITO_REDIRECT_URI`        | ログイン後リダイレクト URI                                     | `https://example.com/callback`                         |
-| `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後リダイレクト URI                                   | `https://example.com`                                  |
-| `VITE_AUTH_TOKEN`                  | 認証トークンをローカル開発や暫定運用で直接指定する場合に使う値 | `eyJhbGciOi...`                                        |
+| 変数名                             | 説明                                                           | 例                                                           |
+| ---------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ |
+| `VITE_API_BASE_URL`                | API Gateway の URL                                             | `https://xxx.execute-api.ap-northeast-1.amazonaws.com`       |
+| `VITE_COGNITO_USER_POOL_ID`        | Cognito User Pool ID                                           | `ap-northeast-1_xxxxxxxx`                                    |
+| `VITE_COGNITO_CLIENT_ID`           | Cognito App Client ID                                          | `xxxxxxxxxxxxxxxxxxxxxxxxxx`                                 |
+| `VITE_COGNITO_REGION`              | AWS リージョン                                                 | `ap-northeast-1`                                             |
+| `VITE_COGNITO_DOMAIN`              | Cognito Hosted UI ドメイン                                     | `cooking-planner-prod.auth.ap-northeast-1.amazoncognito.com` |
+| `VITE_COGNITO_REDIRECT_URI`        | ログイン後リダイレクト URI                                     | `https://example.com/callback`                               |
+| `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後リダイレクト URI                                   | `https://example.com`                                        |
+| `VITE_AUTH_TOKEN`                  | 認証トークンをローカル開発や暫定運用で直接指定する場合に使う値 | `eyJhbGciOi...`                                              |
+
+:::tip CDK Outputs からの値取得
+CDK デプロイ後に出力される Outputs から各変数の値を確認できます。
+
+```bash
+aws cloudformation describe-stacks \
+  --stack-name CookingPlanner-prod \
+  --query "Stacks[0].Outputs" \
+  --output table
+```
+
+| CDK Output キー      | 対応する環境変数            |
+| -------------------- | --------------------------- |
+| `UserPoolId`         | `VITE_COGNITO_USER_POOL_ID` |
+| `UserPoolClientId`   | `VITE_COGNITO_CLIENT_ID`    |
+| `UserPoolDomainName` | `VITE_COGNITO_DOMAIN`       |
+
+:::
 
 :::caution
 `frontend/.env.production` はリポジトリにコミットしないように注意する。

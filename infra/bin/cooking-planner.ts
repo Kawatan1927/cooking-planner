@@ -27,9 +27,35 @@ const allowedOrigins = allowedOriginsRaw
       .filter((s: string) => s.length > 0)
   : undefined;
 
+// Cognito Hosted UI の callback URL を context から取得。
+// prod では必須（スタック側でバリデーションする）。
+// 複数 URL はカンマ区切りで指定可能。
+// 例: cdk deploy --context callbackUrls=https://xxx.cloudfront.net/callback
+const callbackUrlsRaw: string | undefined = app.node.tryGetContext('callbackUrls');
+const callbackUrls = callbackUrlsRaw
+  ? callbackUrlsRaw
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0)
+  : undefined;
+
+// Cognito Hosted UI のログアウト URL を context から取得。
+// prod では必須（スタック側でバリデーションする）。
+// 複数 URL はカンマ区切りで指定可能。
+// 例: cdk deploy --context logoutUrls=https://xxx.cloudfront.net
+const logoutUrlsRaw: string | undefined = app.node.tryGetContext('logoutUrls');
+const logoutUrls = logoutUrlsRaw
+  ? logoutUrlsRaw
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0)
+  : undefined;
+
 new CookingPlannerStack(app, `CookingPlanner-${stage}`, {
   stage,
   allowedOrigins,
+  callbackUrls,
+  logoutUrls,
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION ?? 'ap-northeast-1',

@@ -101,6 +101,15 @@ flowchart LR
 
 - API Gateway の JWT Authorizer と相性が良い。
 
+- **Hosted UI Domain**: `cooking-planner-{stage}` というプレフィックスで Cognito ドメインを作成する。
+  - 例（prod）：`cooking-planner-prod.auth.ap-northeast-1.amazoncognito.com`
+  - 例（dev）：`cooking-planner-dev.auth.ap-northeast-1.amazoncognito.com`
+
+- **App Client の OAuth 設定**：
+  - フロー：Authorization Code Grant（Hosted UI を使った安全なフロー）
+  - スコープ：`openid`, `email`, `profile`
+  - callback URL / logout URL は stage ごとに CDK context で指定する（後述）
+
 ---
 
 ## 3. 環境構成
@@ -128,10 +137,36 @@ CDK 上では `stage` （例：`dev` or `prod`）をパラメータとして扱�
 - `VITE_COGNITO_USER_POOL_ID`
 - `VITE_COGNITO_CLIENT_ID`
 - `VITE_COGNITO_REGION`
+- `VITE_COGNITO_DOMAIN`
+  - 例：`cooking-planner-prod.auth.ap-northeast-1.amazoncognito.com`
 - `VITE_COGNITO_REDIRECT_URI`
 - `VITE_COGNITO_LOGOUT_REDIRECT_URI`
 
 ※ セキュリティ上問題ない情報（User Pool ID, Client ID など）はフロントにも持たせる。
+
+### 4.1.1 prod / dev の URL 切り替え方針
+
+| 環境   | callback URL                                   | logout URL                                |
+| ------ | ---------------------------------------------- | ----------------------------------------- |
+| `dev`  | `http://localhost:5173/callback`（デフォルト） | `http://localhost:5173`（デフォルト）     |
+| `prod` | CloudFront URL / カスタムドメイン（必須）      | CloudFront URL / カスタムドメイン（必須） |
+
+CDK デプロイ時に以下の context パラメータで URL を指定する：
+
+```bash
+# prod 環境
+cdk deploy \
+  --context stage=prod \
+  --context allowedOrigins=https://xxx.cloudfront.net \
+  --context callbackUrls=https://xxx.cloudfront.net/callback \
+  --context logoutUrls=https://xxx.cloudfront.net
+
+# dev 環境（省略時はデフォルト値が使われる）
+cdk deploy --context stage=dev
+```
+
+- `prod` 環境では `callbackUrls` / `logoutUrls` を省略すると CDK synth 時にエラーになる（fail-closed）。
+- 複数 URL を指定する場合はカンマ区切りで渡す。
 
 ### 4.2 Lambda / API側
 

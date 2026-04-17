@@ -64,7 +64,7 @@ jobs:
 
       - name: cdk synth の実行（prod）
         working-directory: ./infra
-        run: bunx cdk synth --context stage=prod --context allowedOrigins=https://placeholder.example.com --no-staging
+        run: bunx cdk synth --context stage=prod --context allowedOrigins=https://placeholder.example.com --context callbackUrls=https://placeholder.example.com/callback --context logoutUrls=https://placeholder.example.com --no-staging
 
       - name: CloudFormation テンプレートのアップロード
         uses: actions/upload-artifact@v4

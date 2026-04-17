@@ -41,6 +41,8 @@ sidebar_position: 3
   - JWT 発行
     をマネージドで利用できる。
 - API Gateway の JWT Authorizer と相性が良い。
+- **Hosted UI Domain**: `cooking-planner-{stage}.auth.{region}.amazoncognito.com`
+- **App Client**: Authorization Code Grant + SRP 認証フローの両方をサポート
 
 ## セキュリティ・アクセス制御
 
