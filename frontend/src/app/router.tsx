@@ -1,11 +1,16 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { Placeholder } from '../components/Placeholder';
+import { CallbackPage, LoginPage } from '../features/auth';
 import { RecipeListPage } from '../features/recipes';
 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <Placeholder title="Login" />,
+    element: <LoginPage />,
+  },
+  {
+    path: '/callback',
+    element: <CallbackPage />,
   },
   {
     path: '/',

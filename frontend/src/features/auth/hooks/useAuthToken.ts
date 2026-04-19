@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-
-const AUTH_TOKEN_STORAGE_KEY = 'cooking_planner_auth_token';
+import { AUTH_TOKEN_STORAGE_KEY } from '../utils/cognito';
 
 const readAuthToken = (): string | null => {
   const envToken = import.meta.env.VITE_AUTH_TOKEN ?? null;
