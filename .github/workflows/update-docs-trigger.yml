@@ -5,13 +5,13 @@ on:
     - cron: "0 0 * * *"   # 毎朝9:00 JST = 0:00 UTC
   workflow_dispatch:
 
-permissions:
-  contents: read
-  actions: read
+permissions: {}
 
 jobs:
   check-main-updated:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
     steps:
@@ -36,5 +36,22 @@ jobs:
   run-update-docs:
     needs: check-main-updated
     if: needs.check-main-updated.outputs.should_run == 'true'
+    permissions:
+      actions: read
+      artifact-metadata: read
+      attestations: read
+      checks: read
+      contents: write
+      deployments: read
+      discussions: read
+      id-token: write
+      issues: write
+      models: read
+      packages: read
+      pages: read
+      pull-requests: write
+      repository-projects: read
+      security-events: read
+      statuses: read
     uses: ./.github/workflows/update-docs.lock.yml
     secrets: inherit
