@@ -13,7 +13,8 @@
 ## Lambda 関数定義（現行実装）
 
 `NodejsFunction` を使用して TypeScript ソースを esbuild で自動バンドルする。
-`@aws-sdk/*` は Node.js 20 ランタイムに同梱されているため外部化する。
+AWS SDK v3（`@aws-sdk/*`）は Lambda Node.js 20 ランタイムに同梱されないため、esbuild でバンドルする（`externalModules` に指定しない）。
+旧 v2（`aws-sdk`）は Node.js 16 以前のランタイムにのみ同梱されていた。
 
 ```typescript
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -31,9 +32,8 @@ this.apiHandler = new NodejsFunction(this, 'ApiHandler', {
     MENUS_TABLE_NAME: this.menusTable.tableName,
     // PANTRY_ITEMS_TABLE_NAME は将来の拡張用（現時点では未実装）
   },
-  bundling: {
-    externalModules: ['@aws-sdk/*'],
-  },
+  // bundling.externalModules は指定しない:
+  // @aws-sdk/* (v3) はランタイムに含まれないため esbuild がバンドルする
 });
 ```
 
@@ -50,8 +50,13 @@ import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 
-// allowedOrigins のバリデーション（prod: 必須・'*' 禁止）
-// → infra/bin/cooking-planner.ts / infra/lib/cooking-planner-stack.ts を参照
+// cdk deploy --context allowedOrigins=https://xxx.cloudfront.net で渡された文字列を
+// bin/cooking-planner.ts がカンマ区切りで分割し、props.allowedOrigins として渡す。
+// スタック内で corsAllowOrigins に変換: dev はデフォルト値あり、prod は必須・'*' 禁止。
+const corsAllowOrigins =
+  this.stage === 'dev'
+    ? (props.allowedOrigins ?? ['http://localhost:5173'])
+    : /* prod: バリデーション済み */ props.allowedOrigins!;
 
 this.httpApi = new apigatewayv2.HttpApi(this, 'HttpApi', {
   apiName: `cooking-planner-api-${this.stage}`,

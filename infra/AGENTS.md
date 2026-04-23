@@ -71,7 +71,7 @@ npx cdk synth --context stage=prod
 
 今後の追加予定リソース（順序は目安）:
 
-5. S3 バケット + CloudFront ディストリビューション
+1. S3 バケット + CloudFront ディストリビューション
 
 詳細は `infra/CDK_INTEGRATION.md` を参照してください。
 
