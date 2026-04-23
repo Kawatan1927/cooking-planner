@@ -6,11 +6,17 @@ sidebar_position: 3
 
 ## 概要
 
-バックエンド（Lambda + API Gateway）およびインフラ（DynamoDB、Cognito 等）は AWS CDK で管理する方針とする。
+バックエンド（Lambda + API Gateway）およびインフラ（DynamoDB、Cognito、S3+CloudFront 等）は AWS CDK で管理する。
 変更は `cdk deploy` コマンドでデプロイする運用を想定している。
 
-`infra/lib/cooking-planner-stack.ts` に CDK スタックが実装されており、現時点では **DynamoDB テーブル**（Recipes / RecipeIngredients / Menus）が定義されている。
-Lambda・API Gateway・Cognito・S3+CloudFront などのリソースは今後の Issue で順次追加予定。
+`infra/lib/cooking-planner-stack.ts` に CDK スタックが実装されており、以下のリソースが定義されている：
+
+- DynamoDB テーブル（Recipes / RecipeIngredients / Menus）
+- Lambda 関数（API ハンドラ）
+- API Gateway HTTP API（Cognito JWT Authorizer 付き）
+- Cognito User Pool / App Client / Hosted UI ドメイン
+- S3 バケット（フロントエンド静的ファイル用）
+- CloudFront ディストリビューション（SPA 配信 + `/api/*` → API Gateway ルーティング）
 
 ---
 
@@ -30,11 +36,29 @@ cdk diff
 
 ```bash
 cd infra
-cdk deploy
+# dev 環境
+cdk deploy --context stage=dev
+
+# prod 環境（allowedOrigins / callbackUrls / logoutUrls が必須）
+cdk deploy \
+  --context stage=prod \
+  --context allowedOrigins=https://xxx.cloudfront.net \
+  --context callbackUrls=https://xxx.cloudfront.net/callback \
+  --context logoutUrls=https://xxx.cloudfront.net
 ```
 
-- Lambda コードのバンドルと API Gateway・DynamoDB 等のリソース更新が一括で行われる
-- デプロイ完了後、出力（Outputs）に API Gateway の URL 等が表示される
+- Lambda コードのバンドルと API Gateway・DynamoDB・S3・CloudFront 等のリソース更新が一括で行われる
+- デプロイ完了後、出力（Outputs）に以下の値が表示される
+
+| CDK Output キー            | 説明                                                        |
+| -------------------------- | ----------------------------------------------------------- |
+| `HttpApiUrl`               | API Gateway HTTP API エンドポイント URL                     |
+| `CloudFrontUrl`            | CloudFront URL（`VITE_API_BASE_URL` と Cognito URL に使用） |
+| `CloudFrontDistributionId` | CloudFront Distribution ID（キャッシュ無効化に使用）        |
+| `FrontendBucketName`       | フロントエンド用 S3 バケット名（`aws s3 sync` に使用）      |
+| `UserPoolId`               | Cognito User Pool ID                                        |
+| `UserPoolClientId`         | Cognito App Client ID                                       |
+| `UserPoolDomainName`       | Cognito Hosted UI ドメイン名                                |
 
 ### 3. Lambda のみ更新する場合
 
@@ -79,13 +103,3 @@ git checkout <前のコミット SHA>
 cd infra
 cdk deploy
 ```
-
-> **TODO**: CloudFormation スタックのロールバック（`aws cloudformation cancel-update-stack`）も選択肢として検討する。
-
----
-
-## 初回デプロイ（CDK スタック未完成時）
-
-> **TODO**: Lambda・API Gateway・Cognito・S3+CloudFront などのリソースが CDK スタックに追加され次第、手順を追記する。
-> 現在 `infra/lib/cooking-planner-stack.ts` には DynamoDB テーブルのみ定義されている。
-> 参考: `infra/CDK_INTEGRATION.md`

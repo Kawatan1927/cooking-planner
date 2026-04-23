@@ -55,14 +55,15 @@ VITE_COGNITO_LOGOUT_REDIRECT_URI=http://localhost:5173
 CDK デプロイ後、スタックの Outputs に以下のキーで値が出力されます。
 出力値をそのまま `.env` にコピーしてください。
 
-| CDK Output キー                                | 対応する `.env` 変数               |
-| ---------------------------------------------- | ---------------------------------- |
-| `UserPoolId`                                   | `VITE_COGNITO_USER_POOL_ID`        |
-| `UserPoolClientId`                             | `VITE_COGNITO_CLIENT_ID`           |
-| `UserPoolDomainName`                           | `VITE_COGNITO_DOMAIN`              |
-| （CDK デプロイ時に指定したリージョン）         | `VITE_COGNITO_REGION`              |
-| （CDK の `callbackUrls` context に指定した値） | `VITE_COGNITO_REDIRECT_URI`        |
-| （CDK の `logoutUrls` context に指定した値）   | `VITE_COGNITO_LOGOUT_REDIRECT_URI` |
+| CDK Output キー                        | 対応する `.env` 変数               | 備考                                   |
+| -------------------------------------- | ---------------------------------- | -------------------------------------- |
+| `CloudFrontUrl`                        | `VITE_API_BASE_URL`                | `<CloudFrontUrl>/api` の形式で設定する |
+| `UserPoolId`                           | `VITE_COGNITO_USER_POOL_ID`        |                                        |
+| `UserPoolClientId`                     | `VITE_COGNITO_CLIENT_ID`           |                                        |
+| `UserPoolDomainName`                   | `VITE_COGNITO_DOMAIN`              |                                        |
+| （CDK デプロイ時に指定したリージョン） | `VITE_COGNITO_REGION`              |                                        |
+| `CloudFrontUrl`                        | `VITE_COGNITO_REDIRECT_URI`        | `<CloudFrontUrl>/callback` の形式      |
+| `CloudFrontUrl`                        | `VITE_COGNITO_LOGOUT_REDIRECT_URI` | `<CloudFrontUrl>` をそのまま使用       |
 
 ```bash
 # CDK Outputs を確認する例
