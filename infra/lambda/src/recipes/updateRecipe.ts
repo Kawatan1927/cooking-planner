@@ -6,6 +6,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  QueryCommandInput,
 } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeIngredient } from '../shared/types';
@@ -122,6 +123,33 @@ const putRecipeIngredients = async (ingredients: RecipeIngredient[]): Promise<vo
       'Failed to save recipe ingredients due to throttling'
     );
   }
+};
+
+const fetchAllRecipeIngredients = async (
+  userId: string,
+  recipeId: string
+): Promise<RecipeIngredientItem[]> => {
+  const ingredients: RecipeIngredientItem[] = [];
+  let exclusiveStartKey: QueryCommandInput['ExclusiveStartKey'];
+
+  do {
+    const result = await dynamoDbClient.send(
+      new QueryCommand({
+        TableName: TABLE_NAMES.RECIPE_INGREDIENTS,
+        KeyConditionExpression: 'userId = :userId AND begins_with(SK, :recipeIdPrefix)',
+        ExpressionAttributeValues: {
+          ':userId': userId,
+          ':recipeIdPrefix': `${recipeId}#`,
+        },
+        ExclusiveStartKey: exclusiveStartKey,
+      })
+    );
+
+    ingredients.push(...((result.Items || []) as RecipeIngredientItem[]));
+    exclusiveStartKey = result.LastEvaluatedKey;
+  } while (exclusiveStartKey);
+
+  return ingredients;
 };
 
 const validateRequestBody = (
@@ -252,18 +280,7 @@ export const updateRecipe = async (
 
     const existingRecipe = existingRecipeResult.Item as Recipe;
 
-    const existingIngredientsResult = await dynamoDbClient.send(
-      new QueryCommand({
-        TableName: TABLE_NAMES.RECIPE_INGREDIENTS,
-        KeyConditionExpression: 'userId = :userId AND begins_with(SK, :recipeIdPrefix)',
-        ExpressionAttributeValues: {
-          ':userId': userId,
-          ':recipeIdPrefix': `${recipeId}#`,
-        },
-      })
-    );
-
-    const existingIngredients = (existingIngredientsResult.Items || []) as RecipeIngredientItem[];
+    const existingIngredients = await fetchAllRecipeIngredients(userId, recipeId);
     const existingIngredientsForRestore: RecipeIngredient[] = existingIngredients.map(
       ({
         userId: existingUserId,
@@ -318,6 +335,7 @@ export const updateRecipe = async (
         new PutCommand({
           TableName: TABLE_NAMES.RECIPES,
           Item: updatedRecipe,
+          ConditionExpression: 'attribute_exists(recipeId)',
         })
       );
 
@@ -328,6 +346,15 @@ export const updateRecipe = async (
 
       await putRecipeIngredients(updatedIngredients);
     } catch (error) {
+      const errorName =
+        typeof error === 'object' && error !== null && 'name' in error
+          ? String(error.name)
+          : 'UnknownError';
+
+      if (errorName === 'ConditionalCheckFailedException') {
+        throw error;
+      }
+
       console.error('Failed to update recipe. Starting compensation.', {
         recipeId,
         error,
@@ -378,6 +405,10 @@ export const updateRecipe = async (
 
     if (errorName === 'AccessDeniedException') {
       return createErrorResponse(500, 'ACCESS_DENIED', 'Access denied while updating recipe');
+    }
+
+    if (errorName === 'ConditionalCheckFailedException') {
+      return createErrorResponse(404, 'RECIPE_NOT_FOUND', 'Recipe not found');
     }
 
     return createErrorResponse(500, 'INTERNAL_SERVER_ERROR', 'Failed to update recipe');
