@@ -53,12 +53,12 @@ VITE_COGNITO_LOGOUT_REDIRECT_URI=http://localhost:5173
 ### CDK Outputs からの値取得
 
 CDK デプロイ後、スタックの Outputs に以下のキーで値が出力されます。
-出力値をそのまま `.env` にコピーしてください。
+出力値をベースに `.env` へ設定してください。変数によっては `/api` や `/callback` などのサフィックスを付与します。
 
 | CDK Output キー                        | 対応する `.env` 変数               | 備考                                   |
 | -------------------------------------- | ---------------------------------- | -------------------------------------- |
 | `CloudFrontUrl`                        | `VITE_API_BASE_URL`                | `<CloudFrontUrl>/api` の形式で設定する |
-| `UserPoolId`                           | `VITE_COGNITO_USER_POOL_ID`        |                                        |
+| `UserPoolId`                           | `VITE_COGNITO_USER_POOL_ID`        | 現状の frontend 実装では未使用（将来利用予定）|
 | `UserPoolClientId`                     | `VITE_COGNITO_CLIENT_ID`           |                                        |
 | `UserPoolDomainName`                   | `VITE_COGNITO_DOMAIN`              |                                        |
 | （CDK デプロイ時に指定したリージョン） | `VITE_COGNITO_REGION`              |                                        |

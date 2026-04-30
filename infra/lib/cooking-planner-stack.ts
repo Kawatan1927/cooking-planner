@@ -465,12 +465,12 @@ export class CookingPlannerStack extends cdk.Stack {
     // -------------------------------------------------------------------------
     const spaRoutingFunction = new cloudfront.Function(this, 'SpaRoutingFunction', {
       functionName: `cooking-planner-spa-routing-${this.stage}`,
-      comment: 'SPA ルーティング: 拡張子のないパスを /index.html にリライト',
+      comment: 'SPA ルーティング: 拡張子のないパスと / を /index.html にリライト',
       code: cloudfront.FunctionCode.fromInline(`
 function handler(event) {
   var request = event.request;
   var uri = request.uri;
-  if (!uri.includes('.') && uri !== '/') {
+  if (uri === '/' || !uri.includes('.')) {
     request.uri = '/index.html';
   }
   return request;
@@ -516,7 +516,7 @@ function handler(event) {
     //   - /api/*: API Gateway HTTP API
     //     - CloudFront Function でプレフィックスを除去して転送
     //     - キャッシュ無効化（API レスポンスはキャッシュしない）
-    //     - Authorization ヘッダを含む全ヘッダを転送
+    //     - Authorization など必要なヘッダのみを限定的に転送
     //
     // @see docs/04-api-design.md §1.1
     // @see docs/05-architecture-notes.md §1.2
@@ -542,14 +542,20 @@ function handler(event) {
       enableAcceptEncodingBrotli: false,
     });
 
-    // Content-Type のみ OriginRequestPolicy で転送する。
+    // CORS に必要なヘッダを OriginRequestPolicy で転送する。
     // Authorization は上記 CachePolicy 経由で転送するためここには含めない。
+    // Origin / Access-Control-Request-* は API Gateway の CORS 応答生成に必須。
     const apiOriginRequestPolicy = new cloudfront.OriginRequestPolicy(
       this,
       'ApiOriginRequestPolicy',
       {
         originRequestPolicyName: `cooking-planner-api-${this.stage}`,
-        headerBehavior: cloudfront.OriginRequestHeaderBehavior.allowList('Content-Type'),
+        headerBehavior: cloudfront.OriginRequestHeaderBehavior.allowList(
+          'Content-Type',
+          'Origin',
+          'Access-Control-Request-Method',
+          'Access-Control-Request-Headers'
+        ),
         queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.none(),
         cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
       }
