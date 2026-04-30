@@ -10,7 +10,7 @@ sidebar_position: 2
 
 CloudFront ディストリビューションは `/api/*` リクエストを API Gateway に転送し、
 その他すべてのリクエストを S3 の静的ファイルで応答する。
-SPA ルーティングのために、S3 から 403/404 が返った場合は `index.html` にフォールバックする。
+SPA ルーティングのために、CloudFront Function でファイル拡張子のないパスを `index.html` にリライトする。
 
 ---
 
@@ -48,10 +48,10 @@ aws cloudformation describe-stacks \
 #### 2-1. ビルド
 
 ```bash
-# リポジトリ root で実行
-npm run frontend:build
+# リポジトリ root で実行（Bun が必要: https://bun.sh）
+bun run frontend:build
 # または frontend のみビルド
-cd frontend && npm run build
+cd frontend && bun run build
 ```
 
 ビルド成果物は `frontend/dist/` に出力される。

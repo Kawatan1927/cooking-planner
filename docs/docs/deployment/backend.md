@@ -7,7 +7,7 @@ sidebar_position: 3
 ## 概要
 
 バックエンド（Lambda + API Gateway）およびインフラ（DynamoDB、Cognito、S3+CloudFront 等）は AWS CDK で管理する。
-変更は `cdk deploy` コマンドでデプロイする運用を想定している。
+変更は `bunx cdk deploy` コマンドでデプロイする運用を想定している。
 
 `infra/lib/cooking-planner-stack.ts` に CDK スタックが実装されており、以下のリソースが定義されている：
 
@@ -26,7 +26,7 @@ sidebar_position: 3
 
 ```bash
 cd infra
-cdk diff
+bunx cdk diff
 ```
 
 - 意図しないリソースの変更・削除が含まれていないことを必ず確認する
@@ -37,10 +37,10 @@ cdk diff
 ```bash
 cd infra
 # dev 環境
-cdk deploy --context stage=dev
+bunx cdk deploy --context stage=dev
 
 # prod 環境（allowedOrigins / callbackUrls / logoutUrls が必須）
-cdk deploy \
+bunx cdk deploy \
   --context stage=prod \
   --context allowedOrigins=https://xxx.cloudfront.net \
   --context callbackUrls=https://xxx.cloudfront.net/callback \
@@ -62,7 +62,7 @@ cdk deploy \
 
 ### 3. Lambda のみ更新する場合
 
-インフラ変更なしで Lambda コードだけ更新する場合も `cdk deploy` を使用する。
+インフラ変更なしで Lambda コードだけ更新する場合も `bunx cdk deploy` を使用する。
 CDK が差分を検出して Lambda 関数のみ更新する。
 
 ---
@@ -87,13 +87,13 @@ API Gateway の CORS 設定は CDK デプロイ時に `allowedOrigins` context �
 
 ```bash
 # dev 環境：省略可（デフォルト: http://localhost:5173）
-cdk deploy --context stage=dev
+bunx cdk deploy --context stage=dev
 
 # prod 環境：必須。'*' は使用不可
-cdk deploy --context stage=prod --context allowedOrigins=https://xxx.cloudfront.net
+bunx cdk deploy --context stage=prod --context allowedOrigins=https://xxx.cloudfront.net
 ```
 
-> **注意**: prod 環境で `allowedOrigins` を省略・空・`*` に設定した場合、`cdk synth` / `cdk deploy` 時にエラーとなる（fail-closed 設計）。
+> **注意**: prod 環境で `allowedOrigins` を省略・空・`*` に設定した場合、`bunx cdk synth` / `bunx cdk deploy` 時にエラーとなる（fail-closed 設計）。
 
 ---
 
@@ -102,9 +102,9 @@ cdk deploy --context stage=prod --context allowedOrigins=https://xxx.cloudfront.
 AWS アカウント・リージョンで CDK を初めて使う場合は以下を実行する。
 
 ```bash
-cdk bootstrap aws://<アカウント ID>/<リージョン>
+bunx cdk bootstrap aws://<アカウント ID>/<リージョン>
 # 例
-cdk bootstrap aws://123456789012/ap-northeast-1
+bunx cdk bootstrap aws://123456789012/ap-northeast-1
 ```
 
 ---
@@ -117,7 +117,7 @@ CDK のデプロイは CloudFormation 経由で行われるため、デプロイ
 ```bash
 git checkout <前のコミット SHA>
 cd infra
-cdk deploy
+bunx cdk deploy
 ```
 
 ---

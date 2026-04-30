@@ -162,10 +162,10 @@ GitHub Actionsを使用してCI/CDを実行しています：
 ```bash
 cd infra
 # dev 環境
-cdk deploy --context stage=dev
+bunx cdk deploy --context stage=dev
 
 # prod 環境（CloudFront URL を context で指定）
-cdk deploy \
+bunx cdk deploy \
   --context stage=prod \
   --context allowedOrigins=https://xxx.cloudfront.net \
   --context callbackUrls=https://xxx.cloudfront.net/callback \

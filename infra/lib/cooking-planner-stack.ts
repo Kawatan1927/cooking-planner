@@ -445,10 +445,38 @@ export class CookingPlannerStack extends cdk.Stack {
     // @see docs/05-architecture-notes.md §1.1
     // -------------------------------------------------------------------------
     this.frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
-      bucketName: `cooking-planner-${this.stage}-frontend`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: tableRemovalPolicy,
       autoDeleteObjects: this.stage !== 'prod',
+    });
+
+    // -------------------------------------------------------------------------
+    // CloudFront Function 定義（SPA ルーティング用）
+    //
+    // デフォルトビヘイビア（S3）でのみ動作し、ファイル拡張子のないパスを
+    // /index.html にリライトして React Router のクライアントサイドルーティングを実現する。
+    //
+    // errorResponses を使わない理由:
+    //   distribution レベルの errorResponses は /api/* ビヘイビア経由の
+    //   API Gateway エラー（403/404）にも適用されてしまい、
+    //   API クライアントのエラーハンドリングが壊れるため。
+    //
+    // @see docs/04-api-design.md §1.1
+    // -------------------------------------------------------------------------
+    const spaRoutingFunction = new cloudfront.Function(this, 'SpaRoutingFunction', {
+      functionName: `cooking-planner-spa-routing-${this.stage}`,
+      comment: 'SPA ルーティング: 拡張子のないパスを /index.html にリライト',
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var request = event.request;
+  var uri = request.uri;
+  if (!uri.includes('.') && uri !== '/') {
+    request.uri = '/index.html';
+  }
+  return request;
+}
+`),
+      runtime: cloudfront.FunctionRuntime.JS_2_0,
     });
 
     // -------------------------------------------------------------------------
@@ -497,6 +525,23 @@ function handler(event) {
       `${this.httpApi.apiId}.execute-api.${this.region}.amazonaws.com`
     );
 
+    // /api/* ビヘイビア用カスタム OriginRequestPolicy
+    // Authorization / Content-Type とクエリ文字列のみ転送し、Cookie・不要ヘッダは除外する。
+    // ALL_VIEWER_EXCEPT_HOST_HEADER は Cookie を含む全ヘッダを転送するため使用しない。
+    const apiOriginRequestPolicy = new cloudfront.OriginRequestPolicy(
+      this,
+      'ApiOriginRequestPolicy',
+      {
+        originRequestPolicyName: `cooking-planner-api-${this.stage}`,
+        headerBehavior: cloudfront.OriginRequestHeaderBehavior.allowList(
+          'Authorization',
+          'Content-Type'
+        ),
+        queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.all(),
+        cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
+      }
+    );
+
     this.distribution = new cloudfront.Distribution(this, 'CloudFrontDistribution', {
       comment: `cooking-planner-${this.stage}`,
       defaultBehavior: {
@@ -504,6 +549,14 @@ function handler(event) {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+        // SPA ルーティング: 拡張子のないパスを /index.html にリライト。
+        // distribution レベルの errorResponses を使わない理由は SpaRoutingFunction コメント参照。
+        functionAssociations: [
+          {
+            function: spaRoutingFunction,
+            eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
       },
       additionalBehaviors: {
         '/api/*': {
@@ -511,7 +564,7 @@ function handler(event) {
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
           cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
           allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+          originRequestPolicy: apiOriginRequestPolicy,
           functionAssociations: [
             {
               function: apiPathRewriteFunction,
@@ -520,24 +573,6 @@ function handler(event) {
           ],
         },
       },
-      // SPA ルーティング対応:
-      //   S3 は存在しないパスに対して 403（OAC 保護バケット）または 404 を返す。
-      //   これらを index.html（200）にフォールバックすることで、
-      //   React Router 等のクライアントサイドルーティングが機能する。
-      errorResponses: [
-        {
-          httpStatus: 403,
-          responseHttpStatus: 200,
-          responsePagePath: '/index.html',
-          ttl: cdk.Duration.seconds(0),
-        },
-        {
-          httpStatus: 404,
-          responseHttpStatus: 200,
-          responsePagePath: '/index.html',
-          ttl: cdk.Duration.seconds(0),
-        },
-      ],
     });
 
     // CloudFront URL を出力（VITE_API_BASE_URL および Cognito callback URL の設定に使用）

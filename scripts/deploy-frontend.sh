@@ -13,7 +13,7 @@
 # 前提条件:
 #   - AWS CLI がインストールされ、認証情報が設定されていること
 #   - CDK スタックがすでにデプロイ済みであること（S3 バケット・CloudFront が存在すること）
-#   - Node.js / npm がインストールされていること
+#   - Bun がインストールされていること（https://bun.sh）
 #
 # 取得する CDK Outputs:
 #   - FrontendBucketName   : フロントエンド用 S3 バケット名
@@ -22,6 +22,15 @@
 set -euo pipefail
 
 STAGE="${1:-prod}"
+case "${STAGE}" in
+  dev|prod)
+    ;;
+  *)
+    echo "ERROR: stage は 'dev' または 'prod' を指定してください: ${STAGE}" >&2
+    echo "Usage: ./scripts/deploy-frontend.sh [dev|prod]" >&2
+    exit 1
+    ;;
+esac
 STACK_NAME="CookingPlanner-${STAGE}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -56,7 +65,7 @@ echo "    CloudFront Distribution ID: ${DISTRIBUTION_ID}"
 # ---- 2. フロントエンドビルド ----
 echo ">>> フロントエンドをビルドしています..."
 cd "${REPO_ROOT}/frontend"
-npm run build
+bun run build
 echo "    ビルド完了: frontend/dist/"
 
 # ---- 3. S3 へのアップロード ----
