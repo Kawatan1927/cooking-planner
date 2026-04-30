@@ -228,6 +228,7 @@ export class CookingPlannerStack extends cdk.Stack {
       entry: path.join(__dirname, '../lambda/src/index.ts'),
       handler: 'handler',
       runtime: lambda.Runtime.NODEJS_20_X,
+      depsLockFilePath: path.join(__dirname, '../bun.lock'),
       environment: {
         RECIPES_TABLE_NAME: this.recipesTable.tableName,
         RECIPE_INGREDIENTS_TABLE_NAME: this.recipeIngredientsTable.tableName,
