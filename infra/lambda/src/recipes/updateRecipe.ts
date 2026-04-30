@@ -131,11 +131,7 @@ const validateRequestBody = (
     return createErrorResponse(400, 'BAD_REQUEST', 'Recipe name is required');
   }
 
-  if (
-    !requestBody.baseServings ||
-    typeof requestBody.baseServings !== 'number' ||
-    requestBody.baseServings <= 0
-  ) {
+  if (typeof requestBody.baseServings !== 'number' || requestBody.baseServings <= 0) {
     return createErrorResponse(400, 'BAD_REQUEST', 'baseServings must be a positive number');
   }
 
