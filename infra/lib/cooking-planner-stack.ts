@@ -525,19 +525,32 @@ function handler(event) {
       `${this.httpApi.apiId}.execute-api.${this.region}.amazonaws.com`
     );
 
-    // /api/* ビヘイビア用カスタム OriginRequestPolicy
-    // Authorization / Content-Type とクエリ文字列のみ転送し、Cookie・不要ヘッダは除外する。
-    // ALL_VIEWER_EXCEPT_HOST_HEADER は Cookie を含む全ヘッダを転送するため使用しない。
+    // /api/* ビヘイビア用カスタム CachePolicy + OriginRequestPolicy
+    //
+    // CloudFront の制約: Authorization ヘッダは OriginRequestPolicy.allowList() に
+    // 含められない。代わりに CachePolicy のキーに含めて転送する。
+    // TTL を 0 に設定することでキャッシュは無効化しつつ Authorization を転送できる。
+    const apiCachePolicy = new cloudfront.CachePolicy(this, 'ApiCachePolicy', {
+      cachePolicyName: `cooking-planner-api-${this.stage}`,
+      defaultTtl: cdk.Duration.seconds(0),
+      maxTtl: cdk.Duration.seconds(0),
+      minTtl: cdk.Duration.seconds(0),
+      headerBehavior: cloudfront.CacheHeaderBehavior.allowList('Authorization'),
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
+      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+      enableAcceptEncodingGzip: false,
+      enableAcceptEncodingBrotli: false,
+    });
+
+    // Content-Type のみ OriginRequestPolicy で転送する。
+    // Authorization は上記 CachePolicy 経由で転送するためここには含めない。
     const apiOriginRequestPolicy = new cloudfront.OriginRequestPolicy(
       this,
       'ApiOriginRequestPolicy',
       {
         originRequestPolicyName: `cooking-planner-api-${this.stage}`,
-        headerBehavior: cloudfront.OriginRequestHeaderBehavior.allowList(
-          'Authorization',
-          'Content-Type'
-        ),
-        queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.all(),
+        headerBehavior: cloudfront.OriginRequestHeaderBehavior.allowList('Content-Type'),
+        queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.none(),
         cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
       }
     );
@@ -562,7 +575,7 @@ function handler(event) {
         '/api/*': {
           origin: apiGatewayOrigin,
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
-          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          cachePolicy: apiCachePolicy,
           allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
           originRequestPolicy: apiOriginRequestPolicy,
           functionAssociations: [
