@@ -268,6 +268,23 @@ export const updateRecipe = async (
     );
 
     const existingIngredients = (existingIngredientsResult.Items || []) as RecipeIngredientItem[];
+    const existingIngredientsForRestore: RecipeIngredient[] = existingIngredients.map(
+      ({
+        userId: existingUserId,
+        recipeId: existingRecipeId,
+        ingredientName,
+        quantity,
+        unit,
+        note,
+      }) => ({
+        userId: existingUserId,
+        recipeId: existingRecipeId,
+        ingredientName,
+        quantity,
+        unit,
+        note,
+      })
+    );
     const now = new Date().toISOString();
 
     const updatedRecipe: Recipe = {
@@ -337,7 +354,7 @@ export const updateRecipe = async (
           currentIngredients.map(ingredient => ingredient.SK)
         );
 
-        await putRecipeIngredients(existingIngredients);
+        await putRecipeIngredients(existingIngredientsForRestore);
       } catch (compensationError) {
         console.error('Failed to restore recipe after update failure', {
           recipeId,
