@@ -306,7 +306,7 @@ export const updateRecipe = async (
 
       await putRecipeIngredients(updatedIngredients);
     } catch (error) {
-      console.error('Failed to update recipe transactionally. Starting compensation.', {
+      console.error('Failed to update recipe. Starting compensation.', {
         recipeId,
         error,
       });
