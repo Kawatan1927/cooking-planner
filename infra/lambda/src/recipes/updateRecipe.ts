@@ -177,7 +177,7 @@ const validateRequestBody = (
       return createErrorResponse(
         400,
         'BAD_REQUEST',
-        `Ingredient names "${ingredient.ingredientName}" and "${conflictingName}" would conflict after sanitization`
+        `Ingredient names "${ingredient.ingredientName}" and "${conflictingName}" would conflict after sanitization to "${sanitizedName}"`
       );
     }
     sanitizedIngredientNames.set(sanitizedName, ingredient.ingredientName);
@@ -307,6 +307,15 @@ export const updateRecipe = async (
       unit: ingredient.unit,
       note: ingredient.note ?? undefined,
     }));
+    const rollbackIngredientKeys = Array.from(
+      new Set([
+        ...existingIngredients.map(ingredient => ingredient.SK),
+        ...updatedIngredients.map(
+          ingredient =>
+            `${ingredient.recipeId}#${sanitizeIngredientNameForSK(ingredient.ingredientName)}`
+        ),
+      ])
+    );
 
     try {
       await dynamoDbClient.send(
@@ -336,23 +345,7 @@ export const updateRecipe = async (
           })
         );
 
-        const currentIngredientsResult = await dynamoDbClient.send(
-          new QueryCommand({
-            TableName: TABLE_NAMES.RECIPE_INGREDIENTS,
-            KeyConditionExpression: 'userId = :userId AND begins_with(SK, :recipeIdPrefix)',
-            ExpressionAttributeValues: {
-              ':userId': userId,
-              ':recipeIdPrefix': `${recipeId}#`,
-            },
-          })
-        );
-
-        const currentIngredients = (currentIngredientsResult.Items || []) as RecipeIngredientItem[];
-
-        await deleteRecipeIngredients(
-          userId,
-          currentIngredients.map(ingredient => ingredient.SK)
-        );
+        await deleteRecipeIngredients(userId, rollbackIngredientKeys);
 
         await putRecipeIngredients(existingIngredientsForRestore);
       } catch (compensationError) {
