@@ -218,7 +218,8 @@ export class CookingPlannerStack extends cdk.Stack {
     // Lambda 関数定義（単一 Lambda 小さめモノリス構成）
     //
     // NodejsFunction を使用して TypeScript ソースを esbuild で自動バンドルする。
-    // @aws-sdk/* は Node.js 20 ランタイムに同梱されているため外部化する。
+    // @aws-sdk/* (v3) は Node.js 20 ランタイムに同梱されないため、
+    // externalModules は指定せず esbuild がバンドルする。
     //
     // @see infra/CDK_INTEGRATION.md
     // @see docs/05-architecture-notes.md
@@ -233,10 +234,6 @@ export class CookingPlannerStack extends cdk.Stack {
         RECIPES_TABLE_NAME: this.recipesTable.tableName,
         RECIPE_INGREDIENTS_TABLE_NAME: this.recipeIngredientsTable.tableName,
         MENUS_TABLE_NAME: this.menusTable.tableName,
-      },
-      bundling: {
-        // @aws-sdk/* は Lambda Node.js 20 ランタイムに含まれるため外部化する
-        externalModules: ['@aws-sdk/*'],
       },
     });
 

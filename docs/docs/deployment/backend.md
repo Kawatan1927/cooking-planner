@@ -81,6 +81,22 @@ Lambda の環境変数は CDK スタック内で定義し、DynamoDB テーブ�
 
 ---
 
+## CORS の設定
+
+API Gateway の CORS 設定は CDK デプロイ時に `allowedOrigins` context で指定する。
+
+```bash
+# dev 環境：省略可（デフォルト: http://localhost:5173）
+cdk deploy --context stage=dev
+
+# prod 環境：必須。'*' は使用不可
+cdk deploy --context stage=prod --context allowedOrigins=https://xxx.cloudfront.net
+```
+
+> **注意**: prod 環境で `allowedOrigins` を省略・空・`*` に設定した場合、`cdk synth` / `cdk deploy` 時にエラーとなる（fail-closed 設計）。
+
+---
+
 ## CDK Bootstrap（初回のみ）
 
 AWS アカウント・リージョンで CDK を初めて使う場合は以下を実行する。
@@ -103,3 +119,16 @@ git checkout <前のコミット SHA>
 cd infra
 cdk deploy
 ```
+
+---
+
+## API エンドポイント一覧（現行実装）
+
+| メソッド | パス                  | 認証     | 説明                      |
+| -------- | --------------------- | -------- | ------------------------- |
+| GET      | `/health`             | 不要     | 疎通確認（status / time） |
+| GET      | `/recipes`            | JWT 必須 | レシピ一覧取得            |
+| POST     | `/recipes`            | JWT 必須 | レシピ作成                |
+| GET      | `/recipes/{recipeId}` | JWT 必須 | レシピ詳細取得            |
+
+その他のエンドポイント（`/menus`、`/shopping-list` 等）は今後の Issue で追加予定。
