@@ -11,13 +11,13 @@ sidebar_position: 3
 
 `infra/lib/cooking-planner-stack.ts` に CDK スタックが実装されており、現時点では以下のリソースが定義されている。
 
-| リソース                      | 説明                                                         |
-| ----------------------------- | ------------------------------------------------------------ |
-| DynamoDB テーブル             | Recipes / RecipeIngredients / Menus                          |
-| Lambda 関数                   | `cooking-planner-api-{stage}`（Node.js 20、TypeScript）      |
-| API Gateway HTTP API          | `cooking-planner-api-{stage}`（Cognito JWT Authorizer 付き） |
-| Cognito User Pool             | `cooking-planner-{stage}-user-pool`                          |
-| Cognito User Pool App Client  | SPA から SRP 認証フローで使用                                |
+| リソース                     | 説明                                                         |
+| ---------------------------- | ------------------------------------------------------------ |
+| DynamoDB テーブル            | Recipes / RecipeIngredients / Menus                          |
+| Lambda 関数                  | `cooking-planner-api-{stage}`（Node.js 20、TypeScript）      |
+| API Gateway HTTP API         | `cooking-planner-api-{stage}`（Cognito JWT Authorizer 付き） |
+| Cognito User Pool            | `cooking-planner-{stage}-user-pool`                          |
+| Cognito User Pool App Client | SPA から SRP 認証フローで使用                                |
 
 S3 + CloudFront などのリソースは今後の Issue で順次追加予定。
 
@@ -97,11 +97,11 @@ cdk deploy
 
 `cdk deploy` 完了後、以下の値が CloudFormation Outputs として表示される。フロントエンドの環境変数設定に使用する。
 
-| Output キー          | 用途                                            |
-| -------------------- | ----------------------------------------------- |
-| `HttpApiUrl`         | API Gateway HTTP API エンドポイント URL（`VITE_API_BASE_URL` に設定） |
-| `UserPoolId`         | Cognito User Pool ID（`VITE_COGNITO_USER_POOL_ID` に設定）          |
-| `UserPoolClientId`   | Cognito App Client ID（`VITE_COGNITO_CLIENT_ID` に設定）            |
+| Output キー        | 用途                                                                  |
+| ------------------ | --------------------------------------------------------------------- |
+| `HttpApiUrl`       | API Gateway HTTP API エンドポイント URL（`VITE_API_BASE_URL` に設定） |
+| `UserPoolId`       | Cognito User Pool ID（`VITE_COGNITO_USER_POOL_ID` に設定）            |
+| `UserPoolClientId` | Cognito App Client ID（`VITE_COGNITO_CLIENT_ID` に設定）              |
 
 ---
 
@@ -123,11 +123,11 @@ npx cdk deploy --context stage=prod --context allowedOrigins=https://xxx.cloudfr
 
 ## API エンドポイント一覧（現行実装）
 
-| メソッド | パス                   | 認証    | 説明                     |
-| -------- | ---------------------- | ------- | ------------------------ |
-| GET      | `/health`              | 不要    | 疎通確認（status / time） |
-| GET      | `/recipes`             | JWT 必須 | レシピ一覧取得           |
-| POST     | `/recipes`             | JWT 必須 | レシピ作成               |
-| GET      | `/recipes/{recipeId}`  | JWT 必須 | レシピ詳細取得           |
+| メソッド | パス                  | 認証     | 説明                      |
+| -------- | --------------------- | -------- | ------------------------- |
+| GET      | `/health`             | 不要     | 疎通確認（status / time） |
+| GET      | `/recipes`            | JWT 必須 | レシピ一覧取得            |
+| POST     | `/recipes`            | JWT 必須 | レシピ作成                |
+| GET      | `/recipes/{recipeId}` | JWT 必須 | レシピ詳細取得            |
 
 その他のエンドポイント（`/menus`、`/shopping-list` 等）は今後の Issue で追加予定。
