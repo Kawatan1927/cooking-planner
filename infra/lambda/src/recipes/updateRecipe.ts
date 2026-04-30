@@ -52,6 +52,11 @@ const createErrorResponse = (
   }),
 });
 
+const getErrorName = (error: unknown): string =>
+  typeof error === 'object' && error !== null && 'name' in error
+    ? String(error.name)
+    : 'UnknownError';
+
 const sleep = (milliseconds: number): Promise<void> =>
   new Promise(resolve => setTimeout(resolve, milliseconds));
 
@@ -346,10 +351,7 @@ export const updateRecipe = async (
 
       await putRecipeIngredients(updatedIngredients);
     } catch (error) {
-      const errorName =
-        typeof error === 'object' && error !== null && 'name' in error
-          ? String(error.name)
-          : 'UnknownError';
+      const errorName = getErrorName(error);
 
       if (errorName === 'ConditionalCheckFailedException') {
         throw error;
@@ -389,10 +391,7 @@ export const updateRecipe = async (
       }),
     };
   } catch (error) {
-    const errorName =
-      typeof error === 'object' && error !== null && 'name' in error
-        ? String(error.name)
-        : 'UnknownError';
+    const errorName = getErrorName(error);
 
     console.error('Error updating recipe:', {
       errorName,
