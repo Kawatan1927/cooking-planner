@@ -31,7 +31,7 @@
     - Hosted UI or SDK によるログインフロー
 
 - インフラ管理
-  - AWS CDK（TypeScript or Python 想定）
+  - AWS CDK（TypeScript）
 
 ---
 
