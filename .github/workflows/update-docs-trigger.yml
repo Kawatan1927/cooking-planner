@@ -53,5 +53,6 @@ jobs:
       repository-projects: read
       security-events: read
       statuses: read
+      vulnerability-alerts: read
     uses: ./.github/workflows/update-docs.lock.yml
     secrets: inherit
