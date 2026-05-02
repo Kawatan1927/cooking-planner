@@ -6,6 +6,9 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
@@ -40,9 +43,9 @@ export interface CookingPlannerStackProps extends cdk.StackProps {
 /**
  * CookingPlanner のベーススタック。
  *
- * DynamoDB テーブル（Recipes / RecipeIngredients / Menus）と
- * Lambda 関数、Cognito User Pool、API Gateway HTTP API を定義します。
- * 後続の Issue で S3+CloudFront などのリソースをここに追加していきます。
+ * DynamoDB テーブル（Recipes / RecipeIngredients / Menus）、
+ * Lambda 関数、Cognito User Pool、API Gateway HTTP API、
+ * S3 バケット、CloudFront ディストリビューションを定義します。
  *
  * @see docs/03-domain-and-data-model.md
  * @see docs/04-api-design.md
@@ -110,6 +113,22 @@ export class CookingPlannerStack extends cdk.Stack {
    * @see docs/05-architecture-notes.md §2.4
    */
   public readonly userPoolDomain: cognito.UserPoolDomain;
+
+  /**
+   * フロントエンド静的ファイル用 S3 バケット。
+   * CloudFront OAC 経由でのみアクセス可能（パブリックアクセス無効）。
+   * @see docs/05-architecture-notes.md §1.1
+   */
+  public readonly frontendBucket: s3.Bucket;
+
+  /**
+   * CloudFront ディストリビューション。
+   * - デフォルトビヘイビア: S3 バケット（SPA 配信）
+   * - `/api/*` ビヘイビア: API Gateway HTTP API（CloudFront Function でプレフィックス除去）
+   * - SPA ルーティング: 403/404 → index.html（200）
+   * @see docs/04-api-design.md §1.1
+   */
+  public readonly distribution: cloudfront.Distribution;
 
   constructor(scope: Construct, id: string, props: CookingPlannerStackProps) {
     super(scope, id, props);
@@ -210,6 +229,7 @@ export class CookingPlannerStack extends cdk.Stack {
       entry: path.join(__dirname, '../lambda/src/index.ts'),
       handler: 'handler',
       runtime: lambda.Runtime.NODEJS_20_X,
+      depsLockFilePath: path.join(__dirname, '../bun.lock'),
       environment: {
         RECIPES_TABLE_NAME: this.recipesTable.tableName,
         RECIPE_INGREDIENTS_TABLE_NAME: this.recipeIngredientsTable.tableName,
@@ -411,6 +431,188 @@ export class CookingPlannerStack extends cdk.Stack {
       exportName: `cooking-planner-user-pool-domain-${this.stage}`,
     });
 
-    // TODO(後続Issue): S3 + CloudFront をここに追加する
+    // -------------------------------------------------------------------------
+    // S3 バケット定義（フロントエンド静的ファイル用）
+    //
+    // セキュリティ設定:
+    //   - パブリックアクセスを完全にブロック
+    //   - CloudFront OAC（Origin Access Control）経由でのみアクセス可能
+    //
+    // RemovalPolicy:
+    //   prod 環境はデータ保護のため RETAIN。
+    //   dev 環境は DESTROY + autoDeleteObjects でスタック削除時にバケットも削除。
+    //
+    // @see docs/05-architecture-notes.md §1.1
+    // -------------------------------------------------------------------------
+    this.frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: tableRemovalPolicy,
+      autoDeleteObjects: this.stage !== 'prod',
+    });
+
+    // -------------------------------------------------------------------------
+    // CloudFront Function 定義（SPA ルーティング用）
+    //
+    // デフォルトビヘイビア（S3）でのみ動作し、ファイル拡張子のないパスを
+    // /index.html にリライトして React Router のクライアントサイドルーティングを実現する。
+    //
+    // errorResponses を使わない理由:
+    //   distribution レベルの errorResponses は /api/* ビヘイビア経由の
+    //   API Gateway エラー（403/404）にも適用されてしまい、
+    //   API クライアントのエラーハンドリングが壊れるため。
+    //
+    // @see docs/04-api-design.md §1.1
+    // -------------------------------------------------------------------------
+    const spaRoutingFunction = new cloudfront.Function(this, 'SpaRoutingFunction', {
+      functionName: `cooking-planner-spa-routing-${this.stage}`,
+      comment: 'SPA ルーティング: 拡張子のないパスと / を /index.html にリライト',
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var request = event.request;
+  var uri = request.uri;
+  if (uri === '/' || !uri.includes('.')) {
+    request.uri = '/index.html';
+  }
+  return request;
+}
+`),
+      runtime: cloudfront.FunctionRuntime.JS_2_0,
+    });
+
+    // -------------------------------------------------------------------------
+    // CloudFront Function 定義（/api プレフィックス除去）
+    //
+    // CloudFront の /api/* ビヘイビアから API Gateway へ転送する際に、
+    // URI の /api プレフィックスを除去して Lambda のルーティングと一致させる。
+    //
+    // 例: /api/recipes → /recipes
+    //     /api/health  → /health
+    //
+    // @see docs/04-api-design.md §1.1
+    // -------------------------------------------------------------------------
+    const apiPathRewriteFunction = new cloudfront.Function(this, 'ApiPathRewriteFunction', {
+      functionName: `cooking-planner-api-rewrite-${this.stage}`,
+      comment: '/api/* -> /* のパス書き換え（API Gateway への転送用）',
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var request = event.request;
+  request.uri = request.uri.replace(/^\\/api/, '');
+  if (!request.uri || request.uri === '') {
+    request.uri = '/';
+  }
+  return request;
+}
+`),
+      runtime: cloudfront.FunctionRuntime.JS_2_0,
+    });
+
+    // -------------------------------------------------------------------------
+    // CloudFront ディストリビューション定義
+    //
+    // ビヘイビア構成:
+    //   - デフォルト (/**): S3 バケット（SPA 静的ファイル配信）
+    //     - OAC で S3 に安全にアクセス
+    //     - 403/404 は index.html（200）にフォールバック（SPA ルーティング対応）
+    //   - /api/*: API Gateway HTTP API
+    //     - CloudFront Function でプレフィックスを除去して転送
+    //     - キャッシュ無効化（API レスポンスはキャッシュしない）
+    //     - Authorization など必要なヘッダのみを限定的に転送
+    //
+    // @see docs/04-api-design.md §1.1
+    // @see docs/05-architecture-notes.md §1.2
+    // -------------------------------------------------------------------------
+    const apiGatewayOrigin = new origins.HttpOrigin(
+      `${this.httpApi.apiId}.execute-api.${this.region}.amazonaws.com`
+    );
+
+    // /api/* ビヘイビア用カスタム CachePolicy + OriginRequestPolicy
+    //
+    // CloudFront の制約: Authorization ヘッダは OriginRequestPolicy.allowList() に
+    // 含められない。代わりに CachePolicy のキーに含めて転送する。
+    // TTL を 0 に設定することでキャッシュは無効化しつつ Authorization を転送できる。
+    const apiCachePolicy = new cloudfront.CachePolicy(this, 'ApiCachePolicy', {
+      cachePolicyName: `cooking-planner-api-${this.stage}`,
+      defaultTtl: cdk.Duration.seconds(0),
+      maxTtl: cdk.Duration.seconds(0),
+      minTtl: cdk.Duration.seconds(0),
+      headerBehavior: cloudfront.CacheHeaderBehavior.allowList('Authorization'),
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
+      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+      enableAcceptEncodingGzip: false,
+      enableAcceptEncodingBrotli: false,
+    });
+
+    // CORS に必要なヘッダを OriginRequestPolicy で転送する。
+    // Authorization は上記 CachePolicy 経由で転送するためここには含めない。
+    // Origin / Access-Control-Request-* は API Gateway の CORS 応答生成に必須。
+    const apiOriginRequestPolicy = new cloudfront.OriginRequestPolicy(
+      this,
+      'ApiOriginRequestPolicy',
+      {
+        originRequestPolicyName: `cooking-planner-api-${this.stage}`,
+        headerBehavior: cloudfront.OriginRequestHeaderBehavior.allowList(
+          'Content-Type',
+          'Origin',
+          'Access-Control-Request-Method',
+          'Access-Control-Request-Headers'
+        ),
+        queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.none(),
+        cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
+      }
+    );
+
+    this.distribution = new cloudfront.Distribution(this, 'CloudFrontDistribution', {
+      comment: `cooking-planner-${this.stage}`,
+      defaultBehavior: {
+        origin: origins.S3BucketOrigin.withOriginAccessControl(this.frontendBucket),
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+        // SPA ルーティング: 拡張子のないパスを /index.html にリライト。
+        // distribution レベルの errorResponses を使わない理由は SpaRoutingFunction コメント参照。
+        functionAssociations: [
+          {
+            function: spaRoutingFunction,
+            eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
+      },
+      additionalBehaviors: {
+        '/api/*': {
+          origin: apiGatewayOrigin,
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
+          cachePolicy: apiCachePolicy,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          originRequestPolicy: apiOriginRequestPolicy,
+          functionAssociations: [
+            {
+              function: apiPathRewriteFunction,
+              eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+            },
+          ],
+        },
+      },
+    });
+
+    // CloudFront URL を出力（VITE_API_BASE_URL および Cognito callback URL の設定に使用）
+    new cdk.CfnOutput(this, 'CloudFrontUrl', {
+      value: `https://${this.distribution.distributionDomainName}`,
+      description: 'CloudFront URL（VITE_API_BASE_URL=<この値>/api / Cognito callback URL に使用）',
+      exportName: `cooking-planner-cloudfront-url-${this.stage}`,
+    });
+
+    // CloudFront Distribution ID を出力（フロントデプロイ後のキャッシュ無効化に使用）
+    new cdk.CfnOutput(this, 'CloudFrontDistributionId', {
+      value: this.distribution.distributionId,
+      description: 'CloudFront Distribution ID（aws cloudfront create-invalidation で使用）',
+      exportName: `cooking-planner-cloudfront-distribution-id-${this.stage}`,
+    });
+
+    // S3 バケット名を出力（フロントデプロイ時の aws s3 sync に使用）
+    new cdk.CfnOutput(this, 'FrontendBucketName', {
+      value: this.frontendBucket.bucketName,
+      description: 'フロントエンド静的ファイル用 S3 バケット名（aws s3 sync で使用）',
+      exportName: `cooking-planner-frontend-bucket-name-${this.stage}`,
+    });
   }
 }

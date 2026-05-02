@@ -155,6 +155,38 @@ GitHub Actionsを使用してCI/CDを実行しています：
 
 詳細は `.github/workflows/` を参照してください。
 
+## デプロイ
+
+### インフラ（CDK）のデプロイ
+
+```bash
+cd infra
+# dev 環境
+bunx cdk deploy --context stage=dev
+
+# prod 環境（CloudFront URL を context で指定）
+bunx cdk deploy \
+  --context stage=prod \
+  --context allowedOrigins=https://xxx.cloudfront.net \
+  --context callbackUrls=https://xxx.cloudfront.net/callback \
+  --context logoutUrls=https://xxx.cloudfront.net
+```
+
+デプロイ後の Outputs から `CloudFrontUrl`・`FrontendBucketName`・`CloudFrontDistributionId` を取得して環境変数の設定に使う。
+
+### フロントエンドのデプロイ
+
+1. `frontend/.env.production` を作成し、CDK Outputs の値を設定する（`frontend/.env.example` を参照）
+2. デプロイスクリプトを実行する
+
+```bash
+# prod 環境へデプロイ
+./scripts/deploy-frontend.sh prod
+```
+
+スクリプトはビルド・S3 アップロード・CloudFront キャッシュ無効化を一括で実行する。
+詳細は `docs/docs/deployment/` を参照してください。
+
 ## ドキュメント
 
 詳細な仕様とアーキテクチャについては、`docs/` ディレクトリを参照してください：
