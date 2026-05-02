@@ -41,3 +41,4 @@ docs/.docusaurus
 docs/build
 docs/node_modules
 docs/package-lock.json
+infra/lambda/package-lock.json
