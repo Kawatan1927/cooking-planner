@@ -1,5 +1,5 @@
 import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
-import { DeleteCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { findMenuByMenuId, MenuItemWithSK } from './utils';
 
@@ -116,21 +116,35 @@ export const updateMenu = async (
     };
 
     if (existingMenu.SK !== newSK) {
-      // SK changed (date or mealType changed): delete old item, then put new item
       await dynamoDbClient.send(
-        new DeleteCommand({
+        new TransactWriteCommand({
+          TransactItems: [
+            {
+              Delete: {
+                TableName: TABLE_NAMES.MENUS,
+                Key: { userId, SK: existingMenu.SK },
+                ConditionExpression: 'attribute_exists(userId) AND attribute_exists(SK)',
+              },
+            },
+            {
+              Put: {
+                TableName: TABLE_NAMES.MENUS,
+                Item: updatedMenu,
+                ConditionExpression: 'attribute_not_exists(userId) AND attribute_not_exists(SK)',
+              },
+            },
+          ],
+        })
+      );
+    } else {
+      await dynamoDbClient.send(
+        new PutCommand({
           TableName: TABLE_NAMES.MENUS,
-          Key: { userId, SK: existingMenu.SK },
+          Item: updatedMenu,
+          ConditionExpression: 'attribute_exists(userId) AND attribute_exists(SK)',
         })
       );
     }
-
-    await dynamoDbClient.send(
-      new PutCommand({
-        TableName: TABLE_NAMES.MENUS,
-        Item: updatedMenu,
-      })
-    );
 
     console.log(`Menu updated: ${menuId}`);
 

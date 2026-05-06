@@ -43,7 +43,6 @@ interface MenuItemResponse {
   menuId: string;
   recipeId: string;
   servings: number;
-  memo: string | null;
 }
 
 /**
@@ -90,15 +89,11 @@ export const getMenus = async (
       const result = await dynamoDbClient.send(
         new QueryCommand({
           TableName: TABLE_NAMES.MENUS,
-          KeyConditionExpression: 'userId = :userId',
-          FilterExpression: '#date BETWEEN :from AND :to',
-          ExpressionAttributeNames: {
-            '#date': 'date',
-          },
+          KeyConditionExpression: 'userId = :userId AND SK BETWEEN :fromSk AND :toSk',
           ExpressionAttributeValues: {
             ':userId': userId,
-            ':from': from,
-            ':to': to,
+            ':fromSk': `${from}#`,
+            ':toSk': `${to}#\uffff`,
           },
           ExclusiveStartKey: exclusiveStartKey,
         })
@@ -114,7 +109,6 @@ export const getMenus = async (
       menuId: menu.menuId,
       recipeId: menu.recipeId,
       servings: menu.servings,
-      memo: menu.memo ?? null,
     }));
 
     return {

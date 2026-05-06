@@ -1,7 +1,7 @@
 import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
-import { Menu } from '../shared/types';
+import { MenuItemWithSK } from './utils';
 import { randomUUID } from 'crypto';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
@@ -15,10 +15,6 @@ interface CreateMenuRequestBody {
   recipeId: string;
   servings: number;
   memo?: string | null;
-}
-
-interface MenuItemWithSK extends Menu {
-  SK: string;
 }
 
 const createErrorResponse = (
