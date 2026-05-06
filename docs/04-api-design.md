@@ -160,6 +160,9 @@ API Gateway で JWT Authorizer を用いて検証する。
 }
 ```
 
+> **注意**: `quantity` は正の数値（`number`）または空でない文字列（`string`）を受け付ける。  
+> 数値で表せない分量（例：「適量」）を表現する場合は文字列として指定する。
+
 **Response 201**
 
 ```json
@@ -266,6 +269,30 @@ POST `/recipes` と同じ構造：
 ```json
 {
   "recipeId": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11"
+}
+```
+
+**Response 400（バリデーションエラー）**
+
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Recipe name is required",
+    "details": null
+  }
+}
+```
+
+**Response 404（レシピが存在しない）**
+
+```json
+{
+  "error": {
+    "code": "RECIPE_NOT_FOUND",
+    "message": "Recipe not found",
+    "details": null
+  }
 }
 ```
 

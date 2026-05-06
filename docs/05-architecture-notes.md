@@ -288,7 +288,39 @@ CDK スタック内で DynamoDB テーブル生成時に名前を決め、
 
 ---
 
-## 9. 今後のアーキ面での拡張余地（メモ）
+## 9. データ整合性と補償トランザクション
+
+### 9.1 レシピ更新の補償パターン
+
+DynamoDB はマルチテーブルのアトミックなトランザクションを `TransactWriteItems` で提供しているが、
+`PUT /recipes/{recipeId}` の実装では **段階的な書き込み＋ベストエフォートの補償** を採用している。
+
+**処理順序（正常系）**
+
+1. `Recipes` テーブルのレコードを `PutItem`（ConditionExpression で既存チェック）
+2. 既存の `RecipeIngredients` を `BatchWriteItem`（DeleteRequest）で全削除
+3. 新しい `RecipeIngredients` を `BatchWriteItem`（PutRequest）で全挿入
+
+**障害発生時の補償（異常系）**
+
+途中でエラーが発生した場合（DynamoDB スロットリング等）、Lambda は以下の補償処理を試みる：
+
+1. `Recipes` を更新前の状態に復元
+2. ロールバック対象のキー（削除済み＋新規追加済みの可能性がある両方）を削除
+3. 元の `RecipeIngredients` を復元
+
+**制約事項**
+
+- この補償はベストエフォートであり、補償処理自体が失敗した場合でも 500 エラーとしてクライアントに返す。
+- 補償失敗は CloudWatch Logs に `console.error` で記録されるが、データの不整合が残る可能性がある。
+- 個人用途で件数が少ないため、現時点では `TransactWriteItems` による完全なアトミック処理への移行は後回しにしている。
+
+> **将来の改善案**: レシピ本体の更新と材料の削除・挿入を含めた `TransactWriteItems` の操作数が上限（100件）に収まるのであれば、
+> より堅牢なトランザクション実装への移行を検討する。
+
+---
+
+## 10. 今後のアーキ面での拡張余地（メモ）
 
 - `Menus` の期間クエリ効率向上のための GSI 追加
 - 単一テーブル設計（Single Table Design）への移行
