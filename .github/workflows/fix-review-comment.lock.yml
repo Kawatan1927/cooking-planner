@@ -1,0 +1,11 @@
+# このファイルは通常 `gh aw compile` で生成されます。
+# 現在の実行環境では `gh aw` 拡張のインストール/実行に必要な認証が未設定のため、
+# 自動生成に失敗しました。認証後に再生成してください。
+# 推奨手順:
+#   gh auth login
+#   gh extension install github/gh-aw
+#   gh aw compile
+#   gh aw validate --strict
+
+compile_error: "gh aw コマンドが利用できず lock ファイルを自動生成できませんでした"
+source: ".github/workflows/fix-review-comment.md"
