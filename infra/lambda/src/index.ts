@@ -55,7 +55,6 @@ export const handler = async (
 
     // TODO: Add routing logic for other endpoints
     // - DELETE /recipes/{recipeId}
-    // - /shopping-list
 
     // Menus endpoints
     const menuByIdMatch = rawPath.match(/^\/menus\/([^/]+)$/);
