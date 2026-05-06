@@ -394,7 +394,7 @@ paths:
     get:
       tags:
         - shopping-list
-      summary: 買い物リスト取得（未実装）
+      summary: 買い物リスト取得
       description: |-
         指定期間の献立から必要な材料の合計量を計算して返す。
 
@@ -403,7 +403,7 @@ paths:
         2. 各 `menuItem` の `servings / baseServings` で分量をスケーリング
         3. `ingredientName + unit` 単位で合計値を集計
 
-        **注意:** 現在このエンドポイントはバックエンド未実装のため、呼び出すと `404 Not Found` が返ります。将来の実装予定を示すための仕様です。
+        `RecipeIngredients.quantity` が文字列の場合、人数比でスケーリングできないためスケーリングせず、同一キー内では ` + ` で連結して返します。
       operationId: getShoppingList
       parameters:
         - name: from
@@ -682,7 +682,9 @@ components:
           type: string
           example: 玉ねぎ
         totalQuantity:
-          type: number
+          oneOf:
+            - type: number
+            - type: string
           example: 1.5
         unit:
           type: string

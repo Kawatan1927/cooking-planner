@@ -1,6 +1,7 @@
 import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { getRecipes, createRecipe, getRecipeById, updateRecipe } from './recipes';
 import { getMenus, createMenu, updateMenu, deleteMenu } from './menus';
+import { getShoppingList } from './shoppingList';
 
 /**
  * Main Lambda handler for Cooking Planner API
@@ -78,6 +79,11 @@ export const handler = async (
 
     if (rawPath === '/menus' && httpMethod === 'POST') {
       return createMenu(event);
+    }
+
+    // Shopping list endpoints
+    if (rawPath === '/shopping-list' && httpMethod === 'GET') {
+      return getShoppingList(event);
     }
 
     return {

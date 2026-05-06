@@ -1,0 +1,1 @@
+export { getShoppingList } from './getShoppingList';

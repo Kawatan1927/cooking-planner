@@ -468,6 +468,13 @@ POST `/recipes` と同じ構造：
 }
 ```
 
+> **注意（`quantity` が文字列の場合）**:
+>
+> - `RecipeIngredients.quantity` は数値だけでなく、`"少々"` のような文字列も許容している。
+> - `GET /shopping-list` では材料ごと（`ingredientName + unit`）に集計するが、
+>   文字列 quantity は人数比でスケーリングできないため **スケーリングせず**、同一キー内では `+` で連結して返す。
+> - 数値と文字列が混在する場合は `"<数値> + <文字列>"` のような **文字列** として `totalQuantity` を返す。
+
 **処理概要（Lambda側）**
 
 1. `Menus` から `from`〜`to` の献立を取得
