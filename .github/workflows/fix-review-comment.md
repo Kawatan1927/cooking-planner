@@ -13,48 +13,20 @@ permissions: read-all
 network: defaults
 
 safe-outputs:
-  commit-to-pull-request:
+  push-to-pull-request-branch:
     target: triggering
     max: 1
-    fallback-to-issue: true
-    protected-files:
-      - AGENTS.md
-      - CLAUDE.md
-      - package.json
-      - pyproject.toml
-      - package-lock.json
-      - yarn.lock
-      - pnpm-lock.yaml
-      - npm-shrinkwrap.json
-      - bun.lockb
-      - uv.lock
-      - poetry.lock
-      - Pipfile.lock
-      - Gemfile.lock
-      - go.sum
-      - Cargo.lock
-      - composer.lock
-      - .github/
-      - .github/workflows/
-      - .github/agents/
-      - .gitlab-ci.yml
-      - azure-pipelines.yml
-      - build.gradle
-      - build.gradle.kts
-      - settings.gradle
-      - settings.gradle.kts
-      - pom.xml
-  respond-to-review-comment:
+    protected-files: fallback-to-issue
+  reply-to-pull-request-review-comment:
     target: triggering
-  resolve-review-thread:
-    target: triggering
+  resolve-pull-request-review-thread:
 
 tools:
   github:
     toolsets: [all]
   bash: true
 
-engine: github-copilot/gpt-5
+engine: copilot
 
 timeout-minutes: 20
 ---
@@ -101,18 +73,18 @@ timeout-minutes: 20
    - 環境制約で実行不可なら理由を記録。
 
 5. **コミット（条件付き）**
-   - 修正が完了し、危険性が低く、変更がprotected filesに触れていない場合のみ `commit-to-pull-request` を1回実行。
+   - 修正が完了し、危険性が低く、変更がprotected filesに触れていない場合のみ `push-to-pull-request-branch` を1回実行。
    - コミットメッセージは日本語で簡潔に書く。
 
 6. **レビューコメント返信（必須）**
-   - `respond-to-review-comment` で、以下を明記:
+   - `reply-to-pull-request-review-comment` で、以下を明記:
      - 実施内容（または未実施理由）
      - 変更ファイル
      - 実行した検証コマンドと結果
      - 未解決事項
 
 7. **スレッド解決（条件付き）**
-   - 指摘が完全に解消し、追加確認不要と判断できる場合のみ `resolve-review-thread` を実行。
+   - 指摘が完全に解消し、追加確認不要と判断できる場合のみ `resolve-pull-request-review-thread` を実行。
    - 少しでも不確実性がある場合はresolveしない。
 
 ## 出力ポリシー
