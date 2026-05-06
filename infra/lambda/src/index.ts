@@ -1,5 +1,6 @@
 import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { getRecipes, createRecipe, getRecipeById, updateRecipe } from './recipes';
+import { getMenus, createMenu, updateMenu, deleteMenu } from './menus';
 
 /**
  * Main Lambda handler for Cooking Planner API
@@ -53,8 +54,31 @@ export const handler = async (
 
     // TODO: Add routing logic for other endpoints
     // - DELETE /recipes/{recipeId}
-    // - /menus
     // - /shopping-list
+
+    // Menus endpoints
+    const menuByIdMatch = rawPath.match(/^\/menus\/([^/]+)$/);
+    if (menuByIdMatch && httpMethod === 'PUT') {
+      return updateMenu({
+        ...event,
+        pathParameters: { menuId: menuByIdMatch[1] },
+      } as APIGatewayProxyEventV2WithJWTAuthorizer);
+    }
+
+    if (menuByIdMatch && httpMethod === 'DELETE') {
+      return deleteMenu({
+        ...event,
+        pathParameters: { menuId: menuByIdMatch[1] },
+      } as APIGatewayProxyEventV2WithJWTAuthorizer);
+    }
+
+    if (rawPath === '/menus' && httpMethod === 'GET') {
+      return getMenus(event);
+    }
+
+    if (rawPath === '/menus' && httpMethod === 'POST') {
+      return createMenu(event);
+    }
 
     return {
       statusCode: 404,
