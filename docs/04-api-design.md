@@ -317,7 +317,7 @@ POST `/recipes` と同じ構造：
 
 `from` / `to` 未指定時の挙動：
 
-- 未指定の場合は「今日から7日分」など適当なデフォルトを決める。
+- 未指定の場合は「今日から7日分」（今日〜6日後）をデフォルトとする。
 
 **Response 200**
 
@@ -329,6 +329,7 @@ POST `/recipes` と同じ構造：
     {
       "date": "2025-11-21",
       "mealType": "DINNER",
+
       "menuId": "5b5af0bb-3c10-45e7-8f5e-6f541b2da111",
       "recipeId": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11",
       "servings": 1
@@ -343,6 +344,22 @@ POST `/recipes` と同じ構造：
   ]
 }
 ```
+
+**Response 400（バリデーションエラー）**
+
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Invalid \"from\" date format. Use YYYY-MM-DD",
+    "details": null
+  }
+}
+```
+
+> バリデーションエラーになるケース：
+> - `from` / `to` が `YYYY-MM-DD` 形式でない
+> - `from` が `to` より後の日付
 
 ---
 
@@ -359,6 +376,16 @@ POST `/recipes` と同じ構造：
 - Path: `/menus`
 
 **Request Body**
+
+フィールド：
+
+| フィールド | 型 | 必須 | 説明 |
+|---|---|---|---|
+| `date` | `string` (`YYYY-MM-DD`) | ✓ | 献立の日付 |
+| `mealType` | `string` | ✓ | 食事区分。`BREAKFAST` / `LUNCH` / `DINNER` / `OTHER` のいずれか |
+| `recipeId` | `string` | ✓ | 紐付けるレシピの ID |
+| `servings` | `number` | ✓ | 人数（正の数値） |
+| `memo` | `string` \| `null` | | メモ（任意） |
 
 ```json
 {
@@ -378,6 +405,24 @@ POST `/recipes` と同じ構造：
 }
 ```
 
+**Response 400（バリデーションエラー）**
+
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Invalid \"mealType\". Must be one of: BREAKFAST, LUNCH, DINNER, OTHER",
+    "details": null
+  }
+}
+```
+
+> バリデーションエラーになるケース：
+> - `date` が `YYYY-MM-DD` 形式でない
+> - `mealType` が有効値以外
+> - `recipeId` が空または文字列でない
+> - `servings` が正の数値でない
+
 ---
 
 ### 3.3 PUT /menus/{menuId}
@@ -394,6 +439,8 @@ POST `/recipes` と同じ構造：
 
 **Request Body**
 
+POST `/menus` と同じ構造（`mealType` 有効値も同様）：
+
 ```json
 {
   "date": "2025-11-21",
@@ -404,11 +451,38 @@ POST `/recipes` と同じ構造：
 }
 ```
 
+> **注意**: `date` または `mealType` を変更した場合、DynamoDB の Sort Key が変わるため、  
+> 旧アイテムの削除と新アイテムの作成がトランザクションで実行される。
+
 **Response 200**
 
 ```json
 {
   "menuId": "5b5af0bb-3c10-45e7-8f5e-6f541b2da111"
+}
+```
+
+**Response 400（バリデーションエラー）**
+
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Invalid \"mealType\". Must be one of: BREAKFAST, LUNCH, DINNER, OTHER",
+    "details": null
+  }
+}
+```
+
+**Response 404（献立が存在しない）**
+
+```json
+{
+  "error": {
+    "code": "MENU_NOT_FOUND",
+    "message": "Menu not found",
+    "details": null
+  }
 }
 ```
 
@@ -428,6 +502,18 @@ POST `/recipes` と同じ構造：
 **Response 204**
 
 - ボディなし。
+
+**Response 404（献立が存在しない）**
+
+```json
+{
+  "error": {
+    "code": "MENU_NOT_FOUND",
+    "message": "Menu not found",
+    "details": null
+  }
+}
+```
 
 ---
 
