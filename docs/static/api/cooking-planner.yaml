@@ -403,7 +403,7 @@ paths:
         2. 各 `menuItem` の `servings / baseServings` で分量をスケーリング
         3. `ingredientName + unit` 単位で合計値を集計
 
-        `RecipeIngredients.quantity` が文字列の場合、人数比でスケーリングできないためスケーリングせず、同一キー内では ` + ` で連結して返します。
+        `RecipeIngredients.quantity` が文字列の場合、人数比でスケーリングできないためスケーリングせず、同一キー内では重複を除いたうえで ` + ` で連結して返します（例: `少々` が複数献立に登場しても `少々` を 1 回だけ返す）。
       operationId: getShoppingList
       parameters:
         - name: from

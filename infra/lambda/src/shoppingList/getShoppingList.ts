@@ -113,18 +113,27 @@ const fetchRecipe = async (userId: string, recipeId: string): Promise<Recipe | n
 };
 
 const fetchIngredients = async (userId: string, recipeId: string): Promise<RecipeIngredient[]> => {
-  const result = await dynamoDbClient.send(
-    new QueryCommand({
-      TableName: TABLE_NAMES.RECIPE_INGREDIENTS,
-      KeyConditionExpression: 'userId = :userId AND begins_with(SK, :recipeIdPrefix)',
-      ExpressionAttributeValues: {
-        ':userId': userId,
-        ':recipeIdPrefix': `${recipeId}#`,
-      },
-    })
-  );
+  const ingredients: RecipeIngredient[] = [];
+  let exclusiveStartKey: QueryCommandInput['ExclusiveStartKey'];
 
-  return (result.Items ?? []) as RecipeIngredient[];
+  do {
+    const result = await dynamoDbClient.send(
+      new QueryCommand({
+        TableName: TABLE_NAMES.RECIPE_INGREDIENTS,
+        KeyConditionExpression: 'userId = :userId AND begins_with(SK, :recipeIdPrefix)',
+        ExpressionAttributeValues: {
+          ':userId': userId,
+          ':recipeIdPrefix': `${recipeId}#`,
+        },
+        ExclusiveStartKey: exclusiveStartKey,
+      })
+    );
+
+    ingredients.push(...((result.Items ?? []) as RecipeIngredient[]));
+    exclusiveStartKey = result.LastEvaluatedKey;
+  } while (exclusiveStartKey);
+
+  return ingredients;
 };
 
 /**
@@ -192,7 +201,7 @@ export const getShoppingList = async (
 
       if (!recipe) {
         console.error('Recipe referenced by menu was not found', {
-          userId,
+          userId: `${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`,
           recipeId,
           menuId: menu.menuId,
         });
@@ -201,7 +210,7 @@ export const getShoppingList = async (
 
       if (typeof recipe.baseServings !== 'number' || recipe.baseServings <= 0) {
         console.error('Invalid baseServings on recipe', {
-          userId,
+          userId: `${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`,
           recipeId,
           baseServings: recipe.baseServings,
         });
