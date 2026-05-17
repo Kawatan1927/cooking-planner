@@ -163,5 +163,7 @@ curl -X DELETE \
 #### 必要な環境変数
 
 Lambda 関数には以下の環境変数が必要です（CDK 経由で設定）：
-- `MENUS_TABLE_NAME`: DynamoDB Menus テーブルの名前
-
+- Recipes API（GET /recipes）
+  - `RECIPES_TABLE_NAME`: DynamoDB Recipes テーブルの名前
+- Menus API（GET / POST / PUT / DELETE）
+  - `MENUS_TABLE_NAME`: DynamoDB Menus テーブルの名前
