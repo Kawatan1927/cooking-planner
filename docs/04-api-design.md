@@ -358,6 +358,7 @@ POST `/recipes` と同じ構造：
 ```
 
 > バリデーションエラーになるケース：
+>
 > - `from` / `to` が `YYYY-MM-DD` 形式でない
 > - `from` が `to` より後の日付
 
@@ -379,13 +380,13 @@ POST `/recipes` と同じ構造：
 
 フィールド：
 
-| フィールド | 型 | 必須 | 説明 |
-|---|---|---|---|
-| `date` | `string` (`YYYY-MM-DD`) | ✓ | 献立の日付 |
-| `mealType` | `string` | ✓ | 食事区分。`BREAKFAST` / `LUNCH` / `DINNER` / `OTHER` のいずれか |
-| `recipeId` | `string` | ✓ | 紐付けるレシピの ID |
-| `servings` | `number` | ✓ | 人数（正の数値） |
-| `memo` | `string` \| `null` | | メモ（任意） |
+| フィールド | 型                      | 必須 | 説明                                                            |
+| ---------- | ----------------------- | ---- | --------------------------------------------------------------- |
+| `date`     | `string` (`YYYY-MM-DD`) | ✓    | 献立の日付                                                      |
+| `mealType` | `string`                | ✓    | 食事区分。`BREAKFAST` / `LUNCH` / `DINNER` / `OTHER` のいずれか |
+| `recipeId` | `string`                | ✓    | 紐付けるレシピの ID                                             |
+| `servings` | `number`                | ✓    | 人数（正の数値）                                                |
+| `memo`     | `string` \| `null`      |      | メモ（任意）                                                    |
 
 ```json
 {
@@ -418,6 +419,7 @@ POST `/recipes` と同じ構造：
 ```
 
 > バリデーションエラーになる代表的なケース：
+>
 > - リクエストボディが存在しない
 > - リクエストボディが JSON として不正
 > - `date` が `YYYY-MM-DD` 形式でない
