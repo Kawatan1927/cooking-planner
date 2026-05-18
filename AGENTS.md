@@ -23,7 +23,7 @@
 
 | パス | 役割 | 編集主体 |
 |---|---|---|
-| `docs/01-vision-and-scope.md`<br>`docs/02-features-and-screens.md` | **仕様書（ソースオブトゥルース）** | 人間のみ。自動エージェントは変更しない |
+| `docs/01-vision-and-scope.md`<br>`docs/02-features-and-screens.md`<br>`docs/03-domain-and-data-model.md`<br>`docs/04-api-design.md`<br>`docs/05-architecture-notes.md` | **仕様書・設計書（ソースオブトゥルース）** | 人間のみ。自動エージェントは変更しない |
 | `docs/docs/` | **Docusaurus サイトのソース**（GitHub Pages にデプロイされる） | 自動エージェントが更新してよい |
 
 ## 出力ルール
@@ -86,22 +86,31 @@ gh issue develop <Issue番号> --name <type>/<Issue番号>-<kebab-case-説明> -
 
 PR を作成する前に、変更したディレクトリに応じて以下を実行し、CI と同じ内容をローカルで確認してください。
 
-**すべての変更共通（リポジトリルートから実行）:**
+**① 依存インストール（クリーン環境・初回時）:**
+
+```bash
+cd frontend && bun install --frozen-lockfile && cd ..
+cd infra/lambda && bun install --frozen-lockfile && cd ../..
+cd infra && bun install --frozen-lockfile && cd ..
+```
+
+**② すべての変更共通（リポジトリルートから実行）:**
 
 ```bash
 bun run lint && bun run format:check && bun run type-check && bun run build:all
 ```
 
-**`docs/` を変更した場合（追加で実行）:**
+**③ `docs/` を変更した場合（追加で実行）:**
 
 ```bash
 cd docs && bun install --frozen-lockfile && bun run format:check && bun run build
 ```
 
-**`infra/`（CDK）を変更した場合（追加で実行）:**
+**④ `infra/`（CDK）を変更した場合（追加で実行）:**
 
 ```bash
 cd infra && bunx cdk synth --context stage=dev --no-staging
+cd infra && bunx cdk synth --context stage=prod --context allowedOrigins=https://placeholder.example.com --context callbackUrls=https://placeholder.example.com/callback --context logoutUrls=https://placeholder.example.com --no-staging
 ```
 
 ## よく使うコマンド
