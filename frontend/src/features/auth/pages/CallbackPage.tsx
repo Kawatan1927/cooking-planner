@@ -9,11 +9,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import {
   exchangeCodeForTokens,
   getAndClearCodeVerifier,
   getCognitoConfig,
-  saveAuthToken,
   validateAndClearAuthState,
 } from '../utils/cognito';
 
@@ -42,6 +42,7 @@ function parseCallbackParams(): { code: string | null; errorMessage: string | nu
 
 export function CallbackPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // URL パラメータは初回レンダー時に一度だけ評価する（useState の lazy initializer）
   const [{ status: initialStatus, errorMessage: initialErrorMessage }] = useState(() => {
@@ -82,7 +83,7 @@ export function CallbackPage() {
         // PKCE code_verifier を取得してトークンと交換する
         const codeVerifier = getAndClearCodeVerifier() ?? undefined;
         const tokens = await exchangeCodeForTokens(config, code, codeVerifier);
-        saveAuthToken(tokens.id_token);
+        login(tokens.id_token);
         void navigate('/', { replace: true });
       } catch (err) {
         setErrorMessage(err instanceof Error ? err.message : 'ログインに失敗しました。');
@@ -91,7 +92,7 @@ export function CallbackPage() {
     };
 
     void processCallback();
-  }, [navigate, status]);
+  }, [navigate, status, login]);
 
   if (status === 'loading') {
     return (

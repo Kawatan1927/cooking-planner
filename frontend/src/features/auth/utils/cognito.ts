@@ -16,11 +16,33 @@ const AUTH_STATE_KEY = 'cooking_planner_auth_state';
 /** sessionStorage に保存する PKCE code_verifier のキー */
 const AUTH_CODE_VERIFIER_KEY = 'cooking_planner_code_verifier';
 
+/** ログアウト状態を表す localStorage のマーカー値 */
+const AUTH_LOGGED_OUT_MARKER = '__LOGGED_OUT__';
+
 /** Cognito 設定 */
 export interface CognitoConfig {
   domain: string;
   clientId: string;
   redirectUri: string;
+}
+
+/** 認証トークンを localStorage（未設定時は環境変数）から取得する */
+export function getAuthToken(): string | null {
+  const envToken = import.meta.env.VITE_AUTH_TOKEN ?? null;
+
+  if (typeof window === 'undefined') {
+    return envToken;
+  }
+
+  const storedTokenRaw = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  const storedToken =
+    storedTokenRaw === AUTH_LOGGED_OUT_MARKER || storedTokenRaw === '' ? null : storedTokenRaw;
+
+  if (storedToken !== null) {
+    return storedToken;
+  }
+
+  return envToken;
 }
 
 /**
@@ -218,5 +240,5 @@ export function saveAuthToken(token: string): void {
 
 /** 認証トークンを localStorage から削除する */
 export function clearAuthToken(): void {
-  localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, AUTH_LOGGED_OUT_MARKER);
 }

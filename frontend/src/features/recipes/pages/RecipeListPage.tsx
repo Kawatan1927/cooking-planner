@@ -3,7 +3,6 @@
  */
 
 import { useNavigate } from 'react-router-dom';
-import { useAuthToken } from '../../auth/hooks/useAuthToken';
 import { useRecipes } from '../hooks';
 import { RecipeList } from '../components/RecipeList';
 
@@ -14,11 +13,8 @@ import { RecipeList } from '../components/RecipeList';
  */
 export function RecipeListPage() {
   const navigate = useNavigate();
-  const token = useAuthToken();
 
-  const { data: recipes, isLoading, error } = useRecipes({ token });
-
-  const isUnauthenticated = !token;
+  const { data: recipes, isLoading, error } = useRecipes();
 
   const handleRecipeClick = (recipeId: string) => {
     navigate(`/recipes/${recipeId}`);
@@ -59,23 +55,6 @@ export function RecipeListPage() {
       {isLoading && (
         <div style={{ padding: '2rem', textAlign: 'center' }}>
           <p>読み込み中...</p>
-        </div>
-      )}
-
-      {isUnauthenticated && !isLoading && (
-        <div
-          style={{
-            padding: '2rem',
-            backgroundColor: '#fff3cd',
-            border: '1px solid #ffc107',
-            borderRadius: '4px',
-            color: '#856404',
-            textAlign: 'center',
-          }}
-        >
-          <p style={{ margin: 0 }}>
-            レシピ一覧の表示にはログインが必要です。認証トークンを設定して再読み込みしてください。
-          </p>
         </div>
       )}
 

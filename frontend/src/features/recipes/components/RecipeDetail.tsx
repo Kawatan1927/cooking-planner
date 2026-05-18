@@ -11,11 +11,6 @@ interface RecipeDetailProps {
    * レシピID
    */
   recipeId: string;
-
-  /**
-   * 認証トークン
-   */
-  token: string | null;
 }
 
 /**
@@ -24,13 +19,12 @@ interface RecipeDetailProps {
  * @example
  * ```tsx
  * function RecipePage({ recipeId }: { recipeId: string }) {
- *   const token = useAuthToken(); // 認証トークンを取得
- *   return <RecipeDetail recipeId={recipeId} token={token} />;
+ *   return <RecipeDetail recipeId={recipeId} />;
  * }
  * ```
  */
-export function RecipeDetail({ recipeId, token }: RecipeDetailProps) {
-  const { data: recipe, isLoading, error } = useRecipe({ recipeId, token });
+export function RecipeDetail({ recipeId }: RecipeDetailProps) {
+  const { data: recipe, isLoading, error } = useRecipe({ recipeId });
 
   if (isLoading) {
     return <div>読み込み中...</div>;

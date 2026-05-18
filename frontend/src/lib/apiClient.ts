@@ -15,6 +15,8 @@ export interface ApiErrorResponse {
   };
 }
 
+import { getAuthToken } from '@/features/auth/utils/cognito';
+
 /**
  * API エラークラス
  */
@@ -64,6 +66,7 @@ export async function apiFetch<T = unknown>(
   options: ApiFetchOptions = {}
 ): Promise<T> {
   const { body, token, headers = {}, ...restOptions } = options;
+  const resolvedToken = token ?? getAuthToken();
 
   // ベース URL を取得
   const baseUrl = getApiBaseUrl();
@@ -96,8 +99,8 @@ export async function apiFetch<T = unknown>(
   }
 
   // Authorization ヘッダを追加（token が提供されている場合）
-  if (token) {
-    requestHeaders['Authorization'] = `Bearer ${token}`;
+  if (resolvedToken) {
+    requestHeaders['Authorization'] = `Bearer ${resolvedToken}`;
   }
 
   // body がある場合は JSON.stringify して Content-Type を設定

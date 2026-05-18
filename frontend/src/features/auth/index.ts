@@ -6,10 +6,13 @@
 
 // Hooks
 export { useAuthToken } from './hooks/useAuthToken';
+export { useAuth } from './hooks/useAuth';
+export { AuthProvider } from './context/AuthContext';
 
 // Pages
 export { LoginPage } from './pages/LoginPage';
 export { CallbackPage } from './pages/CallbackPage';
+export { ProtectedRoute } from './components/ProtectedRoute';
 
 // Utils
 export {
@@ -19,6 +22,7 @@ export {
   exchangeCodeForTokens,
   validateAndClearAuthState,
   getAndClearCodeVerifier,
+  getAuthToken,
   saveAuthToken,
   clearAuthToken,
 } from './utils/cognito';
