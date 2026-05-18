@@ -9,6 +9,7 @@ infra/lambda/
 ├── src/
 │   ├── index.ts              # メインのハンドラー (エントリーポイント)
 │   ├── recipes/              # レシピ関連のロジック（実装済み）
+│   ├── shoppingList/         # 買い物リスト関連のロジック（実装済み）
 │   └── shared/               # 共通の型・ユーティリティ
 │       ├── types.ts          # 共通型定義
 │       └── dynamodb.ts       # DynamoDB クライアント設定
@@ -20,7 +21,6 @@ infra/lambda/
 > **未実装ディレクトリ（今後の Issue で追加予定）**
 >
 > - `menus/` — 献立関連のロジック（[#28](https://github.com/Kawatan1927/cooking-planner/issues/28)）
-> - `shoppingList/` — 買い物リスト関連のロジック（[#29](https://github.com/Kawatan1927/cooking-planner/issues/29)）
 
 ## セットアップ
 
@@ -87,9 +87,9 @@ Lambda 実行時に必要な環境変数 (CDK 側で設定):
 - PUT /menus/{menuId} - 献立更新
 - DELETE /menus/{menuId} - 献立削除
 
-### `shoppingList/`（未実装 — [#29](https://github.com/Kawatan1927/cooking-planner/issues/29)）
+### `shoppingList/`（実装済み）
 
-買い物リストの生成ロジック（実装予定）:
+買い物リストの生成ロジック（実装済み）:
 
 - GET /shopping-list - 指定期間の献立から材料を集計
 
