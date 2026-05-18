@@ -49,6 +49,27 @@ source: githubnext/agentics/workflows/update-docs.md@aae6af93b4035df74630817afa1
 
 ドキュメント・アズ・コード、透明性、唯一の信頼できる情報源、継続的改善、アクセシビリティ、国際化対応
 
+### プロジェクト固有の制約
+
+**docs の二層構造を必ず把握すること:**
+
+| パス | 役割 | このエージェントの扱い |
+|---|---|---|
+| `docs/01-vision-and-scope.md`<br>`docs/02-features-and-screens.md` | 人間が管理する仕様書（ソースオブトゥルース） | **変更禁止** |
+| `docs/docs/` | Docusaurus サイトのソース（GitHub Pages にデプロイ） | 更新対象 |
+
+**PR 作成前の必須確認:**
+
+ドキュメントを編集した後、PR を作成する前に必ず以下を実行し、全て成功することを確認すること。失敗した場合は PR を作成せず、原因を修正してから再度確認すること。
+
+```bash
+cd docs && bun install --frozen-lockfile && bun run format:check && bun run build
+```
+
+これは CI (`docs-ci.yml`) が PR に対して同じコマンドを実行するためです。事前確認なしで PR を作成すると CI が必ず失敗します。
+
+---
+
 ### ワークフロー
 
 1. **リポジトリの変更を分析**
