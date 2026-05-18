@@ -41,7 +41,7 @@ export function Header() {
         </nav>
 
         {/* 右：将来のユーザー/ログアウト表示枠（認証統合で実装） */}
-        <div style={styles.userArea} aria-label="ユーザーエリア" />
+        <div style={styles.userArea} aria-hidden="true" />
       </div>
     </header>
   );

@@ -40,6 +40,7 @@ const styles = {
     flexDirection: 'column' as const,
     minHeight: '100vh',
     backgroundColor: '#f5f5f5',
+    color: '#1a1a1a',
   },
   main: {
     flex: 1,
