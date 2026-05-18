@@ -17,6 +17,15 @@
 - `docs/` とコードが矛盾する場合は、原則として `docs/` を優先してください。
 - 仕様変更を伴う場合は、関連する `docs/*.md` の更新要否も確認してください。
 
+## ドキュメント構造
+
+`docs/` 配下には役割が異なる2つの層があります。混同しないでください。
+
+| パス | 役割 | 編集主体 |
+|---|---|---|
+| `docs/01-vision-and-scope.md`<br>`docs/02-features-and-screens.md`<br>`docs/03-domain-and-data-model.md`<br>`docs/04-api-design.md`<br>`docs/05-architecture-notes.md` | **仕様書・設計書（ソースオブトゥルース）** | 人間のみ。自動エージェントは変更しない |
+| `docs/docs/` | **Docusaurus サイトのソース**（GitHub Pages にデプロイされる） | 自動エージェントが更新してよい |
+
 ## 出力ルール
 
 - Issue、PR、レビューコメント、コミットメッセージ、要約は日本語で書いてください。
@@ -26,20 +35,91 @@
 - ユーザーからの指示に対応する Issue がまだなければ、作業前に Issue を作成してください。
 - Issue タイトルは日本語で簡潔に書き、Conventional Commits の prefix は付けません。
 - `enhancement`、`bug`、`documentation` など適切なラベルを付けてください。
-- ブランチは `gh issue develop <Issue番号> --name <Issue番号>-<説明> --base <ベースブランチ> --checkout` で作成してください。
-- ベースブランチは通常 `main` を使います。
 - 実装後に PR を作成してください。
 - PR タイトルは対応する Issue と同じにしてください。
-- PR 作成時は `--label` で適切なラベルを付け、本文に `closes #N` を含めてください。
-- PR 本文は `.github/PULL_REQUEST_TEMPLATE.md` に従って記載してください。
+- PR 作成時は `--label` で適切なラベルを付けてください。
+- PR 本文は `.github/PULL_REQUEST_TEMPLATE.md` に従って記載し、「背景 / 関連」セクションの `関連Issue/タスク` 欄を `closes #N` の形式で記載してください。
+
+## コミットメッセージ規則
+
+形式: `<type>: <日本語で変更内容を1行に>`
+
+| type | 用途 |
+|---|---|
+| `feat` | 新機能の追加 |
+| `fix` | バグ修正 |
+| `docs` | ドキュメントのみの変更 |
+| `chore` | 設定・依存・CI など雑務 |
+| `refactor` | 動作を変えないリファクタリング |
+| `test` | テストの追加・修正 |
+| `style` | フォーマットのみの変更 |
+
+- 1行目は50文字以内を目安にしてください。
+- 例: `feat: ショッピングリストにフィルター機能を追加`
+
+## ブランチ命名規則
+
+ブランチ名は必ず **`<type>/<Issue番号>-<kebab-case-説明>`** 形式に統一します。
+
+| type | 用途 |
+|---|---|
+| `feature` | 新機能の実装 |
+| `fix` | バグ修正 |
+| `docs` | ドキュメントのみの変更 |
+| `chore` | 設定・依存・CI など雑務 |
+| `refactor` | 動作を変えないリファクタリング |
+
+**作成コマンド:**
+
+```bash
+gh issue develop <Issue番号> --name <type>/<Issue番号>-<kebab-case-説明> --base main --checkout
+```
+
+例: `gh issue develop 42 --name feature/42-add-shopping-list-filter --base main --checkout`
+
+**禁止事項:**
+- `#` 記号をブランチ名に含めない（`feature/#1` は不可）
+- Issue番号を末尾に置かない（`add-foo-7915` は不可）
+- SHA やタイムスタンプをサフィックスに付けない
+
+## PR 作成前チェック
+
+PR を作成する前に、変更したディレクトリに応じて以下を実行し、CI と同じ内容をローカルで確認してください。
+
+**① 依存インストール（クリーン環境・初回時）:**
+
+```bash
+cd frontend && bun install --frozen-lockfile && cd ..
+cd infra/lambda && bun install --frozen-lockfile && cd ../..
+cd infra && bun install --frozen-lockfile && cd ..
+```
+
+**② すべての変更共通（リポジトリルートから実行）:**
+
+```bash
+bun run lint && bun run format:check && bun run type-check && bun run build:all
+```
+
+**③ `docs/` を変更した場合（追加で実行）:**
+
+```bash
+cd docs && bun install --frozen-lockfile && bun run format:check && bun run build
+```
+
+**④ `infra/`（CDK）を変更した場合（追加で実行）:**
+
+```bash
+cd infra && bunx cdk synth --context stage=dev --no-staging
+cd infra && bunx cdk synth --context stage=prod --context allowedOrigins=https://placeholder.example.com --context callbackUrls=https://placeholder.example.com/callback --context logoutUrls=https://placeholder.example.com --no-staging
+```
 
 ## よく使うコマンド
 
-- `npm run lint`
-- `npm run format:check`
-- `npm run type-check`
-- `npm run build:all`
-- `npm run test`
+- `bun run lint`
+- `bun run format:check`
+- `bun run type-check`
+- `bun run build:all`
+- `bun run test`
 
 ## 領域別ルール
 
