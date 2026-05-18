@@ -19,11 +19,13 @@ import type {
  * レシピ一覧を取得する
  * GET /recipes
  *
+ * @param token - Authorization ヘッダに使用するトークン
  * @returns Promise<Recipe[]> - レシピの配列
  */
-export async function getRecipes(): Promise<Recipe[]> {
+export async function getRecipes(token: string): Promise<Recipe[]> {
   return apiFetch<Recipe[]>('/recipes', {
     method: 'GET',
+    token,
   });
 }
 
@@ -32,11 +34,13 @@ export async function getRecipes(): Promise<Recipe[]> {
  * GET /recipes/{recipeId}
  *
  * @param recipeId - レシピID
+ * @param token - Authorization ヘッダに使用するトークン
  * @returns Promise<RecipeDetail> - レシピ詳細（材料を含む）
  */
-export async function getRecipe(recipeId: string): Promise<RecipeDetail> {
+export async function getRecipe(recipeId: string, token: string): Promise<RecipeDetail> {
   return apiFetch<RecipeDetail>(`/recipes/${recipeId}`, {
     method: 'GET',
+    token,
   });
 }
 

@@ -15,6 +15,7 @@ import {
   getAndClearCodeVerifier,
   getCognitoConfig,
   validateAndClearAuthState,
+  AUTH_REDIRECT_AFTER_LOGIN_KEY,
 } from '../utils/cognito';
 
 type CallbackStatus = 'loading' | 'error';
@@ -84,7 +85,10 @@ export function CallbackPage() {
         const codeVerifier = getAndClearCodeVerifier() ?? undefined;
         const tokens = await exchangeCodeForTokens(config, code, codeVerifier);
         login(tokens.id_token);
-        void navigate('/', { replace: true });
+        // ログイン前に保護ルートへアクセスしていた場合は元のパスへ戻る
+        const redirectTo = sessionStorage.getItem(AUTH_REDIRECT_AFTER_LOGIN_KEY) ?? '/';
+        sessionStorage.removeItem(AUTH_REDIRECT_AFTER_LOGIN_KEY);
+        void navigate(redirectTo, { replace: true });
       } catch (err) {
         setErrorMessage(err instanceof Error ? err.message : 'ログインに失敗しました。');
         setStatus('error');

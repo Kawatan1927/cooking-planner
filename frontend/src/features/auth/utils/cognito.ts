@@ -137,6 +137,31 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
+// Logout URL 生成
+// ---------------------------------------------------------------------------
+
+/** sessionStorage に保存するリダイレクト先のキー */
+export const AUTH_REDIRECT_AFTER_LOGIN_KEY = 'cooking_planner_redirect_after_login';
+
+/**
+ * Cognito Hosted UI のログアウト URL を生成する
+ *
+ * Cognito のブラウザセッション Cookie を破棄し、`logoutUri` へリダイレクトします。
+ * `logoutUri` は Cognito User Pool の許可済みサインアウト URL に登録されている必要があります。
+ *
+ * @param config - Cognito 設定（domain, clientId）
+ * @param logoutUri - ログアウト後のリダイレクト先（デフォルト: アプリのオリジン）
+ */
+export function buildLogoutUrl(config: CognitoConfig, logoutUri?: string): string {
+  const uri = logoutUri ?? window.location.origin;
+  const params = new URLSearchParams({
+    client_id: config.clientId,
+    logout_uri: uri,
+  });
+  return `https://${config.domain}/logout?${params.toString()}`;
+}
+
+// ---------------------------------------------------------------------------
 // Login URL 生成
 // ---------------------------------------------------------------------------
 
@@ -238,7 +263,13 @@ export function saveAuthToken(token: string): void {
   localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
 }
 
-/** 認証トークンを localStorage から削除する */
+/**
+ * 認証トークンをログアウト済みマーカーで上書きする
+ *
+ * localStorage のキーを削除するのではなく、ログアウト状態を示す固定値
+ * (`AUTH_LOGGED_OUT_MARKER`) で上書きします。これにより `getAuthToken()` が
+ * 環境変数トークンへフォールバックするのを防ぎます。
+ */
 export function clearAuthToken(): void {
   localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, AUTH_LOGGED_OUT_MARKER);
 }

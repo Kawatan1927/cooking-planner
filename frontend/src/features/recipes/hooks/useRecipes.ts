@@ -61,7 +61,7 @@ export function useRecipes({ userCacheKey, enabled = true }: UseRecipesOptions =
       if (!token) {
         throw new Error('認証トークンが必要です');
       }
-      return getRecipes();
+      return getRecipes(token);
     },
     enabled: enabled && !!token,
   });

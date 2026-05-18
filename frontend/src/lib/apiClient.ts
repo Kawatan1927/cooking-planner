@@ -66,7 +66,9 @@ export async function apiFetch<T = unknown>(
   options: ApiFetchOptions = {}
 ): Promise<T> {
   const { body, token, headers = {}, ...restOptions } = options;
-  const resolvedToken = token ?? getAuthToken();
+  // token が明示的に null の場合はトークンを付与しない（パブリックエンドポイント向け）。
+  // undefined の場合のみ localStorage のトークンへフォールバックする。
+  const resolvedToken = token !== undefined ? token : getAuthToken();
 
   // ベース URL を取得
   const baseUrl = getApiBaseUrl();
