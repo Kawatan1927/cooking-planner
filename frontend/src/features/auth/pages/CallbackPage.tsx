@@ -9,12 +9,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import {
   exchangeCodeForTokens,
   getAndClearCodeVerifier,
   getCognitoConfig,
-  saveAuthToken,
   validateAndClearAuthState,
+  AUTH_REDIRECT_AFTER_LOGIN_KEY,
 } from '../utils/cognito';
 
 type CallbackStatus = 'loading' | 'error';
@@ -42,6 +43,7 @@ function parseCallbackParams(): { code: string | null; errorMessage: string | nu
 
 export function CallbackPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // URL パラメータは初回レンダー時に一度だけ評価する（useState の lazy initializer）
   const [{ status: initialStatus, errorMessage: initialErrorMessage }] = useState(() => {
@@ -82,8 +84,11 @@ export function CallbackPage() {
         // PKCE code_verifier を取得してトークンと交換する
         const codeVerifier = getAndClearCodeVerifier() ?? undefined;
         const tokens = await exchangeCodeForTokens(config, code, codeVerifier);
-        saveAuthToken(tokens.id_token);
-        void navigate('/', { replace: true });
+        login(tokens.id_token);
+        // ログイン前に保護ルートへアクセスしていた場合は元のパスへ戻る
+        const redirectTo = sessionStorage.getItem(AUTH_REDIRECT_AFTER_LOGIN_KEY) ?? '/';
+        sessionStorage.removeItem(AUTH_REDIRECT_AFTER_LOGIN_KEY);
+        void navigate(redirectTo, { replace: true });
       } catch (err) {
         setErrorMessage(err instanceof Error ? err.message : 'ログインに失敗しました。');
         setStatus('error');
@@ -91,7 +96,7 @@ export function CallbackPage() {
     };
 
     void processCallback();
-  }, [navigate, status]);
+  }, [navigate, status, login]);
 
   if (status === 'loading') {
     return (

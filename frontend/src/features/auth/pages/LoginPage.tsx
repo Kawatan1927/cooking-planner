@@ -8,13 +8,14 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuthToken } from '../hooks/useAuthToken';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { buildLoginUrl, getCognitoConfig } from '../utils/cognito';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const token = useAuthToken();
+  const location = useLocation();
+  const { token, isLoading } = useAuth();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Cognito 設定を検証（レンダー時に一度だけ計算）
@@ -32,9 +33,16 @@ export function LoginPage() {
   // トークンが既にある場合はダッシュボードへリダイレクト
   useEffect(() => {
     if (token) {
-      void navigate('/', { replace: true });
+      const from =
+        typeof location.state === 'object' &&
+        location.state !== null &&
+        'from' in location.state &&
+        typeof location.state.from === 'string'
+          ? location.state.from
+          : '/';
+      void navigate(from, { replace: true });
     }
-  }, [token, navigate]);
+  }, [token, navigate, location.state]);
 
   const handleLogin = async () => {
     if (!config) return;
@@ -48,10 +56,10 @@ export function LoginPage() {
   };
 
   // ログイン済みの場合はリダイレクト中の表示
-  if (token) {
+  if (isLoading || token) {
     return (
       <div style={styles.container}>
-        <p>リダイレクト中...</p>
+        <p>{isLoading ? '認証状態を確認中...' : 'リダイレクト中...'}</p>
       </div>
     );
   }

@@ -16,11 +16,33 @@ const AUTH_STATE_KEY = 'cooking_planner_auth_state';
 /** sessionStorage に保存する PKCE code_verifier のキー */
 const AUTH_CODE_VERIFIER_KEY = 'cooking_planner_code_verifier';
 
+/** ログアウト状態を表す localStorage のマーカー値 */
+const AUTH_LOGGED_OUT_MARKER = '__LOGGED_OUT__';
+
 /** Cognito 設定 */
 export interface CognitoConfig {
   domain: string;
   clientId: string;
   redirectUri: string;
+}
+
+/** 認証トークンを localStorage（未設定時は環境変数）から取得する */
+export function getAuthToken(): string | null {
+  const envToken = import.meta.env.VITE_AUTH_TOKEN ?? null;
+
+  if (typeof window === 'undefined') {
+    return envToken;
+  }
+
+  const storedTokenRaw = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  const storedToken =
+    storedTokenRaw === AUTH_LOGGED_OUT_MARKER || storedTokenRaw === '' ? null : storedTokenRaw;
+
+  if (storedToken !== null) {
+    return storedToken;
+  }
+
+  return envToken;
 }
 
 /**
@@ -112,6 +134,31 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
     binary += String.fromCharCode(byte);
   }
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+// ---------------------------------------------------------------------------
+// Logout URL 生成
+// ---------------------------------------------------------------------------
+
+/** sessionStorage に保存するリダイレクト先のキー */
+export const AUTH_REDIRECT_AFTER_LOGIN_KEY = 'cooking_planner_redirect_after_login';
+
+/**
+ * Cognito Hosted UI のログアウト URL を生成する
+ *
+ * Cognito のブラウザセッション Cookie を破棄し、`logoutUri` へリダイレクトします。
+ * `logoutUri` は Cognito User Pool の許可済みサインアウト URL に登録されている必要があります。
+ *
+ * @param config - Cognito 設定（domain, clientId）
+ * @param logoutUri - ログアウト後のリダイレクト先（デフォルト: アプリのオリジン）
+ */
+export function buildLogoutUrl(config: CognitoConfig, logoutUri?: string): string {
+  const uri = logoutUri ?? window.location.origin;
+  const params = new URLSearchParams({
+    client_id: config.clientId,
+    logout_uri: uri,
+  });
+  return `https://${config.domain}/logout?${params.toString()}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -216,7 +263,13 @@ export function saveAuthToken(token: string): void {
   localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
 }
 
-/** 認証トークンを localStorage から削除する */
+/**
+ * 認証トークンをログアウト済みマーカーで上書きする
+ *
+ * localStorage のキーを削除するのではなく、ログアウト状態を示す固定値
+ * (`AUTH_LOGGED_OUT_MARKER`) で上書きします。これにより `getAuthToken()` が
+ * 環境変数トークンへフォールバックするのを防ぎます。
+ */
 export function clearAuthToken(): void {
-  localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, AUTH_LOGGED_OUT_MARKER);
 }

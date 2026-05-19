@@ -19,7 +19,7 @@ import type {
  * レシピ一覧を取得する
  * GET /recipes
  *
- * @param token - 認証トークン
+ * @param token - Authorization ヘッダに使用するトークン
  * @returns Promise<Recipe[]> - レシピの配列
  */
 export async function getRecipes(token: string): Promise<Recipe[]> {
@@ -34,7 +34,7 @@ export async function getRecipes(token: string): Promise<Recipe[]> {
  * GET /recipes/{recipeId}
  *
  * @param recipeId - レシピID
- * @param token - 認証トークン
+ * @param token - Authorization ヘッダに使用するトークン
  * @returns Promise<RecipeDetail> - レシピ詳細（材料を含む）
  */
 export async function getRecipe(recipeId: string, token: string): Promise<RecipeDetail> {
@@ -49,17 +49,12 @@ export async function getRecipe(recipeId: string, token: string): Promise<Recipe
  * POST /recipes
  *
  * @param data - レシピ作成リクエストデータ
- * @param token - 認証トークン
  * @returns Promise<CreateRecipeResponse> - 作成されたレシピのID
  */
-export async function createRecipe(
-  data: CreateRecipeRequest,
-  token: string
-): Promise<CreateRecipeResponse> {
+export async function createRecipe(data: CreateRecipeRequest): Promise<CreateRecipeResponse> {
   return apiFetch<CreateRecipeResponse>('/recipes', {
     method: 'POST',
     body: data,
-    token,
   });
 }
 
@@ -69,17 +64,14 @@ export async function createRecipe(
  *
  * @param recipeId - レシピID
  * @param data - レシピ更新リクエストデータ
- * @param token - 認証トークン
  * @returns Promise<UpdateRecipeResponse> - 更新されたレシピのID
  */
 export async function updateRecipe(
   recipeId: string,
-  data: UpdateRecipeRequest,
-  token: string
+  data: UpdateRecipeRequest
 ): Promise<UpdateRecipeResponse> {
   return apiFetch<UpdateRecipeResponse>(`/recipes/${recipeId}`, {
     method: 'PUT',
     body: data,
-    token,
   });
 }

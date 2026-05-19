@@ -5,6 +5,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { useAuthToken } from '@/features/auth';
 import { getRecipe } from '../api/recipes';
 import type { RecipeDetail } from '../types';
 import { getUserCacheKey, recipesQueryKeys } from './queryKeys';
@@ -19,13 +20,8 @@ export interface UseRecipeOptions {
   recipeId: string;
 
   /**
-   * 認証トークン
-   * 認証が必要なため、必須パラメータです
-   */
-  token: string | null;
-  /**
    * クエリキー分離用のユーザー識別子
-   * 未指定時は token から自動導出します
+   * 未指定時は認証トークンから自動導出します
    */
   userCacheKey?: string | null;
 
@@ -45,8 +41,7 @@ export interface UseRecipeOptions {
  * @example
  * ```tsx
  * function RecipeDetailPage({ recipeId }: { recipeId: string }) {
- *   const token = useAuthToken(); // 認証トークンを取得する仮のフック
- *   const { data: recipe, isLoading, error } = useRecipe({ recipeId, token });
+ *   const { data: recipe, isLoading, error } = useRecipe({ recipeId });
  *
  *   if (isLoading) return <div>読み込み中...</div>;
  *   if (error) return <div>エラーが発生しました</div>;
@@ -69,7 +64,8 @@ export interface UseRecipeOptions {
  * }
  * ```
  */
-export function useRecipe({ recipeId, token, userCacheKey, enabled = true }: UseRecipeOptions) {
+export function useRecipe({ recipeId, userCacheKey, enabled = true }: UseRecipeOptions) {
+  const token = useAuthToken();
   const cacheUserKey = getUserCacheKey(token, userCacheKey);
 
   return useQuery<RecipeDetail, Error>({
