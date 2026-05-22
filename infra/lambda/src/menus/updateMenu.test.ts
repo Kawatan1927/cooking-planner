@@ -102,6 +102,50 @@ describe('updateMenu', () => {
     });
   });
 
+  it('日付と mealType が変わらない場合は PutCommand で更新する', async () => {
+    findMenuByMenuIdMock.mockResolvedValue({
+      userId: 'user-123',
+      SK: '2026-05-20#DINNER#menu-123',
+      date: '2026-05-20',
+      mealType: 'DINNER',
+      menuId: 'menu-123',
+      recipeId: 'recipe-old',
+      servings: 2,
+      createdAt: '2026-05-01T00:00:00.000Z',
+      updatedAt: '2026-05-01T00:00:00.000Z',
+    });
+    sendMock.mockResolvedValueOnce({});
+
+    const response = await updateMenu(
+      createEvent({
+        date: '2026-05-20',
+        mealType: 'DINNER',
+        recipeId: 'recipe-new',
+        servings: 4,
+        memo: null,
+      })
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(parseBody(response.body)).toEqual({ menuId: 'menu-123' });
+    expect(sendMock).toHaveBeenCalledTimes(1);
+    const input = sendMock.mock.calls[0]?.[0].input;
+    expect(input).toMatchObject({
+      TableName: 'Menus',
+      Item: expect.objectContaining({
+        userId: 'user-123',
+        SK: '2026-05-20#DINNER#menu-123',
+        date: '2026-05-20',
+        mealType: 'DINNER',
+        recipeId: 'recipe-new',
+        servings: 4,
+        createdAt: '2026-05-01T00:00:00.000Z',
+      }),
+      ConditionExpression: 'attribute_exists(userId) AND attribute_exists(SK)',
+    });
+    expect(input).not.toHaveProperty('TransactItems');
+  });
+
   it('別 userId の献立は見つからず 404 を返す', async () => {
     findMenuByMenuIdMock.mockResolvedValue(null);
 

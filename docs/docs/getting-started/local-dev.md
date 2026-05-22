@@ -8,6 +8,7 @@ sidebar_position: 1
 
 - Node.js 20.x 以上
 - npm
+- [Bun](https://bun.sh/) 1.x 以上（Lambda 単体テストの実行に必要）
 
 ## 初回セットアップ
 
@@ -99,7 +100,7 @@ npm run type-check
 # フロントエンドと Lambda のビルド
 npm run build:all
 
-# Lambda の単体テスト実行
+# Lambda の単体テスト実行（内部で bun を使用するため Bun のインストールが必要）
 npm run test
 ```
 
