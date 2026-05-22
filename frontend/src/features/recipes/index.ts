@@ -16,8 +16,13 @@ export type {
 } from './types';
 
 // Hooks
-export { useRecipes, useRecipe } from './hooks';
-export type { UseRecipesOptions, UseRecipeOptions } from './hooks';
+export { useRecipes, useRecipe, useCreateRecipe, useUpdateRecipe } from './hooks';
+export type {
+  UseRecipesOptions,
+  UseRecipeOptions,
+  UseCreateRecipeOptions,
+  UseUpdateRecipeOptions,
+} from './hooks';
 
 // API (必要に応じて)
 export { getRecipes, getRecipe, createRecipe, updateRecipe } from './api';
@@ -29,3 +34,4 @@ export { RecipeDetail as RecipeDetailComponent } from './components';
 // Pages
 export { RecipeListPage } from './pages/RecipeListPage';
 export { RecipeNewPage } from './pages/RecipeNewPage';
+export { RecipeDetailPage } from './pages/RecipeDetailPage';

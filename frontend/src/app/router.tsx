@@ -2,7 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 import { Placeholder } from '../components/Placeholder';
 import { CallbackPage, LoginPage, ProtectedRoute } from '../features/auth';
-import { RecipeListPage, RecipeNewPage } from '../features/recipes';
+import { RecipeDetailPage, RecipeListPage, RecipeNewPage } from '../features/recipes';
 
 export const router = createBrowserRouter([
   // 認証系：AppLayout の外（ヘッダー無し）
@@ -35,7 +35,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/recipes/:id',
-            element: <Placeholder title="レシピ詳細" />,
+            element: <RecipeDetailPage />,
           },
           {
             path: '/menus',

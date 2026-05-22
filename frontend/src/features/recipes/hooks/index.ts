@@ -12,3 +12,6 @@ export type { UseRecipeOptions } from './useRecipe';
 
 export { useCreateRecipe } from './useCreateRecipe';
 export type { UseCreateRecipeOptions } from './useCreateRecipe';
+
+export { useUpdateRecipe } from './useUpdateRecipe';
+export type { UseUpdateRecipeOptions } from './useUpdateRecipe';
