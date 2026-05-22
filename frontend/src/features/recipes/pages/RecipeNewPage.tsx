@@ -322,7 +322,7 @@ export function RecipeNewPage() {
                     />
                     {validationErrors.ingredients?.[index]?.ingredientName && (
                       <p style={errorTextStyle}>
-                        {validationErrors.ingredients[index].ingredientName}
+                        {validationErrors.ingredients?.[index]?.ingredientName}
                       </p>
                     )}
                   </label>
@@ -337,7 +337,9 @@ export function RecipeNewPage() {
                       style={inputStyle}
                     />
                     {validationErrors.ingredients?.[index]?.quantity && (
-                      <p style={errorTextStyle}>{validationErrors.ingredients[index].quantity}</p>
+                      <p style={errorTextStyle}>
+                        {validationErrors.ingredients?.[index]?.quantity}
+                      </p>
                     )}
                   </label>
 
@@ -349,7 +351,7 @@ export function RecipeNewPage() {
                       style={inputStyle}
                     />
                     {validationErrors.ingredients?.[index]?.unit && (
-                      <p style={errorTextStyle}>{validationErrors.ingredients[index].unit}</p>
+                      <p style={errorTextStyle}>{validationErrors.ingredients?.[index]?.unit}</p>
                     )}
                   </label>
 
