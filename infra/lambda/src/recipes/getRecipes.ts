@@ -2,24 +2,9 @@ import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeResponse } from '../shared/types';
+import { internalServerError, jsonResponse, unauthorized } from '../shared/http';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
-
-const createErrorResponse = (
-  statusCode: number,
-  code: string,
-  message: string
-): APIGatewayProxyResultV2 => ({
-  statusCode,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    error: {
-      code,
-      message,
-      details: null,
-    },
-  }),
-});
 
 /**
  * GET /recipes
@@ -33,7 +18,7 @@ export const getRecipes = async (
     const subClaim = event.requestContext.authorizer.jwt.claims.sub;
 
     if (typeof subClaim !== 'string' || !subClaim) {
-      return createErrorResponse(401, 'UNAUTHORIZED', 'User ID not found in token');
+      return unauthorized('User ID not found in token');
     }
 
     const userId = subClaim;
@@ -66,11 +51,7 @@ export const getRecipes = async (
       updatedAt: recipe.updatedAt,
     }));
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(response),
-    };
+    return jsonResponse(200, response);
   } catch (error) {
     const errorName =
       typeof error === 'object' && error !== null && 'name' in error
@@ -83,13 +64,13 @@ export const getRecipes = async (
     });
 
     if (errorName === 'ResourceNotFoundException') {
-      return createErrorResponse(500, 'RESOURCE_NOT_FOUND', 'Recipes table not found');
+      return internalServerError('Recipes table not found', 'RESOURCE_NOT_FOUND');
     }
 
     if (errorName === 'AccessDeniedException') {
-      return createErrorResponse(500, 'ACCESS_DENIED', 'Access denied while fetching recipes');
+      return internalServerError('Access denied while fetching recipes', 'ACCESS_DENIED');
     }
 
-    return createErrorResponse(500, 'INTERNAL_SERVER_ERROR', 'Failed to fetch recipes');
+    return internalServerError('Failed to fetch recipes');
   }
 };

@@ -2,6 +2,8 @@ import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from
 import { GetCommand, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Menu, Recipe, RecipeIngredient } from '../shared/types';
+import { badRequest, internalServerError, jsonResponse, unauthorized } from '../shared/http';
+import { isNonEmptyString, isValidDate } from '../shared/validation';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
@@ -9,39 +11,6 @@ type ShoppingListItem = {
   ingredientName: string;
   totalQuantity: number | string;
   unit: string;
-};
-
-const createErrorResponse = (
-  statusCode: number,
-  code: string,
-  message: string
-): APIGatewayProxyResultV2 => ({
-  statusCode,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    error: {
-      code,
-      message,
-      details: null,
-    },
-  }),
-});
-
-const isValidDateString = (value: string): boolean => {
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return false;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-
-  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
-  if (month < 1 || month > 12) return false;
-
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  );
 };
 
 const roundQuantity = (value: number): number => Math.round(value * 1_000_000) / 1_000_000;
@@ -152,7 +121,7 @@ export const getShoppingList = async (
     const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
 
     if (typeof subClaim !== 'string' || !subClaim) {
-      return createErrorResponse(401, 'UNAUTHORIZED', 'User ID not found in token');
+      return unauthorized('User ID not found in token');
     }
 
     const userId = subClaim;
@@ -161,23 +130,23 @@ export const getShoppingList = async (
     const from = queryParams.from;
     const to = queryParams.to;
 
-    if (typeof from !== 'string' || from.length === 0) {
-      return createErrorResponse(400, 'BAD_REQUEST', '"from" query parameter is required');
+    if (!isNonEmptyString(from)) {
+      return badRequest('"from" query parameter is required');
     }
-    if (typeof to !== 'string' || to.length === 0) {
-      return createErrorResponse(400, 'BAD_REQUEST', '"to" query parameter is required');
-    }
-
-    if (!isValidDateString(from)) {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Invalid "from" date format. Use YYYY-MM-DD');
+    if (!isNonEmptyString(to)) {
+      return badRequest('"to" query parameter is required');
     }
 
-    if (!isValidDateString(to)) {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Invalid "to" date format. Use YYYY-MM-DD');
+    if (!isValidDate(from)) {
+      return badRequest('Invalid "from" date format. Use YYYY-MM-DD');
+    }
+
+    if (!isValidDate(to)) {
+      return badRequest('Invalid "to" date format. Use YYYY-MM-DD');
     }
 
     if (from > to) {
-      return createErrorResponse(400, 'BAD_REQUEST', '"from" date must not be after "to" date');
+      return badRequest('"from" date must not be after "to" date');
     }
 
     console.log(
@@ -205,7 +174,7 @@ export const getShoppingList = async (
           recipeId,
           menuId: menu.menuId,
         });
-        return createErrorResponse(500, 'INTERNAL_SERVER_ERROR', 'Failed to compute shopping list');
+        return internalServerError('Failed to compute shopping list');
       }
 
       if (typeof recipe.baseServings !== 'number' || recipe.baseServings <= 0) {
@@ -214,7 +183,7 @@ export const getShoppingList = async (
           recipeId,
           baseServings: recipe.baseServings,
         });
-        return createErrorResponse(500, 'INTERNAL_SERVER_ERROR', 'Failed to compute shopping list');
+        return internalServerError('Failed to compute shopping list');
       }
 
       const scale = menu.servings / recipe.baseServings;
@@ -265,11 +234,7 @@ export const getShoppingList = async (
           : a.ingredientName.localeCompare(b.ingredientName)
       );
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to, items }),
-    };
+    return jsonResponse(200, { from, to, items });
   } catch (error) {
     const errorName =
       typeof error === 'object' && error !== null && 'name' in error
@@ -279,17 +244,13 @@ export const getShoppingList = async (
     console.error('Error computing shopping list:', { errorName, error });
 
     if (errorName === 'ResourceNotFoundException') {
-      return createErrorResponse(500, 'RESOURCE_NOT_FOUND', 'Required table not found');
+      return internalServerError('Required table not found', 'RESOURCE_NOT_FOUND');
     }
 
     if (errorName === 'AccessDeniedException') {
-      return createErrorResponse(
-        500,
-        'ACCESS_DENIED',
-        'Access denied while computing shopping list'
-      );
+      return internalServerError('Access denied while computing shopping list', 'ACCESS_DENIED');
     }
 
-    return createErrorResponse(500, 'INTERNAL_SERVER_ERROR', 'Failed to compute shopping list');
+    return internalServerError('Failed to compute shopping list');
   }
 };

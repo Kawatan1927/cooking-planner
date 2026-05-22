@@ -2,24 +2,9 @@ import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from
 import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { findMenuByMenuId } from './utils';
+import { badRequest, internalServerError, notFound, unauthorized } from '../shared/http';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
-
-const createErrorResponse = (
-  statusCode: number,
-  code: string,
-  message: string
-): APIGatewayProxyResultV2 => ({
-  statusCode,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    error: {
-      code,
-      message,
-      details: null,
-    },
-  }),
-});
 
 /**
  * DELETE /menus/{menuId}
@@ -32,14 +17,14 @@ export const deleteMenu = async (
     const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
 
     if (typeof subClaim !== 'string' || !subClaim) {
-      return createErrorResponse(401, 'UNAUTHORIZED', 'User ID not found in token');
+      return unauthorized('User ID not found in token');
     }
 
     const userId = subClaim;
     const menuId = event.pathParameters?.menuId;
 
     if (!menuId) {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Menu ID is required');
+      return badRequest('Menu ID is required');
     }
 
     console.log(
@@ -49,7 +34,7 @@ export const deleteMenu = async (
     const existingMenu = await findMenuByMenuId(userId, menuId);
 
     if (!existingMenu) {
-      return createErrorResponse(404, 'MENU_NOT_FOUND', 'Menu not found');
+      return notFound('Menu not found', 'MENU_NOT_FOUND');
     }
 
     await dynamoDbClient.send(
@@ -75,13 +60,13 @@ export const deleteMenu = async (
     console.error('Error deleting menu:', { errorName, error });
 
     if (errorName === 'ResourceNotFoundException') {
-      return createErrorResponse(500, 'RESOURCE_NOT_FOUND', 'Menus table not found');
+      return internalServerError('Menus table not found', 'RESOURCE_NOT_FOUND');
     }
 
     if (errorName === 'AccessDeniedException') {
-      return createErrorResponse(500, 'ACCESS_DENIED', 'Access denied while deleting menu');
+      return internalServerError('Access denied while deleting menu', 'ACCESS_DENIED');
     }
 
-    return createErrorResponse(500, 'INTERNAL_SERVER_ERROR', 'Failed to delete menu');
+    return internalServerError('Failed to delete menu');
   }
 };

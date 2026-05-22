@@ -10,6 +10,14 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeIngredient } from '../shared/types';
+import {
+  badRequest,
+  internalServerError,
+  jsonResponse,
+  notFound,
+  unauthorized,
+} from '../shared/http';
+import { isNonEmptyString, isPositiveNumber } from '../shared/validation';
 
 const BATCH_SIZE = 25;
 const MAX_RETRIES = 3;
@@ -35,22 +43,6 @@ interface RecipeIngredientItem extends RecipeIngredient {
 const sanitizeIngredientNameForSK = (ingredientName: string): string => {
   return ingredientName.replace(/#/g, '_');
 };
-
-const createErrorResponse = (
-  statusCode: number,
-  code: string,
-  message: string
-): APIGatewayProxyResultV2 => ({
-  statusCode,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    error: {
-      code,
-      message,
-      details: null,
-    },
-  }),
-});
 
 const getErrorName = (error: unknown): string =>
   typeof error === 'object' && error !== null && 'name' in error
@@ -160,16 +152,16 @@ const fetchAllRecipeIngredients = async (
 const validateRequestBody = (
   requestBody: UpdateRecipeRequestBody
 ): APIGatewayProxyResultV2 | null => {
-  if (!requestBody.name || typeof requestBody.name !== 'string') {
-    return createErrorResponse(400, 'BAD_REQUEST', 'Recipe name is required');
+  if (!isNonEmptyString(requestBody.name)) {
+    return badRequest('Recipe name is required');
   }
 
-  if (typeof requestBody.baseServings !== 'number' || requestBody.baseServings <= 0) {
-    return createErrorResponse(400, 'BAD_REQUEST', 'baseServings must be a positive number');
+  if (!isPositiveNumber(requestBody.baseServings)) {
+    return badRequest('baseServings must be a positive number');
   }
 
   if (!Array.isArray(requestBody.ingredients)) {
-    return createErrorResponse(400, 'BAD_REQUEST', 'ingredients must be an array');
+    return badRequest('ingredients must be an array');
   }
 
   const ingredientNames = new Set<string>();
@@ -177,24 +169,16 @@ const validateRequestBody = (
 
   for (const ingredient of requestBody.ingredients) {
     if (typeof ingredient !== 'object' || ingredient === null || Array.isArray(ingredient)) {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Each ingredient must be an object');
+      return badRequest('Each ingredient must be an object');
     }
 
-    if (!ingredient.ingredientName || typeof ingredient.ingredientName !== 'string') {
-      return createErrorResponse(
-        400,
-        'BAD_REQUEST',
-        'Each ingredient must have a valid ingredientName'
-      );
+    if (!isNonEmptyString(ingredient.ingredientName)) {
+      return badRequest('Each ingredient must have a valid ingredientName');
     }
 
     const normalizedName = ingredient.ingredientName.toLowerCase().trim();
     if (ingredientNames.has(normalizedName)) {
-      return createErrorResponse(
-        400,
-        'BAD_REQUEST',
-        `Duplicate ingredient name: ${ingredient.ingredientName}`
-      );
+      return badRequest(`Duplicate ingredient name: ${ingredient.ingredientName}`);
     }
     ingredientNames.add(normalizedName);
 
@@ -203,9 +187,7 @@ const validateRequestBody = (
       .trim();
     if (sanitizedIngredientNames.has(sanitizedName)) {
       const conflictingName = sanitizedIngredientNames.get(sanitizedName);
-      return createErrorResponse(
-        400,
-        'BAD_REQUEST',
+      return badRequest(
         `Ingredient names "${ingredient.ingredientName}" and "${conflictingName}" would conflict after sanitization to "${sanitizedName}"`
       );
     }
@@ -217,15 +199,13 @@ const validateRequestBody = (
       typeof ingredient.quantity === 'string' && ingredient.quantity.trim().length > 0;
 
     if (!hasValidNumericQuantity && !hasValidTextQuantity) {
-      return createErrorResponse(
-        400,
-        'BAD_REQUEST',
+      return badRequest(
         'Each ingredient must have a positive numeric quantity or a non-empty text quantity'
       );
     }
 
-    if (!ingredient.unit || typeof ingredient.unit !== 'string') {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Each ingredient must have a unit');
+    if (!isNonEmptyString(ingredient.unit)) {
+      return badRequest('Each ingredient must have a unit');
     }
   }
 
@@ -243,23 +223,23 @@ export const updateRecipe = async (
     const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
 
     if (typeof subClaim !== 'string' || !subClaim) {
-      return createErrorResponse(401, 'UNAUTHORIZED', 'User ID not found in token');
+      return unauthorized('User ID not found in token');
     }
 
     const recipeId = event.pathParameters?.recipeId;
     if (!recipeId) {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Recipe ID is required');
+      return badRequest('Recipe ID is required');
     }
 
     if (!event.body) {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Request body is required');
+      return badRequest('Request body is required');
     }
 
     let requestBody: UpdateRecipeRequestBody;
     try {
       requestBody = JSON.parse(event.body);
     } catch {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Invalid JSON in request body');
+      return badRequest('Invalid JSON in request body');
     }
 
     const validationError = validateRequestBody(requestBody);
@@ -280,7 +260,7 @@ export const updateRecipe = async (
     );
 
     if (!existingRecipeResult.Item) {
-      return createErrorResponse(404, 'RECIPE_NOT_FOUND', 'Recipe not found');
+      return notFound('Recipe not found', 'RECIPE_NOT_FOUND');
     }
 
     const existingRecipe = existingRecipeResult.Item as Recipe;
@@ -383,13 +363,7 @@ export const updateRecipe = async (
       throw error;
     }
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        recipeId,
-      }),
-    };
+    return jsonResponse(200, { recipeId });
   } catch (error) {
     const errorName = getErrorName(error);
 
@@ -399,17 +373,17 @@ export const updateRecipe = async (
     });
 
     if (errorName === 'ResourceNotFoundException') {
-      return createErrorResponse(500, 'RESOURCE_NOT_FOUND', 'Required table not found');
+      return internalServerError('Required table not found', 'RESOURCE_NOT_FOUND');
     }
 
     if (errorName === 'AccessDeniedException') {
-      return createErrorResponse(500, 'ACCESS_DENIED', 'Access denied while updating recipe');
+      return internalServerError('Access denied while updating recipe', 'ACCESS_DENIED');
     }
 
     if (errorName === 'ConditionalCheckFailedException') {
-      return createErrorResponse(404, 'RECIPE_NOT_FOUND', 'Recipe not found');
+      return notFound('Recipe not found', 'RECIPE_NOT_FOUND');
     }
 
-    return createErrorResponse(500, 'INTERNAL_SERVER_ERROR', 'Failed to update recipe');
+    return internalServerError('Failed to update recipe');
   }
 };
