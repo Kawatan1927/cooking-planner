@@ -49,12 +49,17 @@ export async function getRecipe(recipeId: string, token: string): Promise<Recipe
  * POST /recipes
  *
  * @param data - レシピ作成リクエストデータ
+ * @param token - Authorization ヘッダに使用するトークン
  * @returns Promise<CreateRecipeResponse> - 作成されたレシピのID
  */
-export async function createRecipe(data: CreateRecipeRequest): Promise<CreateRecipeResponse> {
+export async function createRecipe(
+  data: CreateRecipeRequest,
+  token: string
+): Promise<CreateRecipeResponse> {
   return apiFetch<CreateRecipeResponse>('/recipes', {
     method: 'POST',
     body: data,
+    token,
   });
 }
 
@@ -64,14 +69,17 @@ export async function createRecipe(data: CreateRecipeRequest): Promise<CreateRec
  *
  * @param recipeId - レシピID
  * @param data - レシピ更新リクエストデータ
+ * @param token - Authorization ヘッダに使用するトークン
  * @returns Promise<UpdateRecipeResponse> - 更新されたレシピのID
  */
 export async function updateRecipe(
   recipeId: string,
-  data: UpdateRecipeRequest
+  data: UpdateRecipeRequest,
+  token: string
 ): Promise<UpdateRecipeResponse> {
   return apiFetch<UpdateRecipeResponse>(`/recipes/${recipeId}`, {
     method: 'PUT',
     body: data,
+    token,
   });
 }
