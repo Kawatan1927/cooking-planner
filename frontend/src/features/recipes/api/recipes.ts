@@ -69,14 +69,17 @@ export async function createRecipe(
  *
  * @param recipeId - レシピID
  * @param data - レシピ更新リクエストデータ
+ * @param token - Authorization ヘッダに使用するトークン
  * @returns Promise<UpdateRecipeResponse> - 更新されたレシピのID
  */
 export async function updateRecipe(
   recipeId: string,
-  data: UpdateRecipeRequest
+  data: UpdateRecipeRequest,
+  token: string
 ): Promise<UpdateRecipeResponse> {
   return apiFetch<UpdateRecipeResponse>(`/recipes/${recipeId}`, {
     method: 'PUT',
     body: data,
+    token,
   });
 }

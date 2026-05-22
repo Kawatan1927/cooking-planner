@@ -24,10 +24,8 @@ interface ValidationErrors {
   }>;
 }
 
-let ingredientRowSequence = 0;
-
 const createIngredientRow = (): IngredientFormRow => ({
-  id: `ingredient-${(ingredientRowSequence += 1)}`,
+  id: crypto.randomUUID(),
   ingredientName: '',
   quantity: '',
   unit: '',
@@ -79,7 +77,7 @@ export function RecipeNewPage() {
   const [sourcePage, setSourcePage] = useState('');
   const [baseServings, setBaseServings] = useState('2');
   const [memo, setMemo] = useState('');
-  const [ingredients, setIngredients] = useState<IngredientFormRow[]>([createIngredientRow()]);
+  const [ingredients, setIngredients] = useState<IngredientFormRow[]>(() => [createIngredientRow()]);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
   const handleIngredientChange = (
