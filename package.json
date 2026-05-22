@@ -21,6 +21,7 @@
     "lambda:build": "cd infra/lambda && bun run build",
     "lambda:clean": "cd infra/lambda && bun run clean",
     "lambda:rebuild": "cd infra/lambda && bun run rebuild",
+    "lambda:test": "cd infra/lambda && bun run test",
     "lambda:watch": "cd infra/lambda && bun run watch",
     "cdk:install": "cd infra && bun install",
     "cdk:build": "cd infra && bun run build",
@@ -38,7 +39,7 @@
     "format:check": "bun run frontend:format:check && bun run lambda:format:check && bun run cdk:format:check && bun run docs:format:check",
     "type-check": "bun run frontend:type-check && bun run lambda:type-check",
     "build:all": "bun run frontend:build && bun run lambda:build && bun run cdk:build",
-    "test": "echo 'No tests configured yet' && exit 0"
+    "test": "bun run lambda:test"
   },
   "devDependencies": {
     "lefthook": "^2.1.4",
