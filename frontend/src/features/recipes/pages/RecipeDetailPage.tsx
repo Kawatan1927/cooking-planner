@@ -170,6 +170,10 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
           }
         : current;
     });
+    setValidationErrors(prev => ({
+      ...prev,
+      ingredients: [...(prev.ingredients ?? []), {}],
+    }));
     setSaveMessage(null);
   };
 
@@ -186,6 +190,10 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
           }
         : current;
     });
+    setValidationErrors(prev => ({
+      ...prev,
+      ingredients: prev.ingredients?.filter((_, i) => i !== index),
+    }));
     setSaveMessage(null);
   };
 
@@ -262,6 +270,7 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSaveMessage(null);
 
     const nextValidationErrors = validateForm();
     setValidationErrors(nextValidationErrors);
@@ -277,7 +286,6 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
 
     try {
       await updateRecipeMutation.mutateAsync(request);
-      await recipeQuery.refetch();
       setDraftFormState(null);
       setValidationErrors({});
       setSaveMessage('レシピを保存しました。');
