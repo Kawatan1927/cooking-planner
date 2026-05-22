@@ -10,6 +10,8 @@
     "format": "prettier --write \"src/**/*.ts\" \"README.md\" \"package.json\" \"tsconfig.json\" \"eslint.config.mjs\" \".prettierrc\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"README.md\" \"package.json\" \"tsconfig.json\" \"eslint.config.mjs\" \".prettierrc\"",
     "rebuild": "bun run clean && bun run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "watch": "tsc --watch"
   },
   "keywords": [],
@@ -24,7 +26,8 @@
     "globals": "^17.4.0",
     "prettier": "^3.8.1",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.57.2"
+    "typescript-eslint": "^8.57.2",
+    "vitest": "4.1.7"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.717.0",

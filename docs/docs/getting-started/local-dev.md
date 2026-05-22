@@ -99,8 +99,7 @@ npm run type-check
 # フロントエンドと Lambda のビルド
 npm run build:all
 
-# テスト実行（現時点では未設定）
-# "No tests configured yet" と表示されて終了します
+# Lambda の単体テスト実行
 npm run test
 ```
 
