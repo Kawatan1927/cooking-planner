@@ -2,6 +2,14 @@ import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from
 import { PutCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { findMenuByMenuId, MenuItemWithSK } from './utils';
+import {
+  badRequest,
+  internalServerError,
+  jsonResponse,
+  notFound,
+  unauthorized,
+} from '../shared/http';
+import { isNonEmptyString, isPositiveNumber, isValidDate } from '../shared/validation';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
@@ -15,24 +23,6 @@ interface UpdateMenuRequestBody {
   servings: number;
   memo?: string | null;
 }
-
-const createErrorResponse = (
-  statusCode: number,
-  code: string,
-  message: string
-): APIGatewayProxyResultV2 => ({
-  statusCode,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    error: {
-      code,
-      message,
-      details: null,
-    },
-  }),
-});
-
-const isValidDateFormat = (date: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(date);
 
 const isValidMealType = (mealType: string): mealType is MealType =>
   (VALID_MEAL_TYPES as readonly string[]).includes(mealType);
@@ -48,45 +38,41 @@ export const updateMenu = async (
     const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
 
     if (typeof subClaim !== 'string' || !subClaim) {
-      return createErrorResponse(401, 'UNAUTHORIZED', 'User ID not found in token');
+      return unauthorized('User ID not found in token');
     }
 
     const userId = subClaim;
     const menuId = event.pathParameters?.menuId;
 
     if (!menuId) {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Menu ID is required');
+      return badRequest('Menu ID is required');
     }
 
     if (!event.body) {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Request body is required');
+      return badRequest('Request body is required');
     }
 
     let requestBody: UpdateMenuRequestBody;
     try {
       requestBody = JSON.parse(event.body);
     } catch {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Invalid JSON in request body');
+      return badRequest('Invalid JSON in request body');
     }
 
-    if (!requestBody.date || !isValidDateFormat(requestBody.date)) {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Invalid "date" format. Use YYYY-MM-DD');
+    if (!isNonEmptyString(requestBody.date) || !isValidDate(requestBody.date)) {
+      return badRequest('Invalid "date" format. Use YYYY-MM-DD');
     }
 
-    if (!requestBody.mealType || !isValidMealType(requestBody.mealType)) {
-      return createErrorResponse(
-        400,
-        'BAD_REQUEST',
-        'Invalid "mealType". Must be one of: BREAKFAST, LUNCH, DINNER, OTHER'
-      );
+    if (!isNonEmptyString(requestBody.mealType) || !isValidMealType(requestBody.mealType)) {
+      return badRequest('Invalid "mealType". Must be one of: BREAKFAST, LUNCH, DINNER, OTHER');
     }
 
-    if (!requestBody.recipeId || typeof requestBody.recipeId !== 'string') {
-      return createErrorResponse(400, 'BAD_REQUEST', '"recipeId" is required');
+    if (!isNonEmptyString(requestBody.recipeId)) {
+      return badRequest('"recipeId" is required');
     }
 
-    if (typeof requestBody.servings !== 'number' || requestBody.servings <= 0) {
-      return createErrorResponse(400, 'BAD_REQUEST', '"servings" must be a positive number');
+    if (!isPositiveNumber(requestBody.servings)) {
+      return badRequest('"servings" must be a positive number');
     }
 
     console.log(
@@ -96,7 +82,7 @@ export const updateMenu = async (
     const existingMenu = await findMenuByMenuId(userId, menuId);
 
     if (!existingMenu) {
-      return createErrorResponse(404, 'MENU_NOT_FOUND', 'Menu not found');
+      return notFound('Menu not found', 'MENU_NOT_FOUND');
     }
 
     const newSK = `${requestBody.date}#${requestBody.mealType}#${menuId}`;
@@ -148,11 +134,7 @@ export const updateMenu = async (
 
     console.log(`Menu updated: ${menuId}`);
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ menuId }),
-    };
+    return jsonResponse(200, { menuId });
   } catch (error) {
     const errorName =
       typeof error === 'object' && error !== null && 'name' in error
@@ -162,13 +144,13 @@ export const updateMenu = async (
     console.error('Error updating menu:', { errorName, error });
 
     if (errorName === 'ResourceNotFoundException') {
-      return createErrorResponse(500, 'RESOURCE_NOT_FOUND', 'Menus table not found');
+      return internalServerError('Menus table not found', 'RESOURCE_NOT_FOUND');
     }
 
     if (errorName === 'AccessDeniedException') {
-      return createErrorResponse(500, 'ACCESS_DENIED', 'Access denied while updating menu');
+      return internalServerError('Access denied while updating menu', 'ACCESS_DENIED');
     }
 
-    return createErrorResponse(500, 'INTERNAL_SERVER_ERROR', 'Failed to update menu');
+    return internalServerError('Failed to update menu');
   }
 };

@@ -2,6 +2,7 @@ import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from
 import { getRecipes, createRecipe, getRecipeById, updateRecipe } from './recipes';
 import { getMenus, createMenu, updateMenu, deleteMenu } from './menus';
 import { getShoppingList } from './shoppingList';
+import { internalServerError, jsonResponse, notFound } from './shared/http';
 
 /**
  * Main Lambda handler for Cooking Planner API
@@ -18,14 +19,10 @@ export const handler = async (
   try {
     // Health check endpoint (no authentication required)
     if (rawPath === '/health' && httpMethod === 'GET') {
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'ok',
-          time: new Date().toISOString(),
-        }),
-      };
+      return jsonResponse(200, {
+        status: 'ok',
+        time: new Date().toISOString(),
+      });
     }
 
     // GET /recipes/{recipeId}
@@ -85,29 +82,9 @@ export const handler = async (
       return getShoppingList(event);
     }
 
-    return {
-      statusCode: 404,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        error: {
-          code: 'NOT_FOUND',
-          message: 'Endpoint not found',
-          details: null,
-        },
-      }),
-    };
+    return notFound('Endpoint not found');
   } catch (error) {
     console.error('Error handling request:', error);
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'An unexpected error occurred',
-          details: null,
-        },
-      }),
-    };
+    return internalServerError('An unexpected error occurred');
   }
 };

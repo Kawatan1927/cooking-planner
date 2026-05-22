@@ -2,6 +2,13 @@ import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from
 import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeIngredient } from '../shared/types';
+import {
+  badRequest,
+  internalServerError,
+  jsonResponse,
+  notFound,
+  unauthorized,
+} from '../shared/http';
 
 interface RecipeIngredientResponse {
   ingredientName: string;
@@ -22,22 +29,6 @@ interface RecipeDetailResponse {
   ingredients: RecipeIngredientResponse[];
 }
 
-const createErrorResponse = (
-  statusCode: number,
-  code: string,
-  message: string
-): APIGatewayProxyResultV2 => ({
-  statusCode,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    error: {
-      code,
-      message,
-      details: null,
-    },
-  }),
-});
-
 /**
  * GET /recipes/{recipeId}
  * Get a single recipe with its ingredients for the logged-in user
@@ -49,12 +40,12 @@ export const getRecipeById = async (
     const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
 
     if (typeof subClaim !== 'string' || !subClaim) {
-      return createErrorResponse(401, 'UNAUTHORIZED', 'User ID not found in token');
+      return unauthorized('User ID not found in token');
     }
 
     const recipeId = event.pathParameters?.recipeId;
     if (!recipeId) {
-      return createErrorResponse(400, 'BAD_REQUEST', 'Recipe ID is required');
+      return badRequest('Recipe ID is required');
     }
 
     const userId = subClaim;
@@ -72,7 +63,7 @@ export const getRecipeById = async (
     );
 
     if (!recipeResult.Item) {
-      return createErrorResponse(404, 'RECIPE_NOT_FOUND', 'Recipe not found');
+      return notFound('Recipe not found', 'RECIPE_NOT_FOUND');
     }
 
     const recipe = recipeResult.Item as Recipe;
@@ -107,11 +98,7 @@ export const getRecipeById = async (
       })),
     };
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(response),
-    };
+    return jsonResponse(200, response);
   } catch (error) {
     const errorName =
       typeof error === 'object' && error !== null && 'name' in error
@@ -123,6 +110,6 @@ export const getRecipeById = async (
       error,
     });
 
-    return createErrorResponse(500, 'INTERNAL_SERVER_ERROR', 'Failed to fetch recipe');
+    return internalServerError('Failed to fetch recipe');
   }
 };
