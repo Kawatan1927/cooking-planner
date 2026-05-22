@@ -1,10 +1,5 @@
 import { apiFetch } from '@/lib/apiClient';
-import type {
-  CreateMenuResponse,
-  MenuInput,
-  MenusResponse,
-  UpdateMenuResponse,
-} from '../types';
+import type { CreateMenuResponse, MenuInput, MenusResponse, UpdateMenuResponse } from '../types';
 
 export interface GetMenusParams {
   from?: string;
