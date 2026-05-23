@@ -15,13 +15,16 @@ export function useMenus({ from, to, userCacheKey, enabled = true }: UseMenusOpt
   const token = useAuthToken();
   const cacheUserKey = getUserCacheKey(token, userCacheKey);
 
+  const normalizedFrom = from || undefined;
+  const normalizedTo = to || undefined;
+
   return useQuery<MenusResponse, Error>({
-    queryKey: menusQueryKeys.list(cacheUserKey, from, to),
+    queryKey: menusQueryKeys.list(cacheUserKey, normalizedFrom, normalizedTo),
     queryFn: async () => {
       if (!token) {
         throw new Error('認証トークンが必要です');
       }
-      return getMenus(token, { from, to });
+      return getMenus({ from: normalizedFrom, to: normalizedTo }, token);
     },
     enabled: enabled && !!token,
   });

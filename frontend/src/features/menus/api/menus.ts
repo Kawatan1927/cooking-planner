@@ -18,7 +18,7 @@ const buildQueryString = (params: GetMenusParams): string => {
   return query ? `?${query}` : '';
 };
 
-export async function getMenus(token: string, params: GetMenusParams = {}): Promise<MenusResponse> {
+export async function getMenus(params: GetMenusParams = {}, token: string): Promise<MenusResponse> {
   return apiFetch<MenusResponse>(`/menus${buildQueryString(params)}`, {
     method: 'GET',
     token,
