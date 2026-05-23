@@ -17,3 +17,5 @@ export type {
 
 export { getMenus, createMenu, updateMenu, deleteMenu } from './api';
 export type { GetMenusParams } from './api';
+
+export { MenusPage } from './pages/MenusPage';
