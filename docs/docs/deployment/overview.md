@@ -48,13 +48,13 @@ flowchart TD
 ## 前提条件
 
 - AWS CLI がインストールされ、`prod` 環境の認証情報（プロファイルまたは環境変数）が設定されていること
-- AWS CDK CLI（`cdk`）がグローバルにインストールされていること
-- Node.js / npm が利用可能であること
+- Bun がインストールされていること（[bun.sh](https://bun.sh/)）
+- Node.js 20.x 以上が利用可能であること
 
 ```bash
 # バージョン確認
 aws --version
-cdk --version
+bun --version
 node --version
 ```
 
@@ -64,5 +64,5 @@ node --version
 
 - [ ] `main` ブランチの最新を取得している
 - [ ] CI（GitHub Actions）がすべてグリーンになっている
-- [ ] ローカルで `npm run build:all` が通ることを確認している
+- [ ] ローカルで `bun run build:all` が通ることを確認している
 - [ ] `cdk diff` で意図しない変更が含まれていないことを確認している

@@ -16,8 +16,8 @@ cooking-planner/
 
 ### 前提条件
 
-- Node.js 20.x以上
-- npm
+- [Bun](https://bun.sh/) 1.x 以上
+- Node.js 20.x 以上
 
 ### 初回セットアップ
 
@@ -32,24 +32,23 @@ cd cooking-planner
 
 ```bash
 # ルートの依存関係をインストール（lefthookを含む）
-npm install
+bun install --frozen-lockfile
 
 # フロントエンドの依存関係をインストール
-cd frontend
-npm install
-cd ..
+cd frontend && bun install --frozen-lockfile && cd ..
 
 # Lambdaの依存関係をインストール
-cd infra/lambda
-npm install
-cd ../..
+cd infra/lambda && bun install --frozen-lockfile && cd ../..
+
+# CDK の依存関係をインストール
+cd infra && bun install --frozen-lockfile && cd ..
 ```
 
 3. Gitフックのセットアップ
 
 ```bash
-# lefthookフックを手動でインストール（npm installで自動実行されますが、念のため）
-npm run prepare
+# lefthookフックを手動でインストール（bun installで自動実行されますが、念のため）
+bun run prepare
 ```
 
 これにより、以下のGitフックが自動的に設定されます：
@@ -65,7 +64,7 @@ npm run prepare
 
 - **pre-commit**: コミットに含める `frontend/` と `infra/lambda/` 配下の staged ファイルに対して、Prettier と ESLint を実行
 - **pre-push**: `frontend/**` または `infra/lambda/**` の変更が push に含まれる場合だけ、対応するビルドを実行します（ビルド時に TypeScript の型エラーも検出）
-- **test**: 現在の `npm run test` はプレースホルダーで、将来の自動テスト追加まで成功終了のみを返します
+- **test**: 現在の `bun run test` は Lambda のユニットテストを実行します
 
 詳細は [CONTRIBUTING.md](./CONTRIBUTING.md) を参照してください。
 
@@ -86,63 +85,63 @@ git push --no-verify    # pre-pushをスキップ
 
 ```bash
 # 開発サーバーの起動
-npm run frontend:dev
+bun run frontend:dev
 
 # ビルド
-npm run frontend:build
+bun run frontend:build
 
 # Lint
-npm run frontend:lint
+bun run frontend:lint
 
 # フォーマット
-npm run frontend:format
+bun run frontend:format
 
 # フォーマットチェック
-npm run frontend:format:check
+bun run frontend:format:check
 ```
 
 ### Lambda
 
 ```bash
 # Lint
-npm run lambda:lint
+bun run lambda:lint
 
 # フォーマット
-npm run lambda:format
+bun run lambda:format
 
 # フォーマットチェック
-npm run lambda:format:check
+bun run lambda:format:check
 
 # ビルド
-npm run lambda:build
+bun run lambda:build
 
 # ウォッチモード
-npm run lambda:watch
+bun run lambda:watch
 
 # クリーン
-npm run lambda:clean
+bun run lambda:clean
 
 # リビルド
-npm run lambda:rebuild
+bun run lambda:rebuild
 ```
 
 ### リポジトリ全体
 
 ```bash
 # すべてのlint実行
-npm run lint
+bun run lint
 
 # すべてのフォーマットチェック
-npm run format:check
+bun run format:check
 
 # フロントエンドとLambdaの型チェック
-npm run type-check
+bun run type-check
 
 # フロントエンドとLambdaのビルド
-npm run build:all
+bun run build:all
 
 # テスト実行
-npm run test
+bun run test
 ```
 
 ## CI/CD
@@ -156,6 +155,10 @@ GitHub Actionsを使用してCI/CDを実行しています：
 詳細は `.github/workflows/` を参照してください。
 
 ## デプロイ
+
+**初回セットアップ**（新しい環境でのデプロイ）については、[本番環境の初回セットアップ手順](https://kawatan1927.github.io/cooking-planner/getting-started/production-setup) を参照してください。インフラ・認証・フロント配信の手順がまとまっています。
+
+以下は簡易リファレンスです。詳細は `docs/docs/deployment/` 配下の各ページを参照してください。
 
 ### インフラ（CDK）のデプロイ
 
