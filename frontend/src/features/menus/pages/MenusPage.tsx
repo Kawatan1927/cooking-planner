@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRecipes } from '@/features/recipes';
 import type { MenuInput, MenuItem } from '../types';
@@ -58,14 +58,11 @@ function MenuItemEditor({
   disabled = false,
 }: MenuItemEditorProps) {
   const updateMutation = useUpdateMenu({ menuId: item.menuId });
-  const [recipeId, setRecipeId] = useState(item.recipeId);
-  const [servings, setServings] = useState(String(item.servings));
+  const [editState, setEditState] = useState<{ recipeId: string; servings: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    setRecipeId(item.recipeId);
-    setServings(String(item.servings));
-  }, [item.recipeId, item.servings]);
+  const recipeId = editState?.recipeId ?? item.recipeId;
+  const servings = editState?.servings ?? String(item.servings);
 
   const isUpdating = updateMutation.isPending;
 
@@ -92,6 +89,7 @@ function MenuItemEditor({
 
     try {
       await updateMutation.mutateAsync(payload);
+      setEditState(null);
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '更新に失敗しました。');
@@ -130,7 +128,7 @@ function MenuItemEditor({
         {recipeOptions.length > 0 ? (
           <select
             value={recipeId}
-            onChange={event => setRecipeId(event.target.value)}
+            onChange={event => setEditState(prev => ({ recipeId: event.target.value, servings: prev?.servings ?? String(item.servings) }))}
             disabled={disabled || isUpdating}
             style={inputStyle}
             aria-label="レシピ"
@@ -145,7 +143,7 @@ function MenuItemEditor({
         ) : (
           <input
             value={recipeId}
-            onChange={event => setRecipeId(event.target.value)}
+            onChange={event => setEditState(prev => ({ recipeId: event.target.value, servings: prev?.servings ?? String(item.servings) }))}
             placeholder="recipeId"
             disabled={disabled || isUpdating}
             style={inputStyle}
@@ -157,7 +155,7 @@ function MenuItemEditor({
           min="0.1"
           step="0.1"
           value={servings}
-          onChange={event => setServings(event.target.value)}
+          onChange={event => setEditState(prev => ({ recipeId: prev?.recipeId ?? item.recipeId, servings: event.target.value }))}
           disabled={disabled || isUpdating}
           style={inputStyle}
           aria-label="人数"
