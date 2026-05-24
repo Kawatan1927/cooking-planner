@@ -1,7 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { Placeholder } from '../components/Placeholder';
 import { CallbackPage, LoginPage, ProtectedRoute } from '../features/auth';
+import { DashboardPage } from '../features/dashboard';
 import { MenusPage } from '../features/menus';
 import { RecipeDetailPage, RecipeListPage, RecipeNewPage } from '../features/recipes';
 import { ShoppingListPage } from '../features/shoppingList';
@@ -25,7 +25,7 @@ export const router = createBrowserRouter([
         children: [
           {
             path: '/',
-            element: <Placeholder title="Dashboard" />,
+            element: <DashboardPage />,
           },
           {
             path: '/recipes',
