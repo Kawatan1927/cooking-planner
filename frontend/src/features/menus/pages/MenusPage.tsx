@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRecipes } from '@/features/recipes';
 import type { MenuInput, MenuItem } from '../types';
@@ -61,6 +61,11 @@ function MenuItemEditor({
   const [recipeId, setRecipeId] = useState(item.recipeId);
   const [servings, setServings] = useState(String(item.servings));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRecipeId(item.recipeId);
+    setServings(String(item.servings));
+  }, [item.recipeId, item.servings]);
 
   const isUpdating = updateMutation.isPending;
 
@@ -195,16 +200,17 @@ function MenuItemEditor({
 
 export function MenusPage() {
   const [startDate, setStartDate] = useState(() => toDateInputValue(new Date()));
-  const [displayDays, setDisplayDays] = useState(7);
+  const [displayDays, setDisplayDays] = useState('7');
   const [newMenuDate, setNewMenuDate] = useState(() => toDateInputValue(new Date()));
   const [newMenuMealType, setNewMenuMealType] = useState<DisplayMealType>('DINNER');
   const [newMenuRecipeId, setNewMenuRecipeId] = useState('');
   const [newMenuServings, setNewMenuServings] = useState('1');
   const [createErrorMessage, setCreateErrorMessage] = useState<string | null>(null);
 
+  const parsedDisplayDays = parseInt(displayDays, 10);
   const normalizedDisplayDays = Math.min(
     30,
-    Math.max(1, Number.isFinite(displayDays) ? displayDays : 7)
+    Math.max(1, Number.isFinite(parsedDisplayDays) ? parsedDisplayDays : 7)
   );
   const endDate = useMemo(
     () => addDays(startDate, Math.max(normalizedDisplayDays - 1, 0)),
@@ -324,7 +330,7 @@ export function MenusPage() {
               max="30"
               step="1"
               value={displayDays}
-              onChange={event => setDisplayDays(Number(event.target.value))}
+              onChange={event => setDisplayDays(event.target.value)}
               style={inputStyle}
             />
           </label>
@@ -448,7 +454,10 @@ export function MenusPage() {
             marginBottom: '1rem',
           }}
         >
-          献立の取得に失敗しました。{menusQuery.error.message}
+          <p style={{ margin: 0 }}>献立の取得に失敗しました。</p>
+          <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', opacity: 0.8 }}>
+            {menusQuery.error.message}
+          </p>
         </div>
       )}
 
@@ -510,7 +519,7 @@ export function MenusPage() {
                         >
                           {items.map(item => (
                             <MenuItemEditor
-                              key={`${item.menuId}:${item.recipeId}:${item.servings}`}
+                              key={item.menuId}
                               item={item}
                               recipeName={
                                 recipeNameMap.get(item.recipeId) ??

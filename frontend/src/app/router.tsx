@@ -2,7 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 import { Placeholder } from '../components/Placeholder';
 import { CallbackPage, LoginPage, ProtectedRoute } from '../features/auth';
-import { MenusPage } from '../features/menus/pages/MenusPage';
+import { MenusPage } from '../features/menus';
 import { RecipeDetailPage, RecipeListPage, RecipeNewPage } from '../features/recipes';
 
 export const router = createBrowserRouter([
