@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ShoppingListItems } from '../components';
@@ -25,12 +25,7 @@ const isValidDateInput = (value: string): boolean => {
   return Number.isFinite(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === value;
 };
 
-const getInitialRange = (
-  searchParams: URLSearchParams
-): {
-  formRange: ShoppingListRange;
-  submittedRange: ShoppingListRange | null;
-} => {
+const getInitialRange = (searchParams: URLSearchParams): ShoppingListRange => {
   const today = toDateInputValue(new Date());
   const from = searchParams.get('from');
   const to = searchParams.get('to');
@@ -38,19 +33,9 @@ const getInitialRange = (
   const normalizedFrom = from && isValidDateInput(from) ? from : today;
   const normalizedTo = to && isValidDateInput(to) ? to : normalizedFrom;
 
-  if (from && to && isValidDateInput(from) && isValidDateInput(to) && from <= to) {
-    return {
-      formRange: { from, to },
-      submittedRange: { from, to },
-    };
-  }
-
   return {
-    formRange: {
-      from: normalizedFrom,
-      to: normalizedTo >= normalizedFrom ? normalizedTo : normalizedFrom,
-    },
-    submittedRange: null,
+    from: normalizedFrom,
+    to: normalizedTo >= normalizedFrom ? normalizedTo : normalizedFrom,
   };
 };
 
@@ -60,13 +45,25 @@ export function ShoppingListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialRange = getInitialRange(searchParams);
 
-  const [from, setFrom] = useState(initialRange.formRange.from);
-  const [to, setTo] = useState(initialRange.formRange.to);
-  const [submittedRange, setSubmittedRange] = useState<ShoppingListRange | null>(
-    initialRange.submittedRange
-  );
+  const [from, setFrom] = useState(initialRange.from);
+  const [to, setTo] = useState(initialRange.to);
   const [formError, setFormError] = useState<string | null>(null);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+
+  const submittedRange = useMemo((): ShoppingListRange | null => {
+    const paramFrom = searchParams.get('from');
+    const paramTo = searchParams.get('to');
+    if (
+      paramFrom &&
+      paramTo &&
+      isValidDateInput(paramFrom) &&
+      isValidDateInput(paramTo) &&
+      paramFrom <= paramTo
+    ) {
+      return { from: paramFrom, to: paramTo };
+    }
+    return null;
+  }, [searchParams]);
 
   const shoppingListQuery = useShoppingList({
     from: submittedRange?.from,
@@ -94,7 +91,6 @@ export function ShoppingListPage() {
 
     setFormError(null);
     setCheckedItems({});
-    setSubmittedRange({ from, to });
     setSearchParams({ from, to });
   };
 
@@ -147,7 +143,14 @@ export function ShoppingListPage() {
             />
           </label>
 
-          <button type="submit" style={styles.submitButton} disabled={isLoading}>
+          <button
+            type="submit"
+            style={{
+              ...styles.submitButton,
+              ...(isLoading ? { cursor: 'not-allowed', opacity: 0.65 } : {}),
+            }}
+            disabled={isLoading}
+          >
             {isLoading ? '生成中...' : 'リストを生成'}
           </button>
         </form>

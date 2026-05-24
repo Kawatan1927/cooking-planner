@@ -6,7 +6,8 @@ interface ShoppingListItemsProps {
   onToggleItem: (itemKey: string) => void;
 }
 
-const getItemKey = (item: ShoppingListItem): string => `${item.ingredientName}::${item.unit}`;
+const getItemKey = (item: ShoppingListItem): string =>
+  JSON.stringify([item.ingredientName, item.unit]);
 
 const formatQuantity = (item: ShoppingListItem): string =>
   item.unit ? `${item.totalQuantity}${item.unit}` : String(item.totalQuantity);
