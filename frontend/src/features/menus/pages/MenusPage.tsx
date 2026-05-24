@@ -66,6 +66,14 @@ function MenuItemEditor({
 
   const isUpdating = updateMutation.isPending;
 
+  const handleRecipeIdChange = (value: string) => {
+    setEditState(prev => ({ recipeId: value, servings: prev?.servings ?? String(item.servings) }));
+  };
+
+  const handleServingsChange = (value: string) => {
+    setEditState(prev => ({ recipeId: prev?.recipeId ?? item.recipeId, servings: value }));
+  };
+
   const handleUpdate = async () => {
     const normalizedRecipeId = recipeId.trim();
     const normalizedServings = Number(servings);
@@ -128,7 +136,7 @@ function MenuItemEditor({
         {recipeOptions.length > 0 ? (
           <select
             value={recipeId}
-            onChange={event => setEditState(prev => ({ recipeId: event.target.value, servings: prev?.servings ?? String(item.servings) }))}
+            onChange={event => handleRecipeIdChange(event.target.value)}
             disabled={disabled || isUpdating}
             style={inputStyle}
             aria-label="レシピ"
@@ -143,7 +151,7 @@ function MenuItemEditor({
         ) : (
           <input
             value={recipeId}
-            onChange={event => setEditState(prev => ({ recipeId: event.target.value, servings: prev?.servings ?? String(item.servings) }))}
+            onChange={event => handleRecipeIdChange(event.target.value)}
             placeholder="recipeId"
             disabled={disabled || isUpdating}
             style={inputStyle}
@@ -155,7 +163,7 @@ function MenuItemEditor({
           min="0.1"
           step="0.1"
           value={servings}
-          onChange={event => setEditState(prev => ({ recipeId: prev?.recipeId ?? item.recipeId, servings: event.target.value }))}
+          onChange={event => handleServingsChange(event.target.value)}
           disabled={disabled || isUpdating}
           style={inputStyle}
           aria-label="人数"
@@ -211,11 +219,11 @@ export function MenusPage() {
     Math.max(1, Number.isFinite(parsedDisplayDays) ? parsedDisplayDays : 7)
   );
   const endDate = useMemo(
-    () => addDays(startDate, Math.max(normalizedDisplayDays - 1, 0)),
+    () => (startDate ? addDays(startDate, Math.max(normalizedDisplayDays - 1, 0)) : ''),
     [normalizedDisplayDays, startDate]
   );
 
-  const menusQuery = useMenus({ from: startDate, to: endDate });
+  const menusQuery = useMenus({ from: startDate, to: endDate, enabled: !!startDate });
   const recipesQuery = useRecipes();
   const createMenuMutation = useCreateMenu();
   const deleteMenuMutation = useDeleteMenu();
@@ -237,10 +245,10 @@ export function MenusPage() {
   const groupedMenus = useMemo(() => {
     const map = new Map<string, MenuItem[]>();
     for (const item of menusQuery.data?.items ?? []) {
-      if (!MEAL_TYPES.includes(item.mealType as DisplayMealType)) {
-        continue;
-      }
-      const key = `${item.date}:${item.mealType}`;
+      const mealTypeKey = MEAL_TYPES.includes(item.mealType as DisplayMealType)
+        ? item.mealType
+        : 'OTHER';
+      const key = `${item.date}:${mealTypeKey}`;
       const current = map.get(key) ?? [];
       current.push(item);
       map.set(key, current);
@@ -316,7 +324,9 @@ export function MenusPage() {
             <input
               type="date"
               value={startDate}
-              onChange={event => setStartDate(event.target.value)}
+              onChange={event => {
+                if (event.target.value) setStartDate(event.target.value);
+              }}
               style={inputStyle}
             />
           </label>
@@ -329,6 +339,7 @@ export function MenusPage() {
               step="1"
               value={displayDays}
               onChange={event => setDisplayDays(event.target.value)}
+              onBlur={() => setDisplayDays(String(normalizedDisplayDays))}
               style={inputStyle}
             />
           </label>
@@ -533,6 +544,45 @@ export function MenusPage() {
                     </div>
                   );
                 })}
+                {(() => {
+                  const otherItems = groupedMenus.get(`${date}:OTHER`) ?? [];
+                  if (otherItems.length === 0) return null;
+                  return (
+                    <div
+                      key="OTHER"
+                      style={{
+                        border: '1px solid #e9ecef',
+                        borderRadius: '6px',
+                        padding: '0.75rem',
+                        backgroundColor: '#fff3cd',
+                      }}
+                    >
+                      <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>その他</h3>
+                      <ul
+                        style={{
+                          listStyle: 'none',
+                          margin: 0,
+                          padding: 0,
+                          display: 'grid',
+                          gap: '0.5rem',
+                        }}
+                      >
+                        {otherItems.map(item => (
+                          <MenuItemEditor
+                            key={item.menuId}
+                            item={item}
+                            recipeName={
+                              recipeNameMap.get(item.recipeId) ?? `未登録レシピ (${item.recipeId})`
+                            }
+                            recipeOptions={recipeOptions}
+                            onDelete={handleDeleteMenu}
+                            disabled={deleteMenuMutation.isPending}
+                          />
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
               </div>
             </section>
           ))}
