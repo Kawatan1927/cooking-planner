@@ -5,3 +5,5 @@ export type { UseShoppingListOptions } from './hooks';
 
 export { getShoppingList } from './api';
 export type { GetShoppingListParams } from './api';
+
+export { ShoppingListPage } from './pages';

@@ -4,6 +4,7 @@ import { Placeholder } from '../components/Placeholder';
 import { CallbackPage, LoginPage, ProtectedRoute } from '../features/auth';
 import { MenusPage } from '../features/menus';
 import { RecipeDetailPage, RecipeListPage, RecipeNewPage } from '../features/recipes';
+import { ShoppingListPage } from '../features/shoppingList';
 
 export const router = createBrowserRouter([
   // 認証系：AppLayout の外（ヘッダー無し）
@@ -44,7 +45,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/shopping-list',
-            element: <Placeholder title="買い物リスト" />,
+            element: <ShoppingListPage />,
           },
         ],
       },
