@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 import { Placeholder } from '../components/Placeholder';
 import { CallbackPage, LoginPage, ProtectedRoute } from '../features/auth';
+import { MenusPage } from '../features/menus';
 import { RecipeDetailPage, RecipeListPage, RecipeNewPage } from '../features/recipes';
 
 export const router = createBrowserRouter([
@@ -39,7 +40,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/menus',
-            element: <Placeholder title="献立一覧" />,
+            element: <MenusPage />,
           },
           {
             path: '/shopping-list',
