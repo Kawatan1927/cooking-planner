@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent, KeyboardEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '@/lib/apiClient';
 import { useCreateMenu } from '@/features/menus';
@@ -142,6 +142,13 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
   const [menuServings, setMenuServings] = useState('1');
   const [menuError, setMenuError] = useState<string | null>(null);
   const [menuSuccess, setMenuSuccess] = useState(false);
+  const menuDialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isMenuModalOpen) {
+      menuDialogRef.current?.focus();
+    }
+  }, [isMenuModalOpen]);
 
   const initialFormState = useMemo(
     () => (recipeQuery.data ? mapRecipeToFormState(recipeQuery.data) : null),
@@ -342,8 +349,8 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
     }
 
     const normalizedServings = Number(menuServings);
-    if (!Number.isFinite(normalizedServings) || normalizedServings <= 0) {
-      setMenuError('人数は0より大きい値で入力してください。');
+    if (!Number.isFinite(normalizedServings) || normalizedServings <= 0 || !Number.isInteger(normalizedServings)) {
+      setMenuError('人数は1以上の整数で入力してください。');
       return;
     }
 
@@ -767,12 +774,17 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
             zIndex: 1000,
           }}
           onClick={event => {
-            if (event.target === event.currentTarget) {
+            if (event.target === event.currentTarget && !createMenuMutation.isPending) {
               handleCloseMenuModal();
             }
           }}
         >
           <div
+            ref={menuDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="menu-modal-title"
+            tabIndex={-1}
             style={{
               backgroundColor: 'white',
               borderRadius: '8px',
@@ -781,9 +793,15 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
               maxWidth: '480px',
               margin: '1rem',
               boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
+              outline: 'none',
+            }}
+            onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+              if (event.key === 'Escape' && !createMenuMutation.isPending) {
+                handleCloseMenuModal();
+              }
             }}
           >
-            <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>献立に追加</h2>
+            <h2 id="menu-modal-title" style={{ marginTop: 0, marginBottom: '1.5rem' }}>献立に追加</h2>
 
             {menuSuccess ? (
               <div>
