@@ -38,7 +38,9 @@ git --version
 ```bash
 # プロファイルを使う場合の例
 aws configure --profile cooking-planner
-# または環境変数で設定
+# プロファイルを設定した場合は、以降のコマンドで参照されるよう環境変数にも設定してください
+export AWS_PROFILE=cooking-planner
+# または環境変数で直接設定
 export AWS_ACCESS_KEY_ID=...
 export AWS_SECRET_ACCESS_KEY=...
 export AWS_DEFAULT_REGION=ap-northeast-1
@@ -177,7 +179,7 @@ aws cognito-idp admin-set-user-password \
   --permanent
 ```
 
-> **パスワードポリシー**: デフォルトでは「8 文字以上、大文字・小文字・数字・記号を含む」が要件です。
+> **パスワードポリシー**: 「8 文字以上、大文字・小文字・数字を含む」が必須です（記号は任意）。
 
 ---
 
