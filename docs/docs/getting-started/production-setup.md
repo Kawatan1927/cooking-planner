@@ -155,7 +155,7 @@ CDK デプロイで作成された Cognito User Pool に、自分のユーザー
 aws cognito-idp admin-create-user \
   --user-pool-id <UserPoolId> \
   --username <メールアドレス> \
-  --temporary-password "TempPass123!" \
+  --temporary-password "<TEMP_PASSWORD>" \
   --user-attributes Name=email,Value=<メールアドレス> Name=email_verified,Value=true \
   --message-action SUPPRESS
 ```
@@ -217,7 +217,7 @@ VITE_COGNITO_LOGOUT_REDIRECT_URI=https://xxxxxxxxxxxx.cloudfront.net
 
 :::caution
 `frontend/.env.production` はリポジトリにコミットしないでください（`.gitignore` で除外済み）。
-実際の値は別途安全な場所（パスワードマネージャーなど）に保管してください。
+実際の値は別途安全な場所（パスワードマネージャーなど）に保管し、**絶対にコミットしないこと**。
 :::
 
 > **詳細**: [フロントエンドデプロイ › 環境変数](../deployment/frontend.md#環境変数) も参照してください。
@@ -262,12 +262,12 @@ VITE_COGNITO_LOGOUT_REDIRECT_URI=https://xxxxxxxxxxxx.cloudfront.net
 ### API 確認
 
 - [ ] ログイン後にレシピ一覧 API が正常に返る（ブラウザの開発者ツールでネットワークタブを確認）
-- [ ] CloudWatch Logs（`/aws/lambda/CookingPlanner-prod-*`）にエラーが出ていない
+- [ ] CloudWatch Logs（`/aws/lambda/cooking-planner-api-prod`）にエラーが出ていない
 
 ```bash
 # CloudWatch でエラーログを確認（直近 5 分）
 aws logs filter-log-events \
-  --log-group-name /aws/lambda/CookingPlanner-prod-ApiHandler \
+  --log-group-name /aws/lambda/cooking-planner-api-prod \
   --start-time $(($(date +%s) - 300))000 \
   --filter-pattern ERROR
 ```

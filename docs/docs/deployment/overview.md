@@ -65,4 +65,4 @@ node --version
 - [ ] `main` ブランチの最新を取得している
 - [ ] CI（GitHub Actions）がすべてグリーンになっている
 - [ ] ローカルで `bun run build:all` が通ることを確認している
-- [ ] `cdk diff` で意図しない変更が含まれていないことを確認している
+- [ ] `cd infra && bunx cdk diff --context stage=prod ...` で意図しない変更が含まれていないことを確認している
