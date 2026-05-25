@@ -349,7 +349,11 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
     }
 
     const normalizedServings = Number(menuServings);
-    if (!Number.isFinite(normalizedServings) || normalizedServings <= 0 || !Number.isInteger(normalizedServings)) {
+    if (
+      !Number.isFinite(normalizedServings) ||
+      normalizedServings <= 0 ||
+      !Number.isInteger(normalizedServings)
+    ) {
       setMenuError('人数は1以上の整数で入力してください。');
       return;
     }
@@ -801,7 +805,9 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
               }
             }}
           >
-            <h2 id="menu-modal-title" style={{ marginTop: 0, marginBottom: '1.5rem' }}>献立に追加</h2>
+            <h2 id="menu-modal-title" style={{ marginTop: 0, marginBottom: '1.5rem' }}>
+              献立に追加
+            </h2>
 
             {menuSuccess ? (
               <div>
