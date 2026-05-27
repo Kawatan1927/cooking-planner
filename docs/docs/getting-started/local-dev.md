@@ -6,9 +6,8 @@ sidebar_position: 1
 
 ## 前提条件
 
+- [Bun](https://bun.sh/) 1.x 以上
 - Node.js 20.x 以上
-- npm
-- [Bun](https://bun.sh/) 1.x 以上（Lambda 単体テストの実行に必要）
 
 ## 初回セットアップ
 
@@ -23,24 +22,23 @@ cd cooking-planner
 
 ```bash
 # ルートの依存関係をインストール（lefthook を含む）
-npm install
+bun install --frozen-lockfile
 
 # フロントエンドの依存関係をインストール
-cd frontend
-npm install
-cd ..
+cd frontend && bun install --frozen-lockfile && cd ..
 
 # Lambda の依存関係をインストール
-cd infra/lambda
-npm install
-cd ../..
+cd infra/lambda && bun install --frozen-lockfile && cd ../..
+
+# CDK の依存関係をインストール
+cd infra && bun install --frozen-lockfile && cd ..
 ```
 
 ### 3. Git フックのセットアップ
 
 ```bash
-# lefthook フックを手動でインストール（npm install で自動実行されますが、念のため）
-npm run prepare
+# lefthook フックを手動でインストール（bun install で自動実行されますが、念のため）
+bun run prepare
 ```
 
 これにより、以下の Git フックが自動的に設定されます：
@@ -52,16 +50,16 @@ npm run prepare
 
 ```bash
 # 開発サーバーの起動
-npm run frontend:dev
+bun run frontend:dev
 
 # ビルド
-npm run frontend:build
+bun run frontend:build
 
 # Lint
-npm run frontend:lint
+bun run frontend:lint
 
 # フォーマット
-npm run frontend:format
+bun run frontend:format
 ```
 
 フロントエンドの開発サーバー（Vite dev server）を起動後、API は一旦モック、または実際の API Gateway を叩く運用になります（CORS 設定が必要）。
@@ -70,16 +68,16 @@ npm run frontend:format
 
 ```bash
 # Lint
-npm run lambda:lint
+bun run lambda:lint
 
 # フォーマット
-npm run lambda:format
+bun run lambda:format
 
 # ビルド
-npm run lambda:build
+bun run lambda:build
 
 # ウォッチモード
-npm run lambda:watch
+bun run lambda:watch
 ```
 
 Lambda はローカルで直接実行して単体テストするか、`sam local` / `lambda-local` などのツールを使う方法があります。
@@ -89,19 +87,19 @@ Lambda はローカルで直接実行して単体テストするか、`sam local
 
 ```bash
 # すべての lint 実行
-npm run lint
+bun run lint
 
 # すべてのフォーマットチェック
-npm run format:check
+bun run format:check
 
 # フロントエンドと Lambda の型チェック
-npm run type-check
+bun run type-check
 
 # フロントエンドと Lambda のビルド
-npm run build:all
+bun run build:all
 
-# Lambda の単体テスト実行（内部で bun を使用するため Bun のインストールが必要）
-npm run test
+# Lambda の単体テスト実行
+bun run test
 ```
 
 ## インフラ変更時
