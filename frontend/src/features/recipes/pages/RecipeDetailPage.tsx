@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent, KeyboardEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '@/lib/apiClient';
+import { useCreateMenu } from '@/features/menus';
+import type { MealType } from '@/features/menus';
 import { useRecipe, useUpdateRecipe } from '../hooks';
 import type { RecipeDetail, UpdateRecipeRequest } from '../types';
 
@@ -46,6 +48,20 @@ const errorTextStyle = {
   margin: '0.5rem 0 0',
   color: '#721c24',
   fontSize: '0.875rem',
+};
+
+const MEAL_TYPES: MealType[] = ['BREAKFAST', 'LUNCH', 'DINNER', 'OTHER'];
+
+const mealTypeLabels: Record<MealType, string> = {
+  BREAKFAST: '朝食',
+  LUNCH: '昼食',
+  DINNER: '夕食',
+  OTHER: 'その他',
+};
+
+const toDateInputValue = (date: Date): string => {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
 };
 
 const numericQuantityPattern = /^[-+]?(?:\d+(?:\.\d+)?|\.\d+)$/;
@@ -116,9 +132,23 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
   const navigate = useNavigate();
   const recipeQuery = useRecipe({ recipeId });
   const updateRecipeMutation = useUpdateRecipe({ recipeId });
+  const createMenuMutation = useCreateMenu();
   const [draftFormState, setDraftFormState] = useState<RecipeFormState | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
+  const [menuDate, setMenuDate] = useState(() => toDateInputValue(new Date()));
+  const [menuMealType, setMenuMealType] = useState<MealType>('DINNER');
+  const [menuServings, setMenuServings] = useState('1');
+  const [menuError, setMenuError] = useState<string | null>(null);
+  const [menuSuccess, setMenuSuccess] = useState(false);
+  const menuDialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isMenuModalOpen) {
+      menuDialogRef.current?.focus();
+    }
+  }, [isMenuModalOpen]);
 
   const initialFormState = useMemo(
     () => (recipeQuery.data ? mapRecipeToFormState(recipeQuery.data) : null),
@@ -294,6 +324,53 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
     }
   };
 
+  const handleOpenMenuModal = () => {
+    setMenuDate(toDateInputValue(new Date()));
+    setMenuMealType('DINNER');
+    setMenuServings(recipeQuery.data ? String(recipeQuery.data.baseServings) : '1');
+    setMenuError(null);
+    setMenuSuccess(false);
+    setIsMenuModalOpen(true);
+  };
+
+  const handleCloseMenuModal = () => {
+    setIsMenuModalOpen(false);
+    setMenuError(null);
+    setMenuSuccess(false);
+  };
+
+  const handleAddToMenu = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setMenuError(null);
+
+    if (!menuDate) {
+      setMenuError('日付を入力してください。');
+      return;
+    }
+
+    const normalizedServings = Number(menuServings);
+    if (
+      !Number.isFinite(normalizedServings) ||
+      normalizedServings <= 0 ||
+      !Number.isInteger(normalizedServings)
+    ) {
+      setMenuError('人数は1以上の整数で入力してください。');
+      return;
+    }
+
+    try {
+      await createMenuMutation.mutateAsync({
+        date: menuDate,
+        mealType: menuMealType,
+        recipeId,
+        servings: normalizedServings,
+      });
+      setMenuSuccess(true);
+    } catch (error) {
+      setMenuError(error instanceof Error ? error.message : '献立の追加に失敗しました。');
+    }
+  };
+
   const headerMeta = useMemo(() => {
     if (!recipeQuery.data) {
       return [];
@@ -412,7 +489,7 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
 
         <button
           type="button"
-          onClick={() => navigate('/menus')}
+          onClick={handleOpenMenuModal}
           style={{
             padding: '0.75rem 1.5rem',
             cursor: 'pointer',
@@ -688,6 +765,197 @@ function RecipeDetailPageContent({ recipeId }: RecipeDetailPageContentProps) {
           </button>
         </div>
       </form>
+
+      {isMenuModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={event => {
+            if (event.target === event.currentTarget && !createMenuMutation.isPending) {
+              handleCloseMenuModal();
+            }
+          }}
+        >
+          <div
+            ref={menuDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="menu-modal-title"
+            tabIndex={-1}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              padding: '2rem',
+              width: '100%',
+              maxWidth: '480px',
+              margin: '1rem',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
+              outline: 'none',
+            }}
+            onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+              if (event.key === 'Escape' && !createMenuMutation.isPending) {
+                handleCloseMenuModal();
+              }
+            }}
+          >
+            <h2 id="menu-modal-title" style={{ marginTop: 0, marginBottom: '1.5rem' }}>
+              献立に追加
+            </h2>
+
+            {menuSuccess ? (
+              <div>
+                <div
+                  style={{
+                    padding: '1rem',
+                    backgroundColor: '#d1e7dd',
+                    border: '1px solid #badbcc',
+                    borderRadius: '4px',
+                    color: '#0f5132',
+                    marginBottom: '1.5rem',
+                  }}
+                >
+                  献立に追加しました。
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/menus')}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      cursor: 'pointer',
+                      border: 'none',
+                      borderRadius: '4px',
+                      backgroundColor: '#0d6efd',
+                      color: 'white',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    献立一覧を見る
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloseMenuModal}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      cursor: 'pointer',
+                      border: '1px solid #6c757d',
+                      borderRadius: '4px',
+                      backgroundColor: 'white',
+                      color: '#495057',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    閉じる
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleAddToMenu}>
+                <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <label>
+                    <span>日付 *</span>
+                    <input
+                      type="date"
+                      value={menuDate}
+                      onChange={event => setMenuDate(event.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </label>
+
+                  <label>
+                    <span>食事区分 *</span>
+                    <select
+                      value={menuMealType}
+                      onChange={event => setMenuMealType(event.target.value as MealType)}
+                      style={inputStyle}
+                    >
+                      {MEAL_TYPES.map(type => (
+                        <option key={type} value={type}>
+                          {mealTypeLabels[type]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>人数 *</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={menuServings}
+                      onChange={event => setMenuServings(event.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </label>
+                </div>
+
+                {menuError && (
+                  <p
+                    style={{
+                      margin: '0 0 1rem',
+                      padding: '0.75rem 1rem',
+                      backgroundColor: '#f8d7da',
+                      border: '1px solid #f5c6cb',
+                      borderRadius: '4px',
+                      color: '#721c24',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    {menuError}
+                  </p>
+                )}
+
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="submit"
+                    disabled={createMenuMutation.isPending}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      cursor: createMenuMutation.isPending ? 'not-allowed' : 'pointer',
+                      border: 'none',
+                      borderRadius: '4px',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      opacity: createMenuMutation.isPending ? 0.7 : 1,
+                    }}
+                  >
+                    {createMenuMutation.isPending ? '追加中...' : '追加する'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloseMenuModal}
+                    disabled={createMenuMutation.isPending}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      cursor: createMenuMutation.isPending ? 'not-allowed' : 'pointer',
+                      border: '1px solid #6c757d',
+                      borderRadius: '4px',
+                      backgroundColor: 'white',
+                      color: '#495057',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
