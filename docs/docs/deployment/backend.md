@@ -130,5 +130,9 @@ bunx cdk deploy
 | GET      | `/recipes`            | JWT 必須 | レシピ一覧取得            |
 | POST     | `/recipes`            | JWT 必須 | レシピ作成                |
 | GET      | `/recipes/{recipeId}` | JWT 必須 | レシピ詳細取得            |
-
-その他のエンドポイント（`/menus`、`/shopping-list` 等）は今後の Issue で追加予定。
+| PUT      | `/recipes/{recipeId}` | JWT 必須 | レシピ更新                |
+| GET      | `/menus`              | JWT 必須 | 献立一覧取得              |
+| POST     | `/menus`              | JWT 必須 | 献立作成                  |
+| PUT      | `/menus/{menuId}`     | JWT 必須 | 献立更新                  |
+| DELETE   | `/menus/{menuId}`     | JWT 必須 | 献立削除                  |
+| GET      | `/shopping-list`      | JWT 必須 | 買い物リスト取得          |
