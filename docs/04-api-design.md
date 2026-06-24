@@ -26,7 +26,6 @@ Cloudflare Access を通過したリクエストのみがサーバーに到達�
 
 - リクエスト
   - `Content-Type: application/json`（ボディがある場合）
-  - `Authorization: Bearer <JWT>`（ログイン済みの場合・全エンドポイント必須）
 
 - レスポンス
   - `Content-Type: application/json; charset=utf-8`

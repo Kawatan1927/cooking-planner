@@ -55,21 +55,22 @@
 
 ### 3.2 カラム定義
 
-| カラム名       | 型                    | NULL | 説明                                   |
-| -------------- | --------------------- | ---- | -------------------------------------- |
-| `id`           | UUID                  | NOT NULL | レシピの主キー（UUID）             |
-| `user_id`      | VARCHAR               | NOT NULL | ユーザーの識別子                   |
-| `name`         | VARCHAR               | NOT NULL | レシピ名（例：「鶏の照り焼き」）   |
-| `source_book`  | VARCHAR               | NULL | 出典本のタイトル                       |
-| `source_page`  | INTEGER               | NULL | 出典本のページ番号                     |
-| `base_servings`| INTEGER               | NOT NULL | 基本の人数（例：2）              |
-| `memo`         | TEXT                  | NULL | 味のメモ・次回の調整用コメントなど     |
-| `created_at`   | TIMESTAMPTZ           | NOT NULL | 作成日時（UTC）                  |
-| `updated_at`   | TIMESTAMPTZ           | NOT NULL | 更新日時（UTC）                  |
+| カラム名        | 型          | NULL     | 説明                               |
+| --------------- | ----------- | -------- | ---------------------------------- |
+| `id`            | UUID        | NOT NULL | レシピの主キー（UUID）             |
+| `user_id`       | VARCHAR     | NOT NULL | ユーザーの識別子                   |
+| `name`          | VARCHAR     | NOT NULL | レシピ名（例：「鶏の照り焼き」）   |
+| `source_book`   | VARCHAR     | NULL     | 出典本のタイトル                   |
+| `source_page`   | INTEGER     | NULL     | 出典本のページ番号                 |
+| `base_servings` | INTEGER     | NOT NULL | 基本の人数（例：2）                |
+| `memo`          | TEXT        | NULL     | 味のメモ・次回の調整用コメントなど |
+| `created_at`    | TIMESTAMPTZ | NOT NULL | 作成日時（UTC）                    |
+| `updated_at`    | TIMESTAMPTZ | NOT NULL | 更新日時（UTC）                    |
 
 ### 3.3 主キー / インデックス
 
 - **PRIMARY KEY**: `id`
+  - UUID はアプリ側（Hono）で生成して INSERT する（`DEFAULT gen_random_uuid()` を設定しても可）
 - **INDEX**: `(user_id)` — ユーザーごとのレシピ一覧取得に使用
 
 ### 3.4 想定アクセスパターン
@@ -110,22 +111,22 @@
 
 ### 4.2 カラム定義
 
-| カラム名         | 型          | NULL     | 説明                                           |
-| ---------------- | ----------- | -------- | ---------------------------------------------- |
-| `id`             | UUID        | NOT NULL | 主キー（UUID）                                 |
-| `recipe_id`      | UUID        | NOT NULL | 紐づくレシピの ID（`recipes.id` への外部キー） |
-| `ingredient_name`| VARCHAR     | NOT NULL | 材料名（例：「玉ねぎ」「鶏もも肉」）           |
-| `quantity_value` | NUMERIC     | NULL     | 数値で表せる分量（例：300, 2）                 |
-| `quantity_text`  | VARCHAR     | NULL     | 文字列の分量（例：「少々」「適量」）           |
-| `unit`           | VARCHAR     | NOT NULL | 単位（g, 個, ml, 大さじ, 小さじ, 少々 など）  |
-| `note`           | VARCHAR     | NULL     | 切り方などのメモ（「薄切り」「1cm角」など）    |
+| カラム名          | 型      | NULL     | 説明                                           |
+| ----------------- | ------- | -------- | ---------------------------------------------- |
+| `id`              | UUID    | NOT NULL | 主キー（UUID）                                 |
+| `recipe_id`       | UUID    | NOT NULL | 紐づくレシピの ID（`recipes.id` への外部キー） |
+| `ingredient_name` | VARCHAR | NOT NULL | 材料名（例：「玉ねぎ」「鶏もも肉」）           |
+| `quantity_value`  | NUMERIC | NULL     | 数値で表せる分量（例：300, 2）                 |
+| `quantity_text`   | VARCHAR | NULL     | 文字列の分量（例：「少々」「適量」）           |
+| `unit`            | VARCHAR | NOT NULL | 単位（g, 個, ml, 大さじ, 小さじ, 少々 など）   |
+| `note`            | VARCHAR | NULL     | 切り方などのメモ（「薄切り」「1cm角」など）    |
 
 > `quantity_value` と `quantity_text` はどちらか一方を設定する（両方 NULL は不可）。  
 > API レスポンスでは `quantity` として `number | string` にまとめて返す。
 
 ### 4.3 主キー / 外部キー / インデックス
 
-- **PRIMARY KEY**: `id`
+- **PRIMARY KEY**: `id`（UUID はアプリ側で生成）
 - **FOREIGN KEY**: `recipe_id` → `recipes(id)` ON DELETE CASCADE
 - **INDEX**: `(recipe_id)` — レシピごとの材料一覧取得に使用
 
@@ -175,21 +176,21 @@
 
 ### 5.2 カラム定義
 
-| カラム名    | 型          | NULL     | 説明                                                              |
-| ----------- | ----------- | -------- | ----------------------------------------------------------------- |
-| `id`        | UUID        | NOT NULL | 主キー（UUID、API 上の `menuId`）                                 |
-| `user_id`   | VARCHAR     | NOT NULL | ユーザーの識別子                                                  |
-| `date`      | DATE        | NOT NULL | 献立の日付（`YYYY-MM-DD`）                                       |
-| `meal_type` | VARCHAR     | NOT NULL | 食事区分。`BREAKFAST` / `LUNCH` / `DINNER` / `OTHER` のいずれか  |
-| `recipe_id` | UUID        | NOT NULL | 紐づくレシピ（`recipes.id` への外部キー）                        |
-| `servings`  | NUMERIC     | NOT NULL | この献立における実人数（例：1, 2）                               |
-| `memo`      | TEXT        | NULL     | メモ（任意）                                                      |
-| `created_at`| TIMESTAMPTZ | NOT NULL | 作成日時（UTC）                                                   |
-| `updated_at`| TIMESTAMPTZ | NOT NULL | 更新日時（UTC）                                                   |
+| カラム名     | 型          | NULL     | 説明                                                            |
+| ------------ | ----------- | -------- | --------------------------------------------------------------- |
+| `id`         | UUID        | NOT NULL | 主キー（UUID、API 上の `menuId`）                               |
+| `user_id`    | VARCHAR     | NOT NULL | ユーザーの識別子                                                |
+| `date`       | DATE        | NOT NULL | 献立の日付（`YYYY-MM-DD`）                                      |
+| `meal_type`  | VARCHAR     | NOT NULL | 食事区分。`BREAKFAST` / `LUNCH` / `DINNER` / `OTHER` のいずれか |
+| `recipe_id`  | UUID        | NOT NULL | 紐づくレシピ（`recipes.id` への外部キー）                       |
+| `servings`   | NUMERIC     | NOT NULL | この献立における実人数（例：1, 2）                              |
+| `memo`       | TEXT        | NULL     | メモ（任意）                                                    |
+| `created_at` | TIMESTAMPTZ | NOT NULL | 作成日時（UTC）                                                 |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | 更新日時（UTC）                                                 |
 
 ### 5.3 主キー / 外部キー / インデックス
 
-- **PRIMARY KEY**: `id`
+- **PRIMARY KEY**: `id`（UUID はアプリ側で生成）
 - **FOREIGN KEY**: `recipe_id` → `recipes(id)`
 - **INDEX**: `(user_id, date)` — ユーザーごとの期間検索に使用
 
@@ -267,15 +268,15 @@
 
 ### 7.2 カラム定義（案）
 
-| カラム名           | 型          | NULL     | 説明                                         |
-| ------------------ | ----------- | -------- | -------------------------------------------- |
-| `id`               | UUID        | NOT NULL | 主キー                                       |
-| `user_id`          | VARCHAR     | NOT NULL | ユーザーの識別子                             |
-| `ingredient_name`  | VARCHAR     | NOT NULL | 材料名                                       |
-| `always_available` | BOOLEAN     | NOT NULL | true の場合、買い物リストから基本的に除外    |
-| `quantity`         | NUMERIC     | NULL     | 在庫数（数値管理する場合）                   |
-| `unit`             | VARCHAR     | NULL     | 単位                                         |
-| `updated_at`       | TIMESTAMPTZ | NOT NULL | 更新日時（UTC）                              |
+| カラム名           | 型          | NULL     | 説明                                      |
+| ------------------ | ----------- | -------- | ----------------------------------------- |
+| `id`               | UUID        | NOT NULL | 主キー                                    |
+| `user_id`          | VARCHAR     | NOT NULL | ユーザーの識別子                          |
+| `ingredient_name`  | VARCHAR     | NOT NULL | 材料名                                    |
+| `always_available` | BOOLEAN     | NOT NULL | true の場合、買い物リストから基本的に除外 |
+| `quantity`         | NUMERIC     | NULL     | 在庫数（数値管理する場合）                |
+| `unit`             | VARCHAR     | NULL     | 単位                                      |
+| `updated_at`       | TIMESTAMPTZ | NOT NULL | 更新日時（UTC）                           |
 
 ### 7.3 想定アクセスパターン
 
