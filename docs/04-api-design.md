@@ -5,12 +5,11 @@
 
 バックエンド構成は以下の通り：
 
-- API Gateway (HTTP API)
-- Lambda (Node.js + TypeScript)
-- DynamoDB
+- Hono (Bun ランタイム)
+- PostgreSQL
 
-認証は Amazon Cognito による JWT（IDトークン or Accessトークン）で行い、  
-API Gateway で JWT Authorizer を用いて検証する。
+認証は Cloudflare Access による Zero Trust アクセス制御で行い、  
+Cloudflare Access を通過したリクエストのみがサーバーに到達する。
 
 ---
 
@@ -18,33 +17,28 @@ API Gateway で JWT Authorizer を用いて検証する。
 
 ### 1.1 ベースURL
 
-- `https://<cloudfront-domain>/api` を想定
-  - CloudFront → API Gateway へのパスベースルーティングで `/api` をバックエンドに転送
-  - または、フロントと API を別ドメインにしても良い
+- `https://<cloudflare-tunnel-domain>/api` を想定
+  - Cloudflare Tunnel → ローカルPC上の Hono サーバーへ転送
+  - フロントエンドと API は同一 Hono サーバーで配信するため、同一ドメイン
 - フロントエンドからは `.env` などで `VITE_API_BASE_URL` として指定する。
 
 ### 1.2 HTTP ヘッダ
 
 - リクエスト
   - `Content-Type: application/json`（ボディがある場合）
-  - `Authorization: Bearer <JWT>`（ログイン済みの場合・全エンドポイント必須）
 
 - レスポンス
   - `Content-Type: application/json; charset=utf-8`
 
 ### 1.3 認証
 
-- 認証方式：**Bearer Token (JWT)**
-  - Amazon Cognito User Pool による認証
-  - フロントは Cognito Hosted UI or SDK経由でログインし、  
-    IDトークン or Accessトークンを取得する
+- 認証方式：**Cloudflare Access（Zero Trust）**
+  - Cloudflare Access がアクセス制御の境界となり、認証済みリクエストのみ Hono サーバーに到達する
+  - フロントエンドのユーザーは Cloudflare Access の認証フロー（メール OTP や Google など設定方法による）を経由する
 
-- API Gateway 側設定：
-  - JWT Authorizer を利用し、User Pool を紐付ける
-  - すべての業務エンドポイントは **認証必須**
-
-- Lambda 側：
-  - `event.requestContext.authorizer.jwt.claims` から `sub` or email などを取得し、`userId` として利用する
+- Hono 側設定：
+  - Cloudflare Access を通過したリクエストのみが届くため、Hono での追加JWT検証は行わない
+  - すべての業務エンドポイントは Cloudflare Access により **認証必須**
 
 ### 1.4 日付・時刻の扱い
 
@@ -52,7 +46,7 @@ API Gateway で JWT Authorizer を用いて検証する。
 - 日時文字列（ISO8601）：
   - `2025-11-21T12:34:56.789Z`
 - タイムゾーン：
-  - DynamoDB に保存する日時は UTC を基本とする（`Z`）
+  - PostgreSQL に保存する日時は UTC を基本とする（`Z`）
 
 ### 1.5 エラーレスポンス形式
 
@@ -455,8 +449,8 @@ POST `/menus` と同じ構造（`mealType` 有効値も同様）：
 }
 ```
 
-> **注意**: `date` または `mealType` を変更した場合、DynamoDB の Sort Key が変わるため、  
-> 旧アイテムの削除と新アイテムの作成がトランザクションで実行される。
+> **注意**: `date` または `mealType` を変更した場合、  
+> PostgreSQL トランザクション内で旧レコードの更新が実行される。
 
 **Response 200**
 
@@ -565,15 +559,15 @@ POST `/menus` と同じ構造（`mealType` 有効値も同様）：
 >   文字列 quantity は人数比でスケーリングできないため **スケーリングせず**、同一キー内では `+` で連結して返す。
 > - 数値と文字列が混在する場合は `"<数値> + <文字列>"` のような **文字列** として `totalQuantity` を返す。
 
-**処理概要（Lambda側）**
+**処理概要（Hono / サーバー側）**
 
-1. `Menus` から `from`〜`to` の献立を取得
-2. 各 `menuItem` について：
-   - `Recipes` から `baseServings` を取得
-   - `RecipeIngredients` から材料一覧を取得
-   - `servings / baseServings` で分量をスケーリング
+1. `menus` テーブルから `from`〜`to` の献立を取得
+2. 各 `menu_item` について：
+   - `recipes` から `base_servings` を取得
+   - `recipe_ingredients` から材料一覧を取得
+   - `servings / base_servings` で分量をスケーリング
 
-3. `ingredientName + unit` 単位で合計値を集計
+3. `ingredient_name + unit` 単位で合計値を集計
 4. 上記形式でレスポンスに整形
 
 ---
