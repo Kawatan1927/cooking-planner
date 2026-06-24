@@ -216,7 +216,7 @@
 **バックエンド連携**
 
 - `GET /shopping-list?from=YYYY-MM-DD&to=YYYY-MM-DD`
-  - Lambda側で：
+  - Hono / サーバー側で：
     1. 期間内の献立を取得
     2. 対象レシピの材料を取得
     3. 材料名ごとに合算してレスポンスにまとめる

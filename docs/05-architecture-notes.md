@@ -67,7 +67,8 @@ flowchart LR
   **SEO が不要**なため SSR や SSG の必要性が低い。
 - API サーバーと静的ファイル配信を同一プロセスで行うことで、
   - デプロイ手順がシンプルになる
-  - CORS 設定が不要になる
+  - 本番環境では CORS 設定が不要になる（API とフロントが同一オリジン）
+  - ※ 開発時は Vite dev server が別ポートで動くため、Vite の proxy 設定または Hono 側の CORS 設定が必要
 
 - React SPA にすることで UI ロジックをすべてブラウザ側に集約できる。
 
@@ -151,8 +152,8 @@ flowchart LR
 
 ### 5.2 フロントエンドのビルドと配信
 
-- `bun run build`（Vite）で `frontend/dist/` を生成
-- Hono サーバーが `dist/` ディレクトリを静的ファイルとして配信
+- `cd frontend && bun run build`（Vite）で `frontend/dist/` を生成
+- Hono サーバーが `frontend/dist/` を静的ファイルとして配信
 
 ### 5.3 CI（任意）
 
@@ -177,6 +178,8 @@ flowchart LR
 
 - Cloudflare Access のポリシーで、自分のメールアドレスのみアクセスを許可。
 - 未認証のリクエストは Cloudflare Access でブロックされ、Hono サーバーに到達しない。
+- **重要**: Hono サーバーは `127.0.0.1`（ループバック）にのみバインドすること。
+  `0.0.0.0` でバインドすると、同一LAN内のデバイスから Cloudflare Access を経由せず直接アクセスできてしまう。
 
 ### 6.2 認可（Hono側）
 
@@ -216,11 +219,11 @@ flowchart LR
 ### 8.1 ローカル開発
 
 - フロント
-  - `bun run dev`（Vite dev server）で開発
-  - API は実際の Hono サーバー（ローカル）を叩く（同一オリジンのためCORS不要）
+  - `cd frontend && bun run dev`（Vite dev server）で開発
+  - API は実際の Hono サーバー（ローカル）を叩く（Vite の proxy 設定または Hono 側 CORS 設定が必要）
 
 - バックエンド
-  - `bun run dev`（HonoサーバーをWatch modeで起動）
+  - プロジェクトルートで `bun run dev`（Hono サーバーを Watch mode で起動）
   - PostgreSQL はローカルで起動しておく
 
 ### 8.2 スキーマ変更時

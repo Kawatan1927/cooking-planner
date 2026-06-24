@@ -4,7 +4,8 @@
 それを実現するための **PostgreSQL テーブル設計** を記載する。
 
 - 現時点では「単一ユーザー（自分）専用」の想定だが、
-- テーブルには `user_id` カラムを持たせておき、将来的な複数ユーザー対応の余地を残す。
+- ユーザー起点のテーブル（`recipes`・`menus`・`pantry_items`）には `user_id` カラムを持たせておき、将来的な複数ユーザー対応の余地を残す。
+- `recipe_ingredients` は `recipe_id` 外部キー経由でユーザーコンテキストを継承するため、`user_id` は持たない。
 
 ---
 
@@ -154,7 +155,7 @@
     "note": null
   },
   {
-    "id": "e5f6g7h8-...",
+    "id": "d4e5f6a7-...",
     "recipe_id": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11",
     "ingredient_name": "しょうゆ",
     "quantity_value": 2,
