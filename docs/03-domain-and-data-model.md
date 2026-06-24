@@ -1,10 +1,10 @@
 # 03. Domain & Data Model
 
 このドキュメントでは、本アプリケーションで扱う**ドメインモデル**と、  
-それを実現するための **DynamoDB テーブル設計** を記載する。
+それを実現するための **PostgreSQL テーブル設計** を記載する。
 
 - 現時点では「単一ユーザー（自分）専用」の想定だが、
-- テーブルには `userId` 属性を持たせておき、将来的な複数ユーザー対応の余地を残す。
+- テーブルには `user_id` カラムを持たせておき、将来的な複数ユーザー対応の余地を残す。
 
 ---
 
@@ -26,7 +26,7 @@
   - 1つの献立レコードが「ある日付のある食事区分に対する1つのレシピ＋人数」を表現
 
 - **ShoppingList（買い物リスト）**
-  - DynamoDBに保存しない、“計算結果”としての一時的なオブジェクト
+  - テーブルは持たない、"計算結果"としての一時的なオブジェクト
   - 指定期間内の献立から必要な材料を集計した結果
 
 - **PantryItem（常備品／在庫）**（将来的な拡張）
@@ -35,238 +35,185 @@
 
 ---
 
-## 2. DynamoDB テーブル一覧
+## 2. テーブル一覧
 
 現時点で扱うテーブルは以下の通り。
 
-1. `Recipes` … レシピ本体
-2. `RecipeIngredients` … レシピに紐づく材料
-3. `Menus` … 日付・食事区分ごとの献立
-4. （将来）`PantryItems` … 常備品／在庫管理用
-
-いずれもパーティションキー＋ソートキーを持たせ、  
-**主キークエリで基本的なアクセスパターンをカバーできるようにする。**
+1. `recipes` … レシピ本体
+2. `recipe_ingredients` … レシピに紐づく材料
+3. `menus` … 日付・食事区分ごとの献立
+4. （将来）`pantry_items` … 常備品／在庫管理用
 
 ---
 
-## 3. Recipes テーブル
+## 3. recipes テーブル
 
 ### 3.1 用途
 
 - レシピ本体の情報を保持するテーブル。
 - レシピ名、出典（本のタイトル・ページ）、何人分か、作成日時などを持つ。
 
-### 3.2 キースキーマ
+### 3.2 カラム定義
 
-- **Partition Key (PK)**: `userId` (string)
-- **Sort Key (SK)**: `recipeId` (string, UUID)
+| カラム名       | 型                    | NULL | 説明                                   |
+| -------------- | --------------------- | ---- | -------------------------------------- |
+| `id`           | UUID                  | NOT NULL | レシピの主キー（UUID）             |
+| `user_id`      | VARCHAR               | NOT NULL | ユーザーの識別子                   |
+| `name`         | VARCHAR               | NOT NULL | レシピ名（例：「鶏の照り焼き」）   |
+| `source_book`  | VARCHAR               | NULL | 出典本のタイトル                       |
+| `source_page`  | INTEGER               | NULL | 出典本のページ番号                     |
+| `base_servings`| INTEGER               | NOT NULL | 基本の人数（例：2）              |
+| `memo`         | TEXT                  | NULL | 味のメモ・次回の調整用コメントなど     |
+| `created_at`   | TIMESTAMPTZ           | NOT NULL | 作成日時（UTC）                  |
+| `updated_at`   | TIMESTAMPTZ           | NOT NULL | 更新日時（UTC）                  |
 
-※ 単一ユーザー前提であっても、`userId` を含めておくことで将来的な複数ユーザー対応が容易になる。
+### 3.3 主キー / インデックス
 
-### 3.3 主な属性
-
-- `userId`: string
-  - ユーザーの識別子（現状は固定値でも可）
-- `recipeId`: string
-  - レシピのUUID
-- `name`: string
-  - レシピ名（例：「鶏の照り焼き」）
-- `sourceBook`: string (nullable)
-  - 出典本のタイトル（例：「〇〇の和食レシピ」）
-- `sourcePage`: number (nullable)
-  - 出典本のページ番号
-- `baseServings`: number
-  - このレシピが何人分の分量で書かれているか（例：2）
-- `memo`: string (nullable)
-  - 味のメモ・次回の調整用コメントなど
-- `createdAt`: string (ISO8601)
-  - 作成日時
-- `updatedAt`: string (ISO8601)
-  - 更新日時
+- **PRIMARY KEY**: `id`
+- **INDEX**: `(user_id)` — ユーザーごとのレシピ一覧取得に使用
 
 ### 3.4 想定アクセスパターン
 
 1. **レシピ一覧を取得する**
-   - 条件：あるユーザーの全レシピ
-   - DynamoDB 操作：`Query`（`PK = userId`）
+   - `SELECT * FROM recipes WHERE user_id = $1`
 
 2. **レシピ詳細を取得する**
-   - 条件：`userId`＋`recipeId`
-   - DynamoDB 操作：`GetItem`
+   - `SELECT * FROM recipes WHERE id = $1 AND user_id = $2`
 
-3. （将来）出典本ごとのフィルタ／検索
-   - 必要であれば `GSI` を追加する可能性あり  
-     （例：GSI1: `sourceBook` をパーティションキーにしてQuery）
+3. （将来）出典本ごとのフィルタ
+   - `SELECT * FROM recipes WHERE user_id = $1 AND source_book = $2`
 
-### 3.5 アイテム例
+### 3.5 レコード例
 
-````json
+```json
 {
-  "userId": "user-001",
-  "recipeId": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11",
+  "id": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11",
+  "user_id": "user-001",
   "name": "鶏の照り焼き",
-  "sourceBook": "週末の定番おかず",
-  "sourcePage": 34,
-  "baseServings": 2,
+  "source_book": "週末の定番おかず",
+  "source_page": 34,
+  "base_servings": 2,
   "memo": "少し甘め。砂糖を控えめにしても良さそう。",
-  "createdAt": "2025-11-21T12:00:00.000Z",
-  "updatedAt": "2025-11-21T12:00:00.000Z"
-}
-
----
-
-## 4. RecipeIngredients テーブル
-
-### 4.1 用途
-
-* 各レシピに紐づく「材料」と「分量」を保持するテーブル。
-* 1レシピにつき複数の材料アイテムを持つ。
-
-### 4.2 キースキーマ
-
-* **Partition Key (PK)**: `userId` (string)
-* **Sort Key (SK)**: `recipeId#ingredientName` (string)
-
-> メモ：
->
-> * `recipeId` と `ingredientName` を結合した文字列を SK として使用する。
-> * これにより `PK = userId AND begins_with(SK, recipeId#)` で、
-    >   あるレシピに紐づく材料一覧を `Query` で取得できる。
-> * **実装上の注意**: 材料名に `#` が含まれる場合、DynamoDB の SK 構築時に `#` を `_` に置換してサニタイズする。API のリクエスト・レスポンスでは元の材料名をそのまま使用する。`#` と `_` のみが異なる材料名（例：`a#b` と `a_b`）は同一視されるためリクエスト時にバリデーションエラーとなる。
-
-別案として `PK: recipeId, SK: ingredientName` もあるが、
-マルチユーザー化を見据えて `userId` をPKに統一する構成にしている。
-
-### 4.3 主な属性
-
-* `userId`: string
-* `recipeId`: string
-* `ingredientName`: string
-
-    * 材料名（例：「玉ねぎ」「鶏もも肉」）
-* `quantity`: number or string
-
-    * 分量
-    * 数値で扱える場合は number、
-      「少々」のような曖昧表現が必要な場合は string を許容する
-      → 実装では `quantityValue` (number | null), `quantityText` (string | null) に分ける案もあり
-* `unit`: string
-
-    * g, 個, ml, 大さじ, 小さじ, 少々 など
-* `note`: string (nullable)
-
-    * 切り方などのメモ（「薄切り」「1cm角に切る」など）
-
-### 4.4 想定アクセスパターン
-
-1. **特定レシピの材料一覧取得**
-
-    * 条件：`userId` + `recipeId`
-    * DynamoDB 操作：
-
-        * `Query` with
-
-            * `KeyConditionExpression: userId = :uid AND begins_with(SK, :recipeIdPrefix)`
-
-2. **買い物リスト用の材料取得**
-
-    * 指定期間の `Menus` から `recipeId` リストを取得し、
-    * その `recipeId` ごとに材料を `Query` で取得
-    * Lambda内で材料名ごとに集計
-
-### 4.5 アイテム例
-
-```json
-{
-  "userId": "user-001",
-  "SK": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11#鶏もも肉",
-  "recipeId": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11",
-  "ingredientName": "鶏もも肉",
-  "quantity": 300,
-  "unit": "g",
-  "note": null
-}
-````
-
-```json
-{
-  "userId": "user-001",
-  "SK": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11#しょうゆ",
-  "recipeId": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11",
-  "ingredientName": "しょうゆ",
-  "quantity": 2,
-  "unit": "大さじ",
-  "note": null
+  "created_at": "2025-11-21T12:00:00.000Z",
+  "updated_at": "2025-11-21T12:00:00.000Z"
 }
 ```
 
 ---
 
-## 5. Menus テーブル
+## 4. recipe_ingredients テーブル
+
+### 4.1 用途
+
+- 各レシピに紐づく「材料」と「分量」を保持するテーブル。
+- 1レシピにつき複数の材料行を持つ。
+
+### 4.2 カラム定義
+
+| カラム名         | 型          | NULL     | 説明                                           |
+| ---------------- | ----------- | -------- | ---------------------------------------------- |
+| `id`             | UUID        | NOT NULL | 主キー（UUID）                                 |
+| `recipe_id`      | UUID        | NOT NULL | 紐づくレシピの ID（`recipes.id` への外部キー） |
+| `ingredient_name`| VARCHAR     | NOT NULL | 材料名（例：「玉ねぎ」「鶏もも肉」）           |
+| `quantity_value` | NUMERIC     | NULL     | 数値で表せる分量（例：300, 2）                 |
+| `quantity_text`  | VARCHAR     | NULL     | 文字列の分量（例：「少々」「適量」）           |
+| `unit`           | VARCHAR     | NOT NULL | 単位（g, 個, ml, 大さじ, 小さじ, 少々 など）  |
+| `note`           | VARCHAR     | NULL     | 切り方などのメモ（「薄切り」「1cm角」など）    |
+
+> `quantity_value` と `quantity_text` はどちらか一方を設定する（両方 NULL は不可）。  
+> API レスポンスでは `quantity` として `number | string` にまとめて返す。
+
+### 4.3 主キー / 外部キー / インデックス
+
+- **PRIMARY KEY**: `id`
+- **FOREIGN KEY**: `recipe_id` → `recipes(id)` ON DELETE CASCADE
+- **INDEX**: `(recipe_id)` — レシピごとの材料一覧取得に使用
+
+### 4.4 想定アクセスパターン
+
+1. **特定レシピの材料一覧を取得**
+   - `SELECT * FROM recipe_ingredients WHERE recipe_id = $1`
+
+2. **買い物リスト用の材料取得**
+   - 指定期間の `menus` から `recipe_id` リストを取得し、
+   - `SELECT * FROM recipe_ingredients WHERE recipe_id = ANY($1)`
+   - サーバー側で材料名ごとに集計
+
+### 4.5 レコード例
+
+```json
+[
+  {
+    "id": "a1b2c3d4-...",
+    "recipe_id": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11",
+    "ingredient_name": "鶏もも肉",
+    "quantity_value": 300,
+    "quantity_text": null,
+    "unit": "g",
+    "note": null
+  },
+  {
+    "id": "e5f6g7h8-...",
+    "recipe_id": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11",
+    "ingredient_name": "しょうゆ",
+    "quantity_value": 2,
+    "quantity_text": null,
+    "unit": "大さじ",
+    "note": null
+  }
+]
+```
+
+---
+
+## 5. menus テーブル
 
 ### 5.1 用途
 
 - 「いつ・どの食事（朝/昼/夜）で・どのレシピを・何人分作るか」を表現するテーブル。
-- 1件のアイテムが、**ある日付のある食事区分に対する1つのレシピ** に対応する。
+- 1件のレコードが、**ある日付のある食事区分に対する1つのレシピ** に対応する。
 
-### 5.2 キースキーマ
+### 5.2 カラム定義
 
-- **Partition Key (PK)**: `userId` (string)
-- **Sort Key (SK)**: `date#mealType#menuId` (string)
+| カラム名    | 型          | NULL     | 説明                                                              |
+| ----------- | ----------- | -------- | ----------------------------------------------------------------- |
+| `id`        | UUID        | NOT NULL | 主キー（UUID、API 上の `menuId`）                                 |
+| `user_id`   | VARCHAR     | NOT NULL | ユーザーの識別子                                                  |
+| `date`      | DATE        | NOT NULL | 献立の日付（`YYYY-MM-DD`）                                       |
+| `meal_type` | VARCHAR     | NOT NULL | 食事区分。`BREAKFAST` / `LUNCH` / `DINNER` / `OTHER` のいずれか  |
+| `recipe_id` | UUID        | NOT NULL | 紐づくレシピ（`recipes.id` への外部キー）                        |
+| `servings`  | NUMERIC     | NOT NULL | この献立における実人数（例：1, 2）                               |
+| `memo`      | TEXT        | NULL     | メモ（任意）                                                      |
+| `created_at`| TIMESTAMPTZ | NOT NULL | 作成日時（UTC）                                                   |
+| `updated_at`| TIMESTAMPTZ | NOT NULL | 更新日時（UTC）                                                   |
 
-ここで：
+### 5.3 主キー / 外部キー / インデックス
 
-- `date`: `YYYY-MM-DD` 形式の文字列（例：`2025-11-21`）
-- `mealType`: `"BREAKFAST" | "LUNCH" | "DINNER" | "OTHER"` など
-- `menuId`: 同じ日・同じ食事区分に複数レシピを登録する可能性を考慮した一意ID（UUID など）
-
-### 5.3 主な属性
-
-- `userId`: string
-- `date`: string (`YYYY-MM-DD`)
-- `mealType`: `"BREAKFAST" | "LUNCH" | "DINNER" | "OTHER"`
-- `menuId`: string（UUID）
-- `recipeId`: string
-- `servings`: number
-  - この献立における実人数（例：1人分 / 2人分）
-
-- `memo`: string (nullable)
-- `createdAt`: string (ISO8601)
-- `updatedAt`: string (ISO8601)
+- **PRIMARY KEY**: `id`
+- **FOREIGN KEY**: `recipe_id` → `recipes(id)`
+- **INDEX**: `(user_id, date)` — ユーザーごとの期間検索に使用
 
 ### 5.4 想定アクセスパターン
 
-1. **特定期間の献立一覧を取得する**
-   - 条件：ユーザー＋日付期間（例：2025-11-21〜2025-11-27）
-   - DynamoDB 操作：
-     - 単一 PK (`userId`) なので、純粋な日付範囲での `Query` は直接はできない
-     - 対応案：
-       - `Menus` テーブルに GSI を張る
-       - もしくは、当面は「当日 or 数日分」を前提に `Query + FilterExpression` を利用
-
-※ 個人用＆件数が少ない前提のため、**最初の段階ではシンプルさを優先し、
-`userId` 固定で `Query` → Lambda側で日付フィルタ**という方針でも良い。
-
-将来的に件数が増えた場合は、
-`GSI: PK = date, SK = userId#mealType#menuId` のようなインデックスを追加する。
+1. **指定期間の献立一覧を取得する**
+   - `SELECT * FROM menus WHERE user_id = $1 AND date BETWEEN $2 AND $3`
 
 2. **特定日付の献立をまとめて取得**
-   - `Query`（`userId = :uid`）＋ Filterで `date = :date` でも十分対応可能。
+   - `SELECT * FROM menus WHERE user_id = $1 AND date = $2`
 
-### 5.5 アイテム例
+### 5.5 レコード例
 
 ```json
 {
-  "userId": "user-001",
-  "SK": "2025-11-21#DINNER#5b5af0bb-3c10-45e7-8f5e-6f541b2da111",
+  "id": "5b5af0bb-3c10-45e7-8f5e-6f541b2da111",
+  "user_id": "user-001",
   "date": "2025-11-21",
-  "mealType": "DINNER",
-  "menuId": "5b5af0bb-3c10-45e7-8f5e-6f541b2da111",
-  "recipeId": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11",
+  "meal_type": "DINNER",
+  "recipe_id": "c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11",
   "servings": 1,
   "memo": null,
-  "createdAt": "2025-11-20T21:00:00.000Z",
-  "updatedAt": "2025-11-20T21:00:00.000Z"
+  "created_at": "2025-11-20T21:00:00.000Z",
+  "updated_at": "2025-11-20T21:00:00.000Z"
 }
 ```
 
@@ -277,7 +224,7 @@
 ### 6.1 用途
 
 - 指定期間内の献立から必要な材料を集計し、**一時的な計算結果として返す**。
-- DynamoDB にテーブルは作らず、Lambda 内で動的に生成する。
+- テーブルは持たず、Hono / サーバー側で動的に生成する。
 
 ### 6.2 データ構造（レスポンス例）
 
@@ -300,46 +247,40 @@
 }
 ```
 
-### 6.3 集計ロジック概要（Lambda内）
+### 6.3 集計ロジック概要（サーバー側）
 
 1. `GET /shopping-list?from&to` でリクエストを受ける
-2. `Menus` テーブルから指定期間内の献立を取得
-3. 各 `recipeId` について `RecipeIngredients` を Query する
-4. `servings` と `baseServings` の比率で材料をスケーリングする
-5. `ingredientName` + `unit` ごとに合計値を算出
+2. `menus` テーブルから指定期間内の献立を取得
+3. 各 `recipe_id` について `recipe_ingredients` を取得
+4. `servings` と `base_servings` の比率で材料をスケーリングする
+5. `ingredient_name` + `unit` ごとに合計値を算出
 6. 上記構造でレスポンスとして返却
 
 ---
 
-## 7. PantryItems テーブル（将来の拡張）
+## 7. pantry_items テーブル（将来の拡張）
 
 ### 7.1 用途
 
 - 常備している材料（塩、醤油、砂糖など）や在庫を管理する。
 - 買い物リストから除外したい材料を指定できるようにする。
 
-### 7.2 キースキーマ（案）
+### 7.2 カラム定義（案）
 
-- **Partition Key (PK)**: `userId` (string)
-- **Sort Key (SK)**: `ingredientName` (string)
+| カラム名           | 型          | NULL     | 説明                                         |
+| ------------------ | ----------- | -------- | -------------------------------------------- |
+| `id`               | UUID        | NOT NULL | 主キー                                       |
+| `user_id`          | VARCHAR     | NOT NULL | ユーザーの識別子                             |
+| `ingredient_name`  | VARCHAR     | NOT NULL | 材料名                                       |
+| `always_available` | BOOLEAN     | NOT NULL | true の場合、買い物リストから基本的に除外    |
+| `quantity`         | NUMERIC     | NULL     | 在庫数（数値管理する場合）                   |
+| `unit`             | VARCHAR     | NULL     | 単位                                         |
+| `updated_at`       | TIMESTAMPTZ | NOT NULL | 更新日時（UTC）                              |
 
-### 7.3 主な属性（案）
+### 7.3 想定アクセスパターン
 
-- `userId`: string
-- `ingredientName`: string
-- `alwaysAvailable`: boolean
-  - true の場合、買い物リストから基本的に除外する
-
-- `quantity`: number (nullable)
-  - 在庫を数値で管理したくなった場合に使用
-
-- `unit`: string (nullable)
-- `updatedAt`: string (ISO8601)
-
-### 7.4 想定アクセスパターン
-
-- ロード時に、ユーザーの `PantryItems` を全件取得してローカルにキャッシュ
-- 買い物リスト作成時に、`alwaysAvailable = true` の材料を除外または別枠表示
+- ロード時に、ユーザーの `pantry_items` を全件取得してローカルにキャッシュ
+- 買い物リスト作成時に、`always_available = true` の材料を除外または別枠表示
 
 ---
 
@@ -351,8 +292,8 @@
 // Domain-level types (概念としての型)
 
 export type Recipe = {
-  userId: string;
   recipeId: string;
+  userId: string;
   name: string;
   sourceBook?: string | null;
   sourcePage?: number | null;
@@ -363,19 +304,18 @@ export type Recipe = {
 };
 
 export type RecipeIngredient = {
-  userId: string;
   recipeId: string;
   ingredientName: string;
-  quantity: number | string;
+  quantity: number | string; // API レスポンス上は quantity_value / quantity_text を統合して返す
   unit: string;
   note?: string | null;
 };
 
 export type MenuItem = {
+  menuId: string;
   userId: string;
   date: string; // YYYY-MM-DD
   mealType: "BREAKFAST" | "LUNCH" | "DINNER" | "OTHER";
-  menuId: string;
   recipeId: string;
   servings: number;
   memo?: string | null;
@@ -400,14 +340,11 @@ export type ShoppingList = {
 
 ## 9. 今後の見直しポイント（メモ）
 
-- `RecipeIngredients` で `quantity` を number と string に分離するか検討
-  - 例：`quantityValue` (number?) + `quantityText` (string?) 形式
+- `recipe_ingredients.quantity` を `quantity_value` / `quantity_text` に分離しているが、
+  API レスポンスでは `number | string` に統合するため、変換ロジックをどこに置くか設計する
 
-- `Menus` の期間検索の効率化
-  - 必要になったら `GSI` を追加して、`date` をキーにした検索を可能にする
+- `menus` の期間検索は `(user_id, date)` インデックスで十分か、件数が増えたら見直す
 
-- 単一テーブル設計（Single Table Design）への移行の可能性
-  - `PK: userId, SK: <type>#<id>...` という形に統合する案もあり
-  - まずは複数テーブル構成で実装し、必要に応じてリファクタリングで対応
+- 将来的に複数ユーザー対応する場合、`user_id` をサーバー側（Cloudflare Access JWT）から取得するロジックを追加する
 
 ---
