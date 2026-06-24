@@ -11,27 +11,25 @@
 
 - フロントエンド
   - Vite + React + TypeScript による SPA
-  - S3 バケットに静的ホスティング
-  - CloudFront を介して配信（HTTPS / キャッシュ / ドメイン）
+  - ビルド済み静的ファイルを Hono サーバーが配信
 
 - バックエンド
-  - AWS Lambda (Node.js + TypeScript)
-    - 1つの Lambda で複数のパスを処理する小さめモノリス構成
-  - API Gateway (HTTP API)
-    - Lambda プロキシ統合
-    - Cognito User Pool による JWT 認証
+  - Hono (Bun ランタイム) — ローカルPC上で常時起動
+    - API + 静的ファイル配信を担う小規模モノリス構成
 
 - データストア
-  - DynamoDB
-    - `Recipes`, `RecipeIngredients`, `Menus` など
+  - PostgreSQL — ローカルPC上で起動
+    - `recipes`, `recipe_ingredients`, `menus` など
+
+- ネットワーク公開
+  - Cloudflare Tunnel
+    - ローカルPC の Hono サーバー（指定ポート）をインターネットに公開
+    - HTTPS 終端は Cloudflare 側で処理
 
 - 認証
-  - Amazon Cognito User Pool
-    - SPA 用の App Client
-    - Hosted UI or SDK によるログインフロー
-
-- インフラ管理
-  - AWS CDK（TypeScript）
+  - Cloudflare Access（Zero Trust）
+    - Cloudflare Tunnel のエンドポイントにアクセス制御を設定
+    - 未認証リクエストは Hono サーバーに到達しない
 
 ---
 
@@ -43,72 +41,67 @@ flowchart LR
     UI["React SPA"]
   end
 
-  subgraph AWS
-    CF["CloudFront"]
-    S3["S3 Static Hosting"]
-    APIGW["API Gateway HTTP API"]
-    LAMBDA["Lambda (Node.js)"]
-    DDB[("DynamoDB")]
-    COG["Cognito User Pool"]
+  subgraph Cloudflare
+    ACCESS["Cloudflare Access\n(Zero Trust)"]
+    TUNNEL["Cloudflare Tunnel"]
   end
 
-  UI -->|"HTTPS (HTML/JS/CSS)"| CF --> S3
-  UI -->|"HTTPS /api/* + Authorization: Bearer JWT"| APIGW --> LAMBDA --> DDB
-  UI -->|"OIDC/OAuth"| COG
-  APIGW -->|"JWT Authorizer"| COG
+  subgraph LocalPC["ローカルPC"]
+    HONO["Hono Server\n(Bun)"]
+    PG[("PostgreSQL")]
+  end
 
+  UI -->|"HTTPS"| ACCESS
+  ACCESS -->|"認証済みリクエスト"| TUNNEL
+  TUNNEL -->|"HTTP (ローカル)"| HONO
+  HONO --> PG
 ```
 
 ---
 
 ## 2. 技術選定の理由
 
-### 2.1 SPA + 静的ホスティング
+### 2.1 SPA + Hono による静的ファイル配信
 
 - 想定ユーザーは自分1人（＋せいぜい少人数）で、
   **SEO が不要**なため SSR や SSG の必要性が低い。
-- S3 + CloudFront による静的ホスティングは
-  - コストが安く
-  - 運用も軽い
+- API サーバーと静的ファイル配信を同一プロセスで行うことで、
+  - デプロイ手順がシンプルになる
+  - CORS 設定が不要になる
 
 - React SPA にすることで UI ロジックをすべてブラウザ側に集約できる。
 
-### 2.2 Serverless（Lambda + API Gateway）構成
+### 2.2 Hono + ローカルPC 構成
 
-- 常時稼働のサーバー（EC2 / App Runner）を持たないため、
-  **個人利用に適した料金体系**になる。
-- トラフィックが少ない前提であれば、
-  Lambda のコールドスタートも許容範囲。
-- Spring Boot などの重量級フレームワークを使わず、
-  シンプルな TypeScript/Node.js コードで実装できる。
+- 常時稼働のクラウドサーバーを持たないため、クラウドの費用がかからない。
+- Bun ランタイムにより高速な起動・実行が可能。
+- Hono は軽量なため、ローカルPCのリソース消費が少ない。
+- Lambda のコールドスタートや DynamoDB の制約がなく、開発・デバッグが容易。
 
-### 2.3 DynamoDB 選定理由
+### 2.3 PostgreSQL 選定理由
 
-- データ量は少なく、スキーマも比較的単純。
-- 「レシピ」「献立」「材料」などのエンティティが
-  明確なキー構造を持っており、NoSQLで問題ない。
-- フルマネージドで、オートスケーリング・運用負荷が低い。
-- RDS よりもコスト・運用を抑えられる。
+- リレーショナルなデータ構造（レシピ・材料・献立）に適している。
+- SQL によるクエリが直感的で、複雑な集計（買い物リスト生成など）に向いている。
+- ローカルPCで動かすため、フルマネージドサービス（DynamoDB等）の制約を受けない。
+- トランザクション（ACID）が標準でサポートされている。
 
-### 2.4 Cognito 認証
+### 2.4 Cloudflare Access 認証
 
-- 一般公開はせず、**自分専用のアプリにログインをかけたい**。
-- Amazon Cognito User Pool を利用することで、
-  - ID/パスワード管理
-  - Hosted UI（ログイン画面）
-  - JWT 発行
-    をマネージドで利用できる。
+- 一般公開はせず、**自分専用のアプリにアクセス制御をかけたい**。
+- Cloudflare Access を利用することで、
+  - Cloudflare のダッシュボードで認証ポリシーを管理できる
+  - メール OTP・Google SSO などの認証方法をコードなしで設定できる
+  - Hono 側に認証ロジックを書く必要がない
 
-- API Gateway の JWT Authorizer と相性が良い。
+- Cloudflare Tunnel と組み合わせることで、
+  ローカルPCのポートを直接インターネットに開放せずに済む。
 
-- **Hosted UI Domain**: `cooking-planner-{stage}` というプレフィックスで Cognito ドメインを作成する。
-  - 例（prod）：`cooking-planner-prod.auth.ap-northeast-1.amazoncognito.com`
-  - 例（dev）：`cooking-planner-dev.auth.ap-northeast-1.amazoncognito.com`
+### 2.5 Cloudflare Tunnel 選定理由
 
-- **App Client の OAuth 設定**：
-  - フロー：Authorization Code Grant（Hosted UI を使った安全なフロー）
-  - スコープ：`openid`, `email`, `profile`
-  - callback URL / logout URL は stage ごとに CDK context で指定する（後述）
+- ローカルPCで動くサーバーをインターネット公開するために必要。
+- ルーターへのポート開放・固定IPが不要。
+- Cloudflare のエッジで HTTPS 終端するため、TLS 証明書管理が不要。
+- `cloudflared` コマンド1つで起動・停止できる。
 
 ---
 
@@ -116,12 +109,9 @@ flowchart LR
 
 ### 3.1 想定環境
 
-- `dev`（任意）：開発中に使う環境（必要であれば）
-- `prod`：本番環境（実際に自分が使う環境）
-
-個人開発のため、最初は `prod` のみでもよい。
-CDK 上では `stage` （例：`dev` or `prod`）をパラメータとして扱えるようにしておくと、
-後で環境を分けたくなった際に便利。
+- ローカルPC 上で Hono + PostgreSQL を起動し、Cloudflare Tunnel で公開する構成のみ。
+- クラウド環境（dev / prod のような分離）は現時点では設けない。
+- 個人開発のため、本番＝ローカルPC という前提。
 
 ---
 
@@ -132,80 +122,44 @@ CDK 上では `stage` （例：`dev` or `prod`）をパラメータとして扱�
 例：`frontend/.env` など
 
 - `VITE_API_BASE_URL`
-  - 例：`https://xxx.cloudfront.net/api`
+  - 例：`https://<cloudflare-tunnel-domain>/api`
+  - 同一オリジンのため、空文字（相対パス）でも可
 
-- `VITE_COGNITO_USER_POOL_ID`
-- `VITE_COGNITO_CLIENT_ID`
-- `VITE_COGNITO_REGION`
-- `VITE_COGNITO_DOMAIN`
-  - 例：`cooking-planner-prod.auth.ap-northeast-1.amazoncognito.com`
-- `VITE_COGNITO_REDIRECT_URI`
-- `VITE_COGNITO_LOGOUT_REDIRECT_URI`
+※ 認証は Cloudflare Access が担うため、Cognito 関連の環境変数は不要。
 
-※ セキュリティ上問題ない情報（User Pool ID, Client ID など）はフロントにも持たせる。
+### 4.2 バックエンド（Hono）側
 
-### 4.1.1 prod / dev の URL 切り替え方針
+例：`.env` など
 
-| 環境   | callback URL                                   | logout URL                                |
-| ------ | ---------------------------------------------- | ----------------------------------------- |
-| `dev`  | `http://localhost:5173/callback`（デフォルト） | `http://localhost:5173`（デフォルト）     |
-| `prod` | CloudFront URL / カスタムドメイン（必須）      | CloudFront URL / カスタムドメイン（必須） |
+- `PORT`
+  - Hono サーバーのリスニングポート（例：`3000`）
+  - Cloudflare Tunnel の転送先ポートと一致させる
 
-CDK デプロイ時に以下の context パラメータで URL を指定する：
-
-```bash
-# prod 環境
-cdk deploy \
-  --context stage=prod \
-  --context allowedOrigins=https://xxx.cloudfront.net \
-  --context callbackUrls=https://xxx.cloudfront.net/callback \
-  --context logoutUrls=https://xxx.cloudfront.net
-
-# dev 環境（省略時はデフォルト値が使われる）
-cdk deploy --context stage=dev
-```
-
-- `prod` 環境では `callbackUrls` / `logoutUrls` を省略すると CDK synth 時にエラーになる（fail-closed）。
-- 複数 URL を指定する場合はカンマ区切りで渡す。
-
-### 4.2 Lambda / API側
-
-Lambda の環境変数として設定：
-
-- `RECIPES_TABLE_NAME`
-- `RECIPE_INGREDIENTS_TABLE_NAME`
-- `MENUS_TABLE_NAME`
-- `PANTRY_ITEMS_TABLE_NAME`（将来）
-- （必要であれば）`NODE_ENV`, `LOG_LEVEL` など
-
-CDK スタック内で DynamoDB テーブル生成時に名前を決め、
-その名前を Lambda の環境変数として渡す。
+- `DATABASE_URL`
+  - PostgreSQL 接続文字列
+  - 例：`postgresql://user:password@localhost:5432/cooking_planner`
 
 ---
 
-## 5. デプロイ / CI の方針（初期）
+## 5. デプロイ / 起動の方針
 
-### 5.1 手動デプロイ（初期想定）
+### 5.1 起動手順（ローカルPC）
 
-- フロント
-  - `npm run build` で `dist/` を生成
-  - S3 に `sync`（`aws s3 sync dist/ s3://<bucket>/`）
-  - CloudFront のキャッシュは必要に応じて無効化
+1. PostgreSQL を起動する
+2. Hono サーバーを起動する（例：`bun run start`）
+3. Cloudflare Tunnel を起動する（例：`cloudflared tunnel run <tunnel-name>`）
 
-- バックエンド & インフラ
-  - CDK プロジェクトで `cdk deploy` を実行
-  - Lambda コードは CDK 経由でデプロイ（`NodejsFunction` など）
+### 5.2 フロントエンドのビルドと配信
 
-### 5.2 CI/CD（余裕があれば）
+- `bun run build`（Vite）で `frontend/dist/` を生成
+- Hono サーバーが `dist/` ディレクトリを静的ファイルとして配信
 
-- GitHub Actions などで、
-  - mainブランチへの push / PR マージ時に
-    - `npm test` / `npm run lint` を実行
-    - CDK デプロイ
-    - フロントのビルド＆S3デプロイ
-      を自動化
+### 5.3 CI（任意）
 
-### 5.3 ドキュメントサイト（GitHub Pages）
+- GitHub Actions で `bun run lint` / `bun run type-check` / `bun run test` を実行
+- デプロイは手動（ローカルPC での再起動）
+
+### 5.4 ドキュメントサイト（GitHub Pages）
 
 - Docusaurus で生成したドキュメントサイトを GitHub Pages で公開する。
 - ワークフロー：`.github/workflows/docs-deploy.yml`
@@ -221,48 +175,39 @@ CDK スタック内で DynamoDB テーブル生成時に名前を決め、
 
 ### 6.1 認証
 
-- Cognito User Pool にユーザーを1人（自分）登録。
-- SPA から Cognito Hosted UI でログインし、トークンを取得。
-- API 呼び出し時は `Authorization: Bearer <JWT>` ヘッダを付与。
+- Cloudflare Access のポリシーで、自分のメールアドレスのみアクセスを許可。
+- 未認証のリクエストは Cloudflare Access でブロックされ、Hono サーバーに到達しない。
 
-### 6.2 認可（Lambda側）
+### 6.2 認可（Hono側）
 
-- Lambda 内で `userId` を決定するためのルール：
-  - JWT の `sub` or `email` を `userId` として扱う
-
-- DynamoDB 操作時に必ず `userId` をキー条件に含めることで、
-  他ユーザーのデータを誤って読むことを防ぐ。
-
-（現時点ではユーザーは1人だが、実装パターンとしては多ユーザーを前提とした書き方にしておく。）
+- 個人利用のため、厳密な多ユーザー認可は不要。
+- 将来的に複数ユーザーを想定する場合は、Hono ミドルウェアで Cloudflare Access JWT を検証し、
+  メールアドレスやユーザーIDをリクエストコンテキストに設定する実装を追加する。
 
 ### 6.3 通信の保護
 
-- すべてのフロントアクセスは HTTPS（CloudFront + ACM 証明書）
-- API Gateway エンドポイントも HTTPS のみ
+- すべてのフロントアクセスは HTTPS（Cloudflare Tunnel + Cloudflare が HTTPS 終端）
+- Cloudflare Tunnel → ローカルPC 間はローカルループバック（HTTP）で通信
 
 ---
 
 ## 7. ログ・監視
 
-### 7.1 CloudWatch Logs
+### 7.1 アプリケーションログ
 
-- Lambda の標準出力（`console.log`, `console.error`）を CloudWatch Logs に送信。
+- Hono の標準出力（`console.log`, `console.error`）でログを出力。
 - ログ設計（初期方針）：
   - APIリクエストごとに最低限の情報を出す：
     - HTTPメソッド
     - パス
-    - userId（わかる範囲で）
     - ステータスコード
 
   - エラー時に stack trace を出力（ただし機微情報は含めない）
 
 ### 7.2 メトリクス
 
-- 初期段階では、細かいアラートは不要。
-- 必要になれば：
-  - Lambda のエラーレート
-  - API Gateway の 5xx レート
-    に CloudWatch アラーム設定を検討。
+- 初期段階では、細かい監視は不要。
+- 必要になれば Cloudflare のダッシュボードでアクセスログ・トラフィックを確認できる。
 
 ---
 
@@ -271,63 +216,42 @@ CDK スタック内で DynamoDB テーブル生成時に名前を決め、
 ### 8.1 ローカル開発
 
 - フロント
-  - `npm run dev`（Vite dev server）で開発
-  - API は一旦モック or 実際の API Gateway を叩く（CORS 設定必要）
+  - `bun run dev`（Vite dev server）で開発
+  - API は実際の Hono サーバー（ローカル）を叩く（同一オリジンのためCORS不要）
 
 - バックエンド
-  - ローカルで Lambda をそのまま実行して単体テスト
-  - もしくは `sam local` / `lambda-local` ツールなどを使う
-  - 基本は「型・ユニットテスト＋実環境の dev ステージで動作確認」という運用でもよい
+  - `bun run dev`（HonoサーバーをWatch modeで起動）
+  - PostgreSQL はローカルで起動しておく
 
-### 8.2 インフラ変更時
+### 8.2 スキーマ変更時
 
-- DynamoDB のテーブル構造や Lambda 環境変数を変更した場合：
+- PostgreSQL のテーブル構造を変更した場合：
   - `docs/03-domain-and-data-model.md` を更新
-  - `cdk diff` で変更差分を確認
-  - 問題なければ `cdk deploy` を実行
+  - マイグレーションファイルを追加・実行
 
 ---
 
-## 9. データ整合性と補償トランザクション
+## 9. データ整合性とトランザクション
 
-### 9.1 レシピ更新の補償パターン
+### 9.1 PostgreSQL トランザクション
 
-DynamoDB はマルチテーブルのアトミックなトランザクションを `TransactWriteItems` で提供しているが、
-`PUT /recipes/{recipeId}` の実装では **段階的な書き込み＋ベストエフォートの補償** を採用している。
+- PostgreSQL はネイティブで ACID トランザクションをサポートしているため、
+  DynamoDB 時代のような補償トランザクション（ベストエフォート）は不要。
 
-**処理順序（正常系）**
+- `PUT /recipes/{recipeId}` の実装では、単一トランザクション内で：
+  1. `recipes` テーブルのレコードを更新
+  2. 既存の `recipe_ingredients` を全削除
+  3. 新しい `recipe_ingredients` を一括挿入
 
-1. `Recipes` テーブルのレコードを `PutItem`（ConditionExpression で既存チェック）
-2. 既存の `RecipeIngredients` を `BatchWriteItem`（DeleteRequest）で全削除
-3. 新しい `RecipeIngredients` を `BatchWriteItem`（PutRequest）で全挿入
-
-**障害発生時の補償（異常系）**
-
-途中でエラーが発生した場合（DynamoDB スロットリング等）、Lambda は以下の補償処理を試みる：
-
-1. `Recipes` を更新前の状態に復元
-2. ロールバック対象のキー（削除済み＋新規追加済みの可能性がある両方）を削除
-3. 元の `RecipeIngredients` を復元
-
-**制約事項**
-
-- この補償はベストエフォートであり、補償処理自体が失敗した場合でも 500 エラーとしてクライアントに返す。
-- 補償失敗は CloudWatch Logs に `console.error` で記録されるが、データの不整合が残る可能性がある。
-- 個人用途で件数が少ないため、現時点では `TransactWriteItems` による完全なアトミック処理への移行は後回しにしている。
-
-> **将来の改善案**: レシピ本体の更新と材料の削除・挿入を含めた `TransactWriteItems` の操作数が上限（100件）に収まるのであれば、
-> より堅牢なトランザクション実装への移行を検討する。
+  を行い、いずれかで失敗した場合はロールバックされる。
 
 ---
 
 ## 10. 今後のアーキ面での拡張余地（メモ）
 
-- `Menus` の期間クエリ効率向上のための GSI 追加
-- 単一テーブル設計（Single Table Design）への移行
-  - 例：`PK: userId, SK: <entityType>#<id>...`
-
+- Honoミドルウェアでの Cloudflare Access JWT 検証（多ユーザー対応時）
+- PostgreSQL の接続プール設定（利用が増えた場合）
 - PWA 対応（オフラインでの買い物リスト利用）
-- CloudFront Functions / Lambda@Edge を使ったより細かいルーティングや認証前処理
 - 家族など複数ユーザー利用を見据えた権限管理（role ベースなど）
 
 ---

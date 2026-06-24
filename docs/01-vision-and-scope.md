@@ -13,7 +13,7 @@ Cooking Planner（仮）
 - 書籍に載っているレシピをデータとして登録し直す
 - 日付ごとに「この日の朝・昼・夜に何を作るか」を決める
 - 複数日の献立から「足りない材料だけ」をまとめて買い物リストとして取得する
-- アプリはインターネット上に公開するが、**ログインした自分だけが利用できる**
+- アプリはインターネット上に公開するが、**Cloudflare Access で認証した自分だけが利用できる**
 
 ---
 
@@ -78,7 +78,7 @@ Cooking Planner（仮）
   - 同じ材料は合算した数量で表示（例：玉ねぎ 0.5個 + 1個 → 1.5個）
   - チェックボックスで「買った／家にある」管理ができる
 - 外部からアクセスできるURLでホストするが、  
-  **ログインした自分以外は使えない（/Cognito + JWTベースの認証）**
+  **Cloudflare Access で認証済みの自分以外は使えない**
 
 ### 4.2 非ゴール（当面やらないこと）
 
@@ -107,11 +107,11 @@ Cooking Planner（仮）
   - 材料名ごとに必要量を集約したリストを返す
   - スマホから閲覧可能なチェックリストUI
 - 認証
-  - Cognito User Pool によるログイン
-  - ログイン済みユーザーのみAPIにアクセスできる（API Gateway + JWT Authorizer）
+  - Cloudflare Access によるアクセス制御
+  - Cloudflare Access を通過したリクエストのみAPIにアクセスできる
 - デプロイ
-  - インターネットからアクセス可能なURL
-  - HTTPS対応（CloudFront）
+  - Cloudflare Tunnel によるインターネット公開
+  - HTTPS対応（Cloudflare が終端）
 
 ### 5.2 Should（余裕があれば入れたい）
 
@@ -136,21 +136,21 @@ Cooking Planner（仮）
 - Vite + React + TypeScript の SPA
 - React Router によるクライアントサイドルーティング
 - TanStack Query（React Query）によるサーバー状態管理
-- S3 に静的ホスティング、CloudFront経由で配信
+- Hono サーバーが静的ファイルとして配信（Cloudflare Tunnel 経由）
 
 ### 6.2 バックエンド / インフラ
 
-- AWS Lambda (Node.js + TypeScript)
-  - 1つのLambda関数で複数パスをさばく小規模モノリス構成
-- API Gateway HTTP API
-  - Cognito User Pool を用いたJWT認証（Authorizer）
-- DynamoDB
-  - `Recipes`, `RecipeIngredients`, `Menus` などのテーブル
-  - 当面はユーザーは1人前提だが、`userId` 属性は持たせておく
-- Amazon Cognito User Pool
-  - SPA向けのApp Client
-  - Hosted UI or フロントから直接トークン取得
-- AWS CDK によるインフラ定義・デプロイ
+- Hono (Bun ランタイム)
+  - ローカルPC上で常時起動
+  - 1つのプロセスで API + 静的ファイル配信を担う小規模モノリス構成
+- PostgreSQL
+  - ローカルPC上で起動
+  - `recipes`, `recipe_ingredients`, `menus` などのテーブル
+- Cloudflare Tunnel
+  - ローカルPCのHonoサーバーをインターネットに公開
+  - HTTPS終端はCloudflare側で処理
+- Cloudflare Access
+  - Zero Trust によるアクセス制御（自分以外がアクセスできないようにする）
 
 ---
 
@@ -162,8 +162,8 @@ Cooking Planner（仮）
 - 可用性
   - 「たまにLambdaのコールドスタートで少し遅い」程度は許容
 - セキュリティ
-  - 外部からAPIを叩くには Cognitoでログイン済みのJWTが必須
-  - https 通信のみ（CloudFront + ACM）
+  - 外部からアクセスするには Cloudflare Access による認証が必須
+  - https 通信のみ（Cloudflare Tunnel + Cloudflare が HTTPS 終端）
 - 運用
-  - CloudWatch Logsで最低限のログを確認できること
+  - Honoのログ出力（標準出力）で最低限のログを確認できること
   - 個人利用のため、アラートは必須ではない（必要になったら追加）
