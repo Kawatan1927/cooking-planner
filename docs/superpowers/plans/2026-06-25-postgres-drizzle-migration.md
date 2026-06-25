@@ -554,10 +554,10 @@ export const replaceRecipeWithIngredients = async (
 - [ ] **Step 2: 型チェック（本ファイル）**
 
 ```bash
-cd backend && bunx tsc --noEmit && cd ..
+bun run backend:type-check
 ```
 
-Expected: `repository.ts` に起因する型エラーがないこと（旧ハンドラー由来のエラーは Task 4 で解消）。
+Expected: `recipes/repository.ts` に起因する型エラーがないこと（旧ハンドラー由来のエラーは Task 4 で解消されるため、この時点では全体は通らなくてよい）。`bunx`/`tsc` 直呼びは禁止、必ずスクリプト経由で実行する。
 
 - [ ] **Step 3: コミット**
 
@@ -1122,10 +1122,10 @@ export const deleteMenuForUser = async (userId: string, menuId: string): Promise
 - [ ] **Step 2: 型チェック（本ファイル）**
 
 ```bash
-cd backend && bunx tsc --noEmit && cd ..
+bun run backend:type-check
 ```
 
-Expected: `menus/repository.ts` に起因する型エラーがないこと（旧ハンドラー由来のエラーは Task 6 で解消）。
+Expected: `menus/repository.ts` に起因する型エラーがないこと（旧ハンドラー由来のエラーは Task 6 で解消されるため、この時点では全体は通らなくてよい）。`bunx`/`tsc` 直呼びは禁止、必ずスクリプト経由で実行する。
 
 - [ ] **Step 3: コミット**
 
