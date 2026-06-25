@@ -8,6 +8,7 @@ import {
   notFound,
 } from '../shared/http';
 import { getUserId } from '../shared/auth';
+import { isUuid } from '../shared/validation';
 
 interface RecipeIngredientResponse {
   ingredientName: string;
@@ -38,6 +39,9 @@ export const getRecipeById = async (c: Context): Promise<HandlerResult> => {
     const recipeId = c.req.param('recipeId');
     if (!recipeId) {
       return badRequest('Recipe ID is required');
+    }
+    if (!isUuid(recipeId)) {
+      return notFound('Recipe not found', 'RECIPE_NOT_FOUND');
     }
 
     const result = await findRecipeWithIngredients(userId, recipeId);

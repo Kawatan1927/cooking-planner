@@ -8,6 +8,7 @@ import {
   notFound,
 } from '../shared/http';
 import { getUserId } from '../shared/auth';
+import { isUuid } from '../shared/validation';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
@@ -21,6 +22,9 @@ export const deleteMenu = async (c: Context): Promise<HandlerResult> => {
     const menuId = c.req.param('menuId');
     if (!menuId) {
       return badRequest('Menu ID is required');
+    }
+    if (!isUuid(menuId)) {
+      return notFound('Menu not found', 'MENU_NOT_FOUND');
     }
 
     console.log(

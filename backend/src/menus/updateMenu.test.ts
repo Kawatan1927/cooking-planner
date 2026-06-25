@@ -18,8 +18,10 @@ vi.mock('../shared/auth', () => ({
 
 import app from '../app';
 
+const MENU_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+
 const putMenu = (body: unknown): Promise<Response> =>
-  app.request('/menus/menu-123', {
+  app.request(`/menus/${MENU_UUID}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -42,8 +44,8 @@ describe('PUT /menus/:menuId', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ menuId: 'menu-123' });
-    expect(updateMenuForUserMock).toHaveBeenCalledWith('user-123', 'menu-123', {
+    expect(await response.json()).toEqual({ menuId: MENU_UUID });
+    expect(updateMenuForUserMock).toHaveBeenCalledWith('user-123', MENU_UUID, {
       date: '2026-05-21',
       mealType: 'LUNCH',
       recipeId: 'recipe-new',
@@ -70,6 +72,25 @@ describe('PUT /menus/:menuId', () => {
         details: null,
       },
     });
+  });
+
+  it('UUID 形式でない menuId は 404 を返し、リポジトリを呼ばない', async () => {
+    const response = await app.request('/menus/not-a-uuid', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: '2026-05-21',
+        mealType: 'LUNCH',
+        recipeId: 'recipe-new',
+        servings: 2,
+      }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      error: { code: 'MENU_NOT_FOUND', message: 'Menu not found', details: null },
+    });
+    expect(updateMenuForUserMock).not.toHaveBeenCalled();
   });
 
   it('servings が不正な場合は 400 を返し、リポジトリを呼ばない', async () => {

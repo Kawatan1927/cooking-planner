@@ -23,9 +23,10 @@ describe('GET /recipes/:recipeId', () => {
   });
 
   it('レシピ本体と材料一覧を返す', async () => {
+    const recipeId = '11111111-1111-1111-1111-111111111111';
     findRecipeWithIngredientsMock.mockResolvedValue({
       recipe: {
-        recipeId: 'recipe-123',
+        recipeId,
         userId: 'user-123',
         name: '親子丼',
         sourceBook: '和食本',
@@ -36,16 +37,16 @@ describe('GET /recipes/:recipeId', () => {
         updatedAt: '2026-05-21T00:00:00.000Z',
       },
       ingredients: [
-        { recipeId: 'recipe-123', ingredientName: '鶏もも肉', quantity: 300, unit: 'g' },
-        { recipeId: 'recipe-123', ingredientName: '卵', quantity: 2, unit: '個', note: '溶く' },
+        { recipeId, ingredientName: '鶏もも肉', quantity: 300, unit: 'g' },
+        { recipeId, ingredientName: '卵', quantity: 2, unit: '個', note: '溶く' },
       ],
     });
 
-    const response = await app.request('/recipes/recipe-123');
+    const response = await app.request(`/recipes/${recipeId}`);
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      recipeId: 'recipe-123',
+      recipeId,
       name: '親子丼',
       sourceBook: '和食本',
       sourcePage: 12,
@@ -58,17 +59,28 @@ describe('GET /recipes/:recipeId', () => {
         { ingredientName: '卵', quantity: 2, unit: '個', note: '溶く' },
       ],
     });
-    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-123');
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', recipeId);
   });
 
   it('別 userId のレシピは取得できず 404 を返す', async () => {
+    const recipeId = '22222222-2222-2222-2222-222222222222';
     findRecipeWithIngredientsMock.mockResolvedValue(null);
 
-    const response = await app.request('/recipes/recipe-123');
+    const response = await app.request(`/recipes/${recipeId}`);
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
       error: { code: 'RECIPE_NOT_FOUND', message: 'Recipe not found', details: null },
     });
+  });
+
+  it('UUID 形式でない recipeId は 404 を返し、リポジトリを呼ばない', async () => {
+    const response = await app.request('/recipes/not-a-uuid');
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      error: { code: 'RECIPE_NOT_FOUND', message: 'Recipe not found', details: null },
+    });
+    expect(findRecipeWithIngredientsMock).not.toHaveBeenCalled();
   });
 });

@@ -17,14 +17,19 @@ backend/
 │   │   ├── recipes.ts        # /recipes
 │   │   ├── menus.ts          # /menus
 │   │   └── shoppingList.ts   # /shopping-list
-│   ├── recipes/  menus/  shoppingList/   # ドメインのビジネスロジック（ハンドラー）
+│   ├── recipes/              # レシピドメイン（ハンドラー + repository.ts）
+│   ├── menus/                # 献立ドメイン（ハンドラー + repository.ts）
+│   ├── shoppingList/         # 買い物リストドメイン（ハンドラー）
 │   └── shared/               # 共通レイヤー
 │       ├── auth.ts           # getUserId(c)（認証移行までの暫定スタブ）
+│       ├── db.ts             # postgres-js + Drizzle ORM 接続設定
+│       ├── schema.ts         # Drizzle スキーマ定義（テーブル / 型）
 │       ├── http.ts           # HandlerResult とレスポンスヘルパー
 │       ├── adapt.ts          # HandlerResult → Hono Response 変換
 │       ├── types.ts          # エンティティ型定義
-│       ├── dynamodb.ts       # DynamoDB クライアント設定
 │       └── validation.ts     # 入力バリデーション
+├── drizzle/                  # Drizzle が生成したマイグレーションファイル
+├── drizzle.config.ts         # Drizzle Kit 設定
 ├── package.json
 └── tsconfig.json
 ```
@@ -63,12 +68,22 @@ curl http://localhost:3000/health
 
 - **小さめモノリス構成**: 1 つの Hono app が全パスを処理します。
 - **型安全性**: TypeScript の strict モードを有効化。
-- **DynamoDB アクセス**: `@aws-sdk/lib-dynamodb` を使用（DB 層の移行は別 Issue）。
+- **データアクセス**: Drizzle ORM（`drizzle-orm/postgres-js`）を使用。スキーマは `src/shared/schema.ts`、接続設定は `src/shared/db.ts`。各ドメインの `repository.ts` が DB 操作を担います。
 - **認証**: 認証ロジックの移行は別 Issue。現状 `getUserId(c)` は環境変数ベースの暫定スタブです。
+
+## マイグレーション
+
+```bash
+# マイグレーションファイルの生成（スキーマ変更後）
+bun run db:generate
+
+# マイグレーションの適用
+bun run db:migrate
+```
 
 ## 環境変数
 
 - `PORT` - リッスンポート（デフォルト `3000`）
 - `FRONTEND_ORIGIN` - CORS で許可するフロントのオリジン（デフォルト `http://localhost:5173`）
 - `DEV_USER_ID` - 暫定 userId スタブが返す値（デフォルト `local-dev-user`、認証移行で廃止予定）
-- `RECIPES_TABLE_NAME` / `RECIPE_INGREDIENTS_TABLE_NAME` / `MENUS_TABLE_NAME` - DynamoDB テーブル名
+- `DATABASE_URL` - PostgreSQL 接続文字列（例: `postgresql://user:pass@localhost:5432/cooking_planner`）
