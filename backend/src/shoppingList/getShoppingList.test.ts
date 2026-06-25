@@ -1,17 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { sendMock } = vi.hoisted(() => ({
-  sendMock: vi.fn(),
+const { listMenusInRangeMock, findRecipeWithIngredientsMock } = vi.hoisted(() => ({
+  listMenusInRangeMock: vi.fn(),
+  findRecipeWithIngredientsMock: vi.fn(),
 }));
 
-vi.mock('../shared/dynamodb', () => ({
-  dynamoDbClient: { send: sendMock },
-  TABLE_NAMES: {
-    RECIPES: 'Recipes',
-    RECIPE_INGREDIENTS: 'RecipeIngredients',
-    MENUS: 'Menus',
-    PANTRY_ITEMS: 'PantryItems',
-  },
+vi.mock('../menus/repository', () => ({
+  listMenusInRange: listMenusInRangeMock,
+  findMenuByIdForUser: vi.fn(),
+  createMenu: vi.fn(),
+  updateMenuForUser: vi.fn(),
+  deleteMenuForUser: vi.fn(),
+}));
+
+vi.mock('../recipes/repository', () => ({
+  listRecipesByUser: vi.fn(),
+  findRecipeWithIngredients: findRecipeWithIngredientsMock,
+  createRecipeWithIngredients: vi.fn(),
+  replaceRecipeWithIngredients: vi.fn(),
 }));
 
 vi.mock('../shared/auth', () => ({
@@ -23,110 +29,91 @@ import app from '../app';
 const getShoppingListRequest = (from: string, to: string): Promise<Response> =>
   app.request(`/shopping-list?from=${from}&to=${to}`);
 
+const menu = (menuId: string, date: string, recipeId: string, servings: number) => ({
+  menuId,
+  userId: 'user-123',
+  date,
+  mealType: 'DINNER' as const,
+  recipeId,
+  servings,
+  createdAt: '2026-05-20T00:00:00.000Z',
+  updatedAt: '2026-05-20T00:00:00.000Z',
+});
+
 describe('GET /shopping-list', () => {
   beforeEach(() => {
-    sendMock.mockReset();
+    listMenusInRangeMock.mockReset();
+    findRecipeWithIngredientsMock.mockReset();
   });
 
   it('人数換算しながら材料を集計し、文字列数量は重複排除する', async () => {
-    sendMock
-      .mockResolvedValueOnce({
-        Items: [
-          {
-            userId: 'user-123',
-            menuId: 'menu-1',
-            date: '2026-05-22',
-            mealType: 'DINNER',
+    listMenusInRangeMock.mockResolvedValue([
+      menu('menu-1', '2026-05-22', 'recipe-1', 1),
+      menu('menu-2', '2026-05-23', 'recipe-1', 3),
+      menu('menu-3', '2026-05-24', 'recipe-2', 1),
+    ]);
+
+    findRecipeWithIngredientsMock.mockImplementation(async (_userId: string, recipeId: string) => {
+      if (recipeId === 'recipe-1') {
+        return {
+          recipe: {
             recipeId: 'recipe-1',
-            servings: 1,
+            userId: 'user-123',
+            name: 'カレー',
+            baseServings: 2,
             createdAt: '2026-05-20T00:00:00.000Z',
             updatedAt: '2026-05-20T00:00:00.000Z',
           },
-          {
+          ingredients: [
+            {
+              recipeId: 'recipe-1',
+              ingredientName: '玉ねぎ',
+              quantity: 1,
+              unit: '個',
+            },
+            {
+              recipeId: 'recipe-1',
+              ingredientName: '塩',
+              quantity: '少々',
+              unit: '適量',
+            },
+          ],
+        };
+      }
+      if (recipeId === 'recipe-2') {
+        return {
+          recipe: {
+            recipeId: 'recipe-2',
             userId: 'user-123',
-            menuId: 'menu-2',
-            date: '2026-05-23',
-            mealType: 'DINNER',
-            recipeId: 'recipe-1',
-            servings: 3,
+            name: 'サラダ',
+            baseServings: 1,
             createdAt: '2026-05-20T00:00:00.000Z',
             updatedAt: '2026-05-20T00:00:00.000Z',
           },
-          {
-            userId: 'user-123',
-            menuId: 'menu-3',
-            date: '2026-05-24',
-            mealType: 'LUNCH',
-            recipeId: 'recipe-2',
-            servings: 1,
-            createdAt: '2026-05-20T00:00:00.000Z',
-            updatedAt: '2026-05-20T00:00:00.000Z',
-          },
-        ],
-      })
-      .mockResolvedValueOnce({
-        Item: {
-          userId: 'user-123',
-          recipeId: 'recipe-1',
-          name: 'カレー',
-          baseServings: 2,
-          createdAt: '2026-05-20T00:00:00.000Z',
-          updatedAt: '2026-05-20T00:00:00.000Z',
-        },
-      })
-      .mockResolvedValueOnce({
-        Items: [
-          {
-            userId: 'user-123',
-            recipeId: 'recipe-1',
-            ingredientName: '玉ねぎ',
-            quantity: 1,
-            unit: '個',
-          },
-          {
-            userId: 'user-123',
-            recipeId: 'recipe-1',
-            ingredientName: '塩',
-            quantity: '少々',
-            unit: '適量',
-          },
-        ],
-      })
-      .mockResolvedValueOnce({
-        Item: {
-          userId: 'user-123',
-          recipeId: 'recipe-2',
-          name: 'サラダ',
-          baseServings: 1,
-          createdAt: '2026-05-20T00:00:00.000Z',
-          updatedAt: '2026-05-20T00:00:00.000Z',
-        },
-      })
-      .mockResolvedValueOnce({
-        Items: [
-          {
-            userId: 'user-123',
-            recipeId: 'recipe-2',
-            ingredientName: '玉ねぎ',
-            quantity: 0.5,
-            unit: '個',
-          },
-          {
-            userId: 'user-123',
-            recipeId: 'recipe-2',
-            ingredientName: '塩',
-            quantity: '少々',
-            unit: '適量',
-          },
-          {
-            userId: 'user-123',
-            recipeId: 'recipe-2',
-            ingredientName: 'こしょう',
-            quantity: '適量',
-            unit: '適量',
-          },
-        ],
-      });
+          ingredients: [
+            {
+              recipeId: 'recipe-2',
+              ingredientName: '玉ねぎ',
+              quantity: 0.5,
+              unit: '個',
+            },
+            {
+              recipeId: 'recipe-2',
+              ingredientName: '塩',
+              quantity: '少々',
+              unit: '適量',
+            },
+            {
+              recipeId: 'recipe-2',
+              ingredientName: 'こしょう',
+              quantity: '適量',
+              unit: '適量',
+            },
+          ],
+        };
+      }
+      return null;
+    });
 
     const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
 
@@ -144,33 +131,13 @@ describe('GET /shopping-list', () => {
     expect(body.to).toBe('2026-05-24');
     expect(body.items).toEqual(
       expect.arrayContaining([
-        {
-          ingredientName: '玉ねぎ',
-          totalQuantity: 2.5,
-          unit: '個',
-        },
-        {
-          ingredientName: '塩',
-          totalQuantity: '少々',
-          unit: '適量',
-        },
-        {
-          ingredientName: 'こしょう',
-          totalQuantity: '適量',
-          unit: '適量',
-        },
+        { ingredientName: '玉ねぎ', totalQuantity: 2.5, unit: '個' },
+        { ingredientName: '塩', totalQuantity: '少々', unit: '適量' },
+        { ingredientName: 'こしょう', totalQuantity: '適量', unit: '適量' },
       ])
     );
     expect(body.items).toHaveLength(3);
-    expect(sendMock).toHaveBeenCalledTimes(5);
-    expect(sendMock.mock.calls[0]?.[0].input).toMatchObject({
-      TableName: 'Menus',
-      ExpressionAttributeValues: {
-        ':userId': 'user-123',
-        ':fromSk': '2026-05-22#',
-        ':toSk': '2026-05-24#￿',
-      },
-    });
+    expect(listMenusInRangeMock).toHaveBeenCalledWith('user-123', '2026-05-22', '2026-05-24');
   });
 
   it('from が to より後なら 400 を返す', async () => {
@@ -184,26 +151,12 @@ describe('GET /shopping-list', () => {
         details: null,
       },
     });
-    expect(sendMock).not.toHaveBeenCalled();
+    expect(listMenusInRangeMock).not.toHaveBeenCalled();
   });
 
   it('献立が参照するレシピが見つからない場合は 500 を返す', async () => {
-    sendMock
-      .mockResolvedValueOnce({
-        Items: [
-          {
-            userId: 'user-123',
-            menuId: 'menu-1',
-            date: '2026-05-22',
-            mealType: 'DINNER',
-            recipeId: 'recipe-missing',
-            servings: 2,
-            createdAt: '2026-05-20T00:00:00.000Z',
-            updatedAt: '2026-05-20T00:00:00.000Z',
-          },
-        ],
-      })
-      .mockResolvedValueOnce({});
+    listMenusInRangeMock.mockResolvedValue([menu('menu-1', '2026-05-22', 'recipe-missing', 2)]);
+    findRecipeWithIngredientsMock.mockResolvedValue(null);
 
     const response = await getShoppingListRequest('2026-05-22', '2026-05-22');
 
@@ -215,6 +168,5 @@ describe('GET /shopping-list', () => {
         details: null,
       },
     });
-    expect(sendMock).toHaveBeenCalledTimes(2);
   });
 });
