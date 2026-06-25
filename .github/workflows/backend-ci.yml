@@ -1,0 +1,72 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - name: Checkout リポジトリ
+      uses: actions/checkout@v4
+
+    - name: Node.js ${{ matrix.node-version }} のセットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Bun のセットアップ
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: 1.3.11
+
+    - name: 依存関係のインストール
+      working-directory: ./backend
+      run: bun install --frozen-lockfile
+
+    - name: TypeScript 型チェック
+      working-directory: ./backend
+      run: bun run type-check
+
+    - name: ESLint の実行
+      working-directory: ./backend
+      run: bun run lint
+
+    - name: Prettier のチェック
+      working-directory: ./backend
+      run: bun run format:check
+
+    - name: テストの実行
+      working-directory: ./backend
+      run: bun run test
+
+    - name: /health 疎通スモークテスト
+      working-directory: ./backend
+      run: |
+        bun src/index.ts &
+        SERVER_PID=$!
+        for _ in $(seq 1 20); do
+          if curl -sf http://127.0.0.1:3000/health > /dev/null; then
+            break
+          fi
+          sleep 0.5
+        done
+        BODY=$(curl -sf http://127.0.0.1:3000/health)
+        RESULT=$?
+        echo "health response: ${BODY}"
+        kill "${SERVER_PID}" || true
+        exit $RESULT

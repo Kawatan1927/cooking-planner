@@ -1,25 +1,24 @@
 {
-  "name": "cooking-planner-lambda",
+  "name": "cooking-planner-backend",
   "version": "1.0.0",
-  "description": "Lambda functions for Cooking Planner API",
-  "main": "dist/index.js",
+  "description": "Hono server for Cooking Planner API",
+  "type": "module",
+  "main": "src/index.ts",
   "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist",
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "type-check": "tsc --noEmit",
     "lint": "eslint . --config eslint.config.mjs",
     "format": "prettier --write \"src/**/*.ts\" \"README.md\" \"package.json\" \"tsconfig.json\" \"eslint.config.mjs\" \".prettierrc\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"README.md\" \"package.json\" \"tsconfig.json\" \"eslint.config.mjs\" \".prettierrc\"",
-    "rebuild": "bun run clean && bun run build",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "watch": "tsc --watch"
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/aws-lambda": "^8.10.145",
     "@types/node": "^22.10.5",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
@@ -31,6 +30,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.717.0",
-    "@aws-sdk/lib-dynamodb": "^3.717.0"
+    "@aws-sdk/lib-dynamodb": "^3.717.0",
+    "hono": "^4.6.0"
   }
 }

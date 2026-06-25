@@ -1,4 +1,3 @@
-import type { APIGatewayProxyEventV2WithJWTAuthorizer } from 'aws-lambda';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { sendMock } = vi.hoisted(() => ({
@@ -15,30 +14,13 @@ vi.mock('../shared/dynamodb', () => ({
   },
 }));
 
-import { getRecipeById } from './getRecipeById';
+vi.mock('../shared/auth', () => ({
+  getUserId: () => 'user-123',
+}));
 
-const createEvent = (
-  overrides: Partial<APIGatewayProxyEventV2WithJWTAuthorizer> = {}
-): APIGatewayProxyEventV2WithJWTAuthorizer =>
-  ({
-    requestContext: {
-      authorizer: {
-        jwt: {
-          claims: {
-            sub: 'user-123',
-          },
-        },
-      },
-    },
-    pathParameters: {
-      recipeId: 'recipe-123',
-    },
-    ...overrides,
-  }) as APIGatewayProxyEventV2WithJWTAuthorizer;
+import app from '../app';
 
-const parseBody = (body: string | undefined): unknown => JSON.parse(body ?? 'null');
-
-describe('getRecipeById', () => {
+describe('GET /recipes/:recipeId', () => {
   beforeEach(() => {
     sendMock.mockReset();
   });
@@ -78,10 +60,10 @@ describe('getRecipeById', () => {
         ],
       });
 
-    const response = await getRecipeById(createEvent());
+    const response = await app.request('/recipes/recipe-123');
 
-    expect(response.statusCode).toBe(200);
-    expect(parseBody(response.body)).toEqual({
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
       recipeId: 'recipe-123',
       name: '親子丼',
       sourceBook: '和食本',
@@ -125,10 +107,10 @@ describe('getRecipeById', () => {
   it('別 userId のレシピは取得できず 404 を返す', async () => {
     sendMock.mockResolvedValueOnce({});
 
-    const response = await getRecipeById(createEvent());
+    const response = await app.request('/recipes/recipe-123');
 
-    expect(response.statusCode).toBe(404);
-    expect(parseBody(response.body)).toEqual({
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
       error: {
         code: 'RECIPE_NOT_FOUND',
         message: 'Recipe not found',
@@ -136,19 +118,5 @@ describe('getRecipeById', () => {
       },
     });
     expect(sendMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('recipeId がない場合は 400 を返す', async () => {
-    const response = await getRecipeById(createEvent({ pathParameters: {} }));
-
-    expect(response.statusCode).toBe(400);
-    expect(parseBody(response.body)).toEqual({
-      error: {
-        code: 'BAD_REQUEST',
-        message: 'Recipe ID is required',
-        details: null,
-      },
-    });
-    expect(sendMock).not.toHaveBeenCalled();
   });
 });

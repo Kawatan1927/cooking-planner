@@ -1,8 +1,9 @@
-import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
+import type { Context } from 'hono';
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeResponse } from '../shared/types';
-import { internalServerError, jsonResponse, unauthorized } from '../shared/http';
+import { HandlerResult, internalServerError, jsonResponse } from '../shared/http';
+import { getUserId } from '../shared/auth';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
@@ -10,18 +11,9 @@ const USER_ID_LOG_PREFIX_LENGTH = 12;
  * GET /recipes
  * Get all recipes for the logged-in user
  */
-export const getRecipes = async (
-  event: APIGatewayProxyEventV2WithJWTAuthorizer
-): Promise<APIGatewayProxyResultV2> => {
+export const getRecipes = async (c: Context): Promise<HandlerResult> => {
   try {
-    // Extract userId from JWT claims
-    const subClaim = event.requestContext.authorizer.jwt.claims.sub;
-
-    if (typeof subClaim !== 'string' || !subClaim) {
-      return unauthorized('User ID not found in token');
-    }
-
-    const userId = subClaim;
+    const userId = getUserId(c);
 
     console.log(
       `Fetching recipes for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`

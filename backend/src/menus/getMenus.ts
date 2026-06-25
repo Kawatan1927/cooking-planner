@@ -1,8 +1,9 @@
-import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
+import type { Context } from 'hono';
 import { QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Menu } from '../shared/types';
-import { badRequest, internalServerError, jsonResponse, unauthorized } from '../shared/http';
+import { HandlerResult, badRequest, internalServerError, jsonResponse } from '../shared/http';
+import { getUserId } from '../shared/auth';
 import { isValidDate } from '../shared/validation';
 
 const DEFAULT_PERIOD_DAYS = 7;
@@ -33,22 +34,13 @@ interface MenuItemResponse {
  * GET /menus
  * Get menus for the logged-in user within a date range
  */
-export const getMenus = async (
-  event: APIGatewayProxyEventV2WithJWTAuthorizer
-): Promise<APIGatewayProxyResultV2> => {
+export const getMenus = async (c: Context): Promise<HandlerResult> => {
   try {
-    const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
+    const userId = getUserId(c);
 
-    if (typeof subClaim !== 'string' || !subClaim) {
-      return unauthorized('User ID not found in token');
-    }
-
-    const userId = subClaim;
-
-    const queryParams = event.queryStringParameters ?? {};
     const defaults = getDefaultDateRange();
-    const from = queryParams.from ?? defaults.from;
-    const to = queryParams.to ?? defaults.to;
+    const from = c.req.query('from') ?? defaults.from;
+    const to = c.req.query('to') ?? defaults.to;
 
     if (!isValidDate(from)) {
       return badRequest('Invalid "from" date format. Use YYYY-MM-DD');

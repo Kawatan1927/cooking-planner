@@ -5,13 +5,11 @@ on:
     branches: [ main, develop ]
     paths:
       - 'infra/**'
-      - '!infra/lambda/**'
       - '.github/workflows/cdk-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'infra/**'
-      - '!infra/lambda/**'
       - '.github/workflows/cdk-ci.yml'
 
 jobs:
