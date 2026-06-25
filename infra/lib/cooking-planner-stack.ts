@@ -1,16 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
-import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
-import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import { Construct } from 'constructs';
-import * as path from 'path';
 
 export type Stage = 'dev' | 'prod';
 
@@ -18,10 +12,8 @@ export interface CookingPlannerStackProps extends cdk.StackProps {
   /** デプロイ対象の環境。"dev" または "prod" */
   stage: Stage;
   /**
-   * CORS で許可するオリジン一覧。
-   * - dev 環境: 省略可（デフォルト: ['http://localhost:5173']）
-   * - prod 環境: 必須。省略・空・'*' を指定すると synth 時にエラー
-   *   例: cdk deploy --context allowedOrigins=https://xxx.cloudfront.net
+   * （後方互換のため残置）CORS で許可するオリジン一覧。
+   * API は Bun + Hono サーバー側で CORS を処理するため、CDK では未使用。
    */
   allowedOrigins?: string[];
   /**
@@ -44,8 +36,10 @@ export interface CookingPlannerStackProps extends cdk.StackProps {
  * CookingPlanner のベーススタック。
  *
  * DynamoDB テーブル（Recipes / RecipeIngredients / Menus）、
- * Lambda 関数、Cognito User Pool、API Gateway HTTP API、
- * S3 バケット、CloudFront ディストリビューションを定義します。
+ * Cognito User Pool、S3 バケット、CloudFront ディストリビューションを定義します。
+ *
+ * API サーバー（Bun + Hono）はローカル PC 上で常時起動し、Cloudflare Tunnel で
+ * 公開する構成のため、Lambda / API Gateway は CDK では定義しません（#127）。
  *
  * @see docs/03-domain-and-data-model.md
  * @see docs/04-api-design.md
@@ -58,40 +52,21 @@ export class CookingPlannerStack extends cdk.Stack {
 
   /**
    * Recipes テーブル。
-   * Lambda 環境変数 RECIPES_TABLE_NAME に渡す。
    * @see docs/03-domain-and-data-model.md §3
    */
   public readonly recipesTable: dynamodb.Table;
 
   /**
    * RecipeIngredients テーブル。
-   * Lambda 環境変数 RECIPE_INGREDIENTS_TABLE_NAME に渡す。
    * @see docs/03-domain-and-data-model.md §4
    */
   public readonly recipeIngredientsTable: dynamodb.Table;
 
   /**
    * Menus テーブル。
-   * Lambda 環境変数 MENUS_TABLE_NAME に渡す。
    * @see docs/03-domain-and-data-model.md §5
    */
   public readonly menusTable: dynamodb.Table;
-
-  /**
-   * メイン Lambda 関数（小さめモノリス構成）。
-   * infra/lambda/src/index.ts をエントリーポイントとして参照する。
-   * @see docs/05-architecture-notes.md
-   * @see infra/lambda/src/index.ts
-   */
-  public readonly apiHandler: NodejsFunction;
-
-  /**
-   * API Gateway HTTP API。
-   * - GET /health: 認証不要の疎通確認エンドポイント
-   * - /{proxy+}: 業務 API（Cognito JWT Authorizer で認証必須）
-   * @see docs/04-api-design.md
-   */
-  public readonly httpApi: apigatewayv2.HttpApi;
 
   /**
    * Cognito User Pool。認証基盤として使用。
@@ -124,8 +99,7 @@ export class CookingPlannerStack extends cdk.Stack {
   /**
    * CloudFront ディストリビューション。
    * - デフォルトビヘイビア: S3 バケット（SPA 配信）
-   * - `/api/*` ビヘイビア: API Gateway HTTP API（CloudFront Function でプレフィックス除去）
-   * - SPA ルーティング: 403/404 → index.html（200）
+   * - SPA ルーティング: 拡張子のないパスを index.html にリライト
    * @see docs/04-api-design.md §1.1
    */
   public readonly distribution: cloudfront.Distribution;
@@ -192,7 +166,7 @@ export class CookingPlannerStack extends cdk.Stack {
     //   今回は GSI を追加しない。SK は "date#..." で始まるため、
     //   userId を PK に固定した Query で SK の範囲条件（BETWEEN）や
     //   begins_with(SK, `${date}#`) を使えば、日付検索・期間検索に
-    //   FilterExpression や Lambda 側フィルタなしで対応可能である。
+    //   FilterExpression なしで対応可能である。
     //   件数増加や検索要件の変化があった場合に GSI 追加を検討する。
     //   @see docs/03-domain-and-data-model.md §5.4
     // -------------------------------------------------------------------------
@@ -211,43 +185,20 @@ export class CookingPlannerStack extends cdk.Stack {
     // TODO(将来拡張): PantryItems テーブル
     //   PK: userId (string), SK: ingredientName (string)
     //   常備品・在庫管理用テーブル。現時点では実装しない。
-    //   Lambda 環境変数名: PANTRY_ITEMS_TABLE_NAME
     //   @see docs/03-domain-and-data-model.md §7
 
     // -------------------------------------------------------------------------
-    // Lambda 関数定義（単一 Lambda 小さめモノリス構成）
-    //
-    // NodejsFunction を使用して TypeScript ソースを esbuild で自動バンドルする。
-    // @aws-sdk/* (v3) は Node.js 20 ランタイムに同梱されないため、
-    // externalModules は指定せず esbuild がバンドルする。
-    //
-    // @see infra/CDK_INTEGRATION.md
-    // @see docs/05-architecture-notes.md
+    // API サーバー（Bun + Hono）はローカル PC 上で動作するため、
+    // Lambda / API Gateway は CDK では定義しない（#127 で AWS から移行）。
+    // DynamoDB テーブルへのアクセス権限はローカル実行側の認証情報で付与する。
     // -------------------------------------------------------------------------
-    this.apiHandler = new NodejsFunction(this, 'ApiHandler', {
-      functionName: `cooking-planner-api-${this.stage}`,
-      entry: path.join(__dirname, '../lambda/src/index.ts'),
-      handler: 'handler',
-      runtime: lambda.Runtime.NODEJS_20_X,
-      depsLockFilePath: path.join(__dirname, '../bun.lock'),
-      environment: {
-        RECIPES_TABLE_NAME: this.recipesTable.tableName,
-        RECIPE_INGREDIENTS_TABLE_NAME: this.recipeIngredientsTable.tableName,
-        MENUS_TABLE_NAME: this.menusTable.tableName,
-      },
-    });
-
-    // DynamoDB テーブルへの読み書き権限を Lambda に付与
-    this.recipesTable.grantReadWriteData(this.apiHandler);
-    this.recipeIngredientsTable.grantReadWriteData(this.apiHandler);
-    this.menusTable.grantReadWriteData(this.apiHandler);
 
     // -------------------------------------------------------------------------
     // Cognito User Pool / App Client 定義
     //
     // 個人利用アプリのため自己登録不可。メールアドレスでサインイン。
     // SPA は SRP 認証フローまたは Hosted UI（Authorization Code Grant）で
-    // トークンを取得し、API 呼び出し時に Authorization: Bearer <JWT> として渡す。
+    // トークンを取得する。
     //
     // @see docs/05-architecture-notes.md §2.4
     // @see docs/04-api-design.md §1.3
@@ -272,9 +223,7 @@ export class CookingPlannerStack extends cdk.Stack {
     // prod/dev の切り替え方針:
     //   - dev 環境: Vite dev server のデフォルト URL をフォールバックとして使用。
     //     テスト・検証目的であれば `--context callbackUrls=...` で上書き可能。
-    //   - prod 環境: CloudFront 配信 URL を必ず明示する（省略不可）。
-    //     `cdk deploy --context callbackUrls=https://xxx.cloudfront.net/callback
-    //                 --context logoutUrls=https://xxx.cloudfront.net`
+    //   - prod 環境: 配信 URL を必ず明示する（省略不可）。
     //
     // @see docs/05-architecture-notes.md §4.1
     // -------------------------------------------------------------------------
@@ -331,85 +280,6 @@ export class CookingPlannerStack extends cdk.Stack {
       },
     });
 
-    // -------------------------------------------------------------------------
-    // API Gateway HTTP API 定義
-    //
-    // 汎用プロキシルーティング構成:
-    //   - GET /health: 認証不要（疎通確認用）
-    //   - /{proxy+} ANY: 全メソッド・全パスを Lambda にプロキシ（JWT Authorizer で認証必須）
-    //
-    // /health の認証要否: 認証不要とする。
-    //   docs/04-api-design.md では GET /health は任意の疎通確認 API と定義されており、
-    //   デプロイ確認や監視の利便性を考慮して認証不要とする。
-    //
-    // CORS allowedOrigins の検証（fail-closed）:
-    //   - dev 環境: 未指定時は ['http://localhost:5173'] をデフォルトとする
-    //   - prod 環境: props.allowedOrigins が必須。未設定・空・'*' は synth 時エラー
-    //
-    // @see docs/04-api-design.md
-    // @see docs/05-architecture-notes.md
-    // @see infra/CDK_INTEGRATION.md
-    // -------------------------------------------------------------------------
-    let corsAllowOrigins: string[];
-    if (this.stage === 'dev') {
-      corsAllowOrigins = props.allowedOrigins ?? ['http://localhost:5173'];
-    } else {
-      const filtered = (props.allowedOrigins ?? []).map(o => o.trim()).filter(o => o.length > 0);
-      if (filtered.length === 0) {
-        throw new Error(
-          'prod 環境では allowedOrigins が必須です。' +
-            'cdk deploy 時に --context allowedOrigins=https://xxx.cloudfront.net を指定してください。'
-        );
-      }
-      if (filtered.some(o => o === '*')) {
-        throw new Error(
-          'prod 環境では allowedOrigins に "*" は使用できません。' +
-            'CloudFront ドメインなど具体的なオリジンを指定してください。'
-        );
-      }
-      corsAllowOrigins = filtered;
-    }
-
-    this.httpApi = new apigatewayv2.HttpApi(this, 'HttpApi', {
-      apiName: `cooking-planner-api-${this.stage}`,
-      corsPreflight: {
-        allowOrigins: corsAllowOrigins,
-        // /{proxy+} で HttpMethod.ANY を受け付けているため、
-        // CORS でも許可メソッドを包括的に揃えて不整合を防ぐ。
-        allowMethods: [apigatewayv2.CorsHttpMethod.ANY],
-        allowHeaders: ['Content-Type', 'Authorization'],
-      },
-    });
-
-    const lambdaIntegration = new HttpLambdaIntegration('LambdaIntegration', this.apiHandler);
-
-    const jwtAuthorizer = new HttpUserPoolAuthorizer('JwtAuthorizer', this.userPool, {
-      userPoolClients: [this.userPoolClient],
-    });
-
-    // GET /health: 認証不要の疎通確認エンドポイント
-    // Lambda の /health ルートは status と time を返す
-    this.httpApi.addRoutes({
-      path: '/health',
-      methods: [apigatewayv2.HttpMethod.GET],
-      integration: lambdaIntegration,
-    });
-
-    // /{proxy+}: 全メソッド・全パスを Lambda にプロキシ（JWT Authorizer で認証必須）
-    this.httpApi.addRoutes({
-      path: '/{proxy+}',
-      methods: [apigatewayv2.HttpMethod.ANY],
-      integration: lambdaIntegration,
-      authorizer: jwtAuthorizer,
-    });
-
-    // API エンドポイント URL を出力
-    new cdk.CfnOutput(this, 'HttpApiUrl', {
-      value: this.httpApi.apiEndpoint,
-      description: 'API Gateway HTTP API endpoint URL',
-      exportName: `cooking-planner-api-url-${this.stage}`,
-    });
-
     // Cognito User Pool ID / App Client ID を出力（フロントエンド設定に使用）
     new cdk.CfnOutput(this, 'UserPoolId', {
       value: this.userPool.userPoolId,
@@ -424,7 +294,6 @@ export class CookingPlannerStack extends cdk.Stack {
     });
 
     // Cognito Hosted UI ドメインを出力（フロントエンドの VITE_COGNITO_DOMAIN に設定する）
-    // CDK の UserPoolDomain construct から実際のドメイン名を取得する
     new cdk.CfnOutput(this, 'UserPoolDomainName', {
       value: this.userPoolDomain.domainName,
       description: 'Cognito Hosted UI ドメイン（VITE_COGNITO_DOMAIN に設定する値）',
@@ -453,13 +322,8 @@ export class CookingPlannerStack extends cdk.Stack {
     // -------------------------------------------------------------------------
     // CloudFront Function 定義（SPA ルーティング用）
     //
-    // デフォルトビヘイビア（S3）でのみ動作し、ファイル拡張子のないパスを
+    // デフォルトビヘイビア（S3）でファイル拡張子のないパスを
     // /index.html にリライトして React Router のクライアントサイドルーティングを実現する。
-    //
-    // errorResponses を使わない理由:
-    //   distribution レベルの errorResponses は /api/* ビヘイビア経由の
-    //   API Gateway エラー（403/404）にも適用されてしまい、
-    //   API クライアントのエラーハンドリングが壊れるため。
     //
     // @see docs/04-api-design.md §1.1
     // -------------------------------------------------------------------------
@@ -480,87 +344,19 @@ function handler(event) {
     });
 
     // -------------------------------------------------------------------------
-    // CloudFront Function 定義（/api プレフィックス除去）
-    //
-    // CloudFront の /api/* ビヘイビアから API Gateway へ転送する際に、
-    // URI の /api プレフィックスを除去して Lambda のルーティングと一致させる。
-    //
-    // 例: /api/recipes → /recipes
-    //     /api/health  → /health
-    //
-    // @see docs/04-api-design.md §1.1
-    // -------------------------------------------------------------------------
-    const apiPathRewriteFunction = new cloudfront.Function(this, 'ApiPathRewriteFunction', {
-      functionName: `cooking-planner-api-rewrite-${this.stage}`,
-      comment: '/api/* -> /* のパス書き換え（API Gateway への転送用）',
-      code: cloudfront.FunctionCode.fromInline(`
-function handler(event) {
-  var request = event.request;
-  request.uri = request.uri.replace(/^\\/api/, '');
-  if (!request.uri || request.uri === '') {
-    request.uri = '/';
-  }
-  return request;
-}
-`),
-      runtime: cloudfront.FunctionRuntime.JS_2_0,
-    });
-
-    // -------------------------------------------------------------------------
     // CloudFront ディストリビューション定義
     //
     // ビヘイビア構成:
     //   - デフォルト (/**): S3 バケット（SPA 静的ファイル配信）
     //     - OAC で S3 に安全にアクセス
-    //     - 403/404 は index.html（200）にフォールバック（SPA ルーティング対応）
-    //   - /api/*: API Gateway HTTP API
-    //     - CloudFront Function でプレフィックスを除去して転送
-    //     - キャッシュ無効化（API レスポンスはキャッシュしない）
-    //     - Authorization など必要なヘッダのみを限定的に転送
+    //     - SPA ルーティング: 拡張子のないパスを /index.html にリライト
+    //
+    // API（/api/*）は CloudFront ではなくローカルの Hono サーバー
+    // （Cloudflare Tunnel 経由）で配信するため、ここには定義しない（#127）。
     //
     // @see docs/04-api-design.md §1.1
     // @see docs/05-architecture-notes.md §1.2
     // -------------------------------------------------------------------------
-    const apiGatewayOrigin = new origins.HttpOrigin(
-      `${this.httpApi.apiId}.execute-api.${this.region}.amazonaws.com`
-    );
-
-    // /api/* ビヘイビア用カスタム CachePolicy + OriginRequestPolicy
-    //
-    // CloudFront の制約: Authorization ヘッダは OriginRequestPolicy.allowList() に
-    // 含められない。代わりに CachePolicy のキーに含めて転送する。
-    // TTL を 0 に設定することでキャッシュは無効化しつつ Authorization を転送できる。
-    const apiCachePolicy = new cloudfront.CachePolicy(this, 'ApiCachePolicy', {
-      cachePolicyName: `cooking-planner-api-${this.stage}`,
-      defaultTtl: cdk.Duration.seconds(0),
-      maxTtl: cdk.Duration.seconds(0),
-      minTtl: cdk.Duration.seconds(0),
-      headerBehavior: cloudfront.CacheHeaderBehavior.allowList('Authorization'),
-      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
-      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-      enableAcceptEncodingGzip: false,
-      enableAcceptEncodingBrotli: false,
-    });
-
-    // CORS に必要なヘッダを OriginRequestPolicy で転送する。
-    // Authorization は上記 CachePolicy 経由で転送するためここには含めない。
-    // Origin / Access-Control-Request-* は API Gateway の CORS 応答生成に必須。
-    const apiOriginRequestPolicy = new cloudfront.OriginRequestPolicy(
-      this,
-      'ApiOriginRequestPolicy',
-      {
-        originRequestPolicyName: `cooking-planner-api-${this.stage}`,
-        headerBehavior: cloudfront.OriginRequestHeaderBehavior.allowList(
-          'Content-Type',
-          'Origin',
-          'Access-Control-Request-Method',
-          'Access-Control-Request-Headers'
-        ),
-        queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.none(),
-        cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
-      }
-    );
-
     this.distribution = new cloudfront.Distribution(this, 'CloudFrontDistribution', {
       comment: `cooking-planner-${this.stage}`,
       defaultBehavior: {
@@ -569,7 +365,6 @@ function handler(event) {
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
         // SPA ルーティング: 拡張子のないパスを /index.html にリライト。
-        // distribution レベルの errorResponses を使わない理由は SpaRoutingFunction コメント参照。
         functionAssociations: [
           {
             function: spaRoutingFunction,
@@ -577,27 +372,12 @@ function handler(event) {
           },
         ],
       },
-      additionalBehaviors: {
-        '/api/*': {
-          origin: apiGatewayOrigin,
-          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
-          cachePolicy: apiCachePolicy,
-          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-          originRequestPolicy: apiOriginRequestPolicy,
-          functionAssociations: [
-            {
-              function: apiPathRewriteFunction,
-              eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
-            },
-          ],
-        },
-      },
     });
 
-    // CloudFront URL を出力（VITE_API_BASE_URL および Cognito callback URL の設定に使用）
+    // CloudFront URL を出力（Cognito callback URL の設定などに使用）
     new cdk.CfnOutput(this, 'CloudFrontUrl', {
       value: `https://${this.distribution.distributionDomainName}`,
-      description: 'CloudFront URL（VITE_API_BASE_URL=<この値>/api / Cognito callback URL に使用）',
+      description: 'CloudFront URL（フロント配信 URL / Cognito callback URL に使用）',
       exportName: `cooking-planner-cloudfront-url-${this.stage}`,
     });
 
