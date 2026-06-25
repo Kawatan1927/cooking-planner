@@ -1,4 +1,4 @@
-import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
+import type { Context } from 'hono';
 import {
   PutCommand,
   DeleteCommand,
@@ -9,7 +9,8 @@ import {
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeIngredient } from '../shared/types';
 import { randomUUID } from 'crypto';
-import { badRequest, internalServerError, jsonResponse, unauthorized } from '../shared/http';
+import { HandlerResult, badRequest, internalServerError, jsonResponse } from '../shared/http';
+import { getUserId } from '../shared/auth';
 import { isNonEmptyString, isPositiveNumber } from '../shared/validation';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
@@ -43,29 +44,16 @@ interface CreateRecipeRequestBody {
  * POST /recipes
  * Create a new recipe with ingredients
  */
-export const createRecipe = async (
-  event: APIGatewayProxyEventV2WithJWTAuthorizer
-): Promise<APIGatewayProxyResultV2> => {
+export const createRecipe = async (c: Context): Promise<HandlerResult> => {
   try {
-    // Extract userId from JWT claims
-    const subClaim = event.requestContext.authorizer.jwt.claims.sub;
-
-    if (typeof subClaim !== 'string' || !subClaim) {
-      return unauthorized('User ID not found in token');
-    }
-
-    const userId = subClaim;
+    const userId = getUserId(c);
 
     console.log(`Creating recipe for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`);
 
     // Parse request body
-    if (!event.body) {
-      return badRequest('Request body is required');
-    }
-
     let requestBody: CreateRecipeRequestBody;
     try {
-      requestBody = JSON.parse(event.body);
+      requestBody = await c.req.json();
     } catch {
       return badRequest('Invalid JSON in request body');
     }

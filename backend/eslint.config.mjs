@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 export default defineConfig([
   globalIgnores(['dist']),
   {
-    files: ['src/**/*.ts', 'infra/lambda/src/**/*.ts'],
+    files: ['src/**/*.ts'],
     extends: [js.configs.recommended, tseslint.configs.recommended, eslintConfigPrettier],
     languageOptions: {
       ecmaVersion: 2022,
@@ -15,6 +15,14 @@ export default defineConfig([
     },
     rules: {
       'no-console': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
   },
 ]);

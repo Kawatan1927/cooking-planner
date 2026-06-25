@@ -1,8 +1,9 @@
-import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
+import type { Context } from 'hono';
 import { GetCommand, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Menu, Recipe, RecipeIngredient } from '../shared/types';
-import { badRequest, internalServerError, jsonResponse, unauthorized } from '../shared/http';
+import { HandlerResult, badRequest, internalServerError, jsonResponse } from '../shared/http';
+import { getUserId } from '../shared/auth';
 import { isNonEmptyString, isValidDate } from '../shared/validation';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
@@ -114,21 +115,12 @@ const fetchIngredients = async (userId: string, recipeId: string): Promise<Recip
  * - quantity が string の材料はスケーリングせず、同一キー内では ` + ` で連結する（重複は除外）。
  * - number と string が混在する場合は `"<number> + <string>"` のような文字列として返す。
  */
-export const getShoppingList = async (
-  event: APIGatewayProxyEventV2WithJWTAuthorizer
-): Promise<APIGatewayProxyResultV2> => {
+export const getShoppingList = async (c: Context): Promise<HandlerResult> => {
   try {
-    const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
+    const userId = getUserId(c);
 
-    if (typeof subClaim !== 'string' || !subClaim) {
-      return unauthorized('User ID not found in token');
-    }
-
-    const userId = subClaim;
-    const queryParams = event.queryStringParameters ?? {};
-
-    const from = queryParams.from;
-    const to = queryParams.to;
+    const from = c.req.query('from');
+    const to = c.req.query('to');
 
     if (!isNonEmptyString(from)) {
       return badRequest('"from" query parameter is required');

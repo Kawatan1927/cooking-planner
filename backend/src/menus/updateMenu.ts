@@ -1,14 +1,15 @@
-import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
+import type { Context } from 'hono';
 import { PutCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { findMenuByMenuId, MenuItemWithSK } from './utils';
 import {
+  HandlerResult,
   badRequest,
   internalServerError,
   jsonResponse,
   notFound,
-  unauthorized,
 } from '../shared/http';
+import { getUserId } from '../shared/auth';
 import { isNonEmptyString, isPositiveNumber, isValidDate } from '../shared/validation';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
@@ -31,30 +32,18 @@ const isValidMealType = (mealType: string): mealType is MealType =>
  * PUT /menus/{menuId}
  * Update an existing menu item for the logged-in user
  */
-export const updateMenu = async (
-  event: APIGatewayProxyEventV2WithJWTAuthorizer
-): Promise<APIGatewayProxyResultV2> => {
+export const updateMenu = async (c: Context): Promise<HandlerResult> => {
   try {
-    const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
-
-    if (typeof subClaim !== 'string' || !subClaim) {
-      return unauthorized('User ID not found in token');
-    }
-
-    const userId = subClaim;
-    const menuId = event.pathParameters?.menuId;
+    const userId = getUserId(c);
+    const menuId = c.req.param('menuId');
 
     if (!menuId) {
       return badRequest('Menu ID is required');
     }
 
-    if (!event.body) {
-      return badRequest('Request body is required');
-    }
-
     let requestBody: UpdateMenuRequestBody;
     try {
-      requestBody = JSON.parse(event.body);
+      requestBody = await c.req.json();
     } catch {
       return badRequest('Invalid JSON in request body');
     }

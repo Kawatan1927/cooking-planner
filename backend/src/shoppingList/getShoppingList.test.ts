@@ -1,4 +1,3 @@
-import type { APIGatewayProxyEventV2WithJWTAuthorizer } from 'aws-lambda';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { sendMock } = vi.hoisted(() => ({
@@ -15,27 +14,16 @@ vi.mock('../shared/dynamodb', () => ({
   },
 }));
 
-import { getShoppingList } from './getShoppingList';
+vi.mock('../shared/auth', () => ({
+  getUserId: () => 'user-123',
+}));
 
-const createEvent = (
-  queryStringParameters?: Record<string, string>
-): APIGatewayProxyEventV2WithJWTAuthorizer =>
-  ({
-    requestContext: {
-      authorizer: {
-        jwt: {
-          claims: {
-            sub: 'user-123',
-          },
-        },
-      },
-    },
-    queryStringParameters,
-  }) as APIGatewayProxyEventV2WithJWTAuthorizer;
+import app from '../app';
 
-const parseBody = (body: string | undefined): unknown => JSON.parse(body ?? 'null');
+const getShoppingListRequest = (from: string, to: string): Promise<Response> =>
+  app.request(`/shopping-list?from=${from}&to=${to}`);
 
-describe('getShoppingList', () => {
+describe('GET /shopping-list', () => {
   beforeEach(() => {
     sendMock.mockReset();
   });
@@ -140,15 +128,10 @@ describe('getShoppingList', () => {
         ],
       });
 
-    const response = await getShoppingList(
-      createEvent({
-        from: '2026-05-22',
-        to: '2026-05-24',
-      })
-    );
+    const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
 
-    expect(response.statusCode).toBe(200);
-    const body = parseBody(response.body) as {
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
       from: string;
       to: string;
       items: Array<{
@@ -185,21 +168,16 @@ describe('getShoppingList', () => {
       ExpressionAttributeValues: {
         ':userId': 'user-123',
         ':fromSk': '2026-05-22#',
-        ':toSk': '2026-05-24#\uffff',
+        ':toSk': '2026-05-24#￿',
       },
     });
   });
 
   it('from が to より後なら 400 を返す', async () => {
-    const response = await getShoppingList(
-      createEvent({
-        from: '2026-05-25',
-        to: '2026-05-24',
-      })
-    );
+    const response = await getShoppingListRequest('2026-05-25', '2026-05-24');
 
-    expect(response.statusCode).toBe(400);
-    expect(parseBody(response.body)).toEqual({
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
       error: {
         code: 'BAD_REQUEST',
         message: '"from" date must not be after "to" date',
@@ -227,15 +205,10 @@ describe('getShoppingList', () => {
       })
       .mockResolvedValueOnce({});
 
-    const response = await getShoppingList(
-      createEvent({
-        from: '2026-05-22',
-        to: '2026-05-22',
-      })
-    );
+    const response = await getShoppingListRequest('2026-05-22', '2026-05-22');
 
-    expect(response.statusCode).toBe(500);
-    expect(parseBody(response.body)).toEqual({
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to compute shopping list',

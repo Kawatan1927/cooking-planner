@@ -1,9 +1,10 @@
-import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
+import type { Context } from 'hono';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { MenuItemWithSK } from './utils';
 import { randomUUID } from 'crypto';
-import { badRequest, internalServerError, jsonResponse, unauthorized } from '../shared/http';
+import { HandlerResult, badRequest, internalServerError, jsonResponse } from '../shared/http';
+import { getUserId } from '../shared/auth';
 import { isNonEmptyString, isPositiveNumber, isValidDate } from '../shared/validation';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
@@ -26,25 +27,13 @@ const isValidMealType = (mealType: string): mealType is MealType =>
  * POST /menus
  * Create a new menu item for the logged-in user
  */
-export const createMenu = async (
-  event: APIGatewayProxyEventV2WithJWTAuthorizer
-): Promise<APIGatewayProxyResultV2> => {
+export const createMenu = async (c: Context): Promise<HandlerResult> => {
   try {
-    const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
-
-    if (typeof subClaim !== 'string' || !subClaim) {
-      return unauthorized('User ID not found in token');
-    }
-
-    const userId = subClaim;
-
-    if (!event.body) {
-      return badRequest('Request body is required');
-    }
+    const userId = getUserId(c);
 
     let requestBody: CreateMenuRequestBody;
     try {
-      requestBody = JSON.parse(event.body);
+      requestBody = await c.req.json();
     } catch {
       return badRequest('Invalid JSON in request body');
     }

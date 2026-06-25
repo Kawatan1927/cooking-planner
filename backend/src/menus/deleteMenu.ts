@@ -1,8 +1,15 @@
-import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
+import type { Context } from 'hono';
 import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { findMenuByMenuId } from './utils';
-import { badRequest, internalServerError, notFound, unauthorized } from '../shared/http';
+import {
+  HandlerResult,
+  badRequest,
+  internalServerError,
+  noContent,
+  notFound,
+} from '../shared/http';
+import { getUserId } from '../shared/auth';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
@@ -10,18 +17,10 @@ const USER_ID_LOG_PREFIX_LENGTH = 12;
  * DELETE /menus/{menuId}
  * Delete a menu item for the logged-in user
  */
-export const deleteMenu = async (
-  event: APIGatewayProxyEventV2WithJWTAuthorizer
-): Promise<APIGatewayProxyResultV2> => {
+export const deleteMenu = async (c: Context): Promise<HandlerResult> => {
   try {
-    const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
-
-    if (typeof subClaim !== 'string' || !subClaim) {
-      return unauthorized('User ID not found in token');
-    }
-
-    const userId = subClaim;
-    const menuId = event.pathParameters?.menuId;
+    const userId = getUserId(c);
+    const menuId = c.req.param('menuId');
 
     if (!menuId) {
       return badRequest('Menu ID is required');
@@ -46,11 +45,7 @@ export const deleteMenu = async (
 
     console.log(`Menu deleted: ${menuId}`);
 
-    return {
-      statusCode: 204,
-      headers: { 'Content-Type': 'application/json' },
-      body: '',
-    };
+    return noContent();
   } catch (error) {
     const errorName =
       typeof error === 'object' && error !== null && 'name' in error

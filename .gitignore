@@ -24,9 +24,8 @@ yarn-error.log*
 /frontend/.env.production
 /frontend/.env.local
 
-# Lambda のビルド成果物
-/infra/lambda/dist
-/infra/lambda/node_modules
+# バックエンド（Hono サーバー）の依存
+/backend/node_modules
 
 # CDK の作業ディレクトリと依存
 /infra/cdk.out/
@@ -43,4 +42,4 @@ docs/.docusaurus
 docs/build
 docs/node_modules
 docs/package-lock.json
-infra/lambda/package-lock.json
+backend/package-lock.json

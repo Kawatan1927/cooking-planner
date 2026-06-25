@@ -1,4 +1,3 @@
-import type { APIGatewayProxyEventV2WithJWTAuthorizer } from 'aws-lambda';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { sendMock, findMenuByMenuIdMock } = vi.hoisted(() => ({
@@ -20,28 +19,20 @@ vi.mock('./utils', () => ({
   findMenuByMenuId: findMenuByMenuIdMock,
 }));
 
-import { updateMenu } from './updateMenu';
+vi.mock('../shared/auth', () => ({
+  getUserId: () => 'user-123',
+}));
 
-const createEvent = (body: unknown): APIGatewayProxyEventV2WithJWTAuthorizer =>
-  ({
-    requestContext: {
-      authorizer: {
-        jwt: {
-          claims: {
-            sub: 'user-123',
-          },
-        },
-      },
-    },
-    pathParameters: {
-      menuId: 'menu-123',
-    },
+import app from '../app';
+
+const putMenu = (body: unknown): Promise<Response> =>
+  app.request('/menus/menu-123', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  }) as APIGatewayProxyEventV2WithJWTAuthorizer;
+  });
 
-const parseBody = (body: string | undefined): unknown => JSON.parse(body ?? 'null');
-
-describe('updateMenu', () => {
+describe('PUT /menus/:menuId', () => {
   beforeEach(() => {
     sendMock.mockReset();
     findMenuByMenuIdMock.mockReset();
@@ -61,18 +52,16 @@ describe('updateMenu', () => {
     });
     sendMock.mockResolvedValueOnce({});
 
-    const response = await updateMenu(
-      createEvent({
-        date: '2026-05-21',
-        mealType: 'LUNCH',
-        recipeId: 'recipe-new',
-        servings: 3,
-        memo: '作り置き',
-      })
-    );
+    const response = await putMenu({
+      date: '2026-05-21',
+      mealType: 'LUNCH',
+      recipeId: 'recipe-new',
+      servings: 3,
+      memo: '作り置き',
+    });
 
-    expect(response.statusCode).toBe(200);
-    expect(parseBody(response.body)).toEqual({ menuId: 'menu-123' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ menuId: 'menu-123' });
     expect(findMenuByMenuIdMock).toHaveBeenCalledWith('user-123', 'menu-123');
     expect(sendMock).toHaveBeenCalledTimes(1);
     expect(sendMock.mock.calls[0]?.[0].input).toMatchObject({
@@ -116,18 +105,16 @@ describe('updateMenu', () => {
     });
     sendMock.mockResolvedValueOnce({});
 
-    const response = await updateMenu(
-      createEvent({
-        date: '2026-05-20',
-        mealType: 'DINNER',
-        recipeId: 'recipe-new',
-        servings: 4,
-        memo: null,
-      })
-    );
+    const response = await putMenu({
+      date: '2026-05-20',
+      mealType: 'DINNER',
+      recipeId: 'recipe-new',
+      servings: 4,
+      memo: null,
+    });
 
-    expect(response.statusCode).toBe(200);
-    expect(parseBody(response.body)).toEqual({ menuId: 'menu-123' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ menuId: 'menu-123' });
     expect(sendMock).toHaveBeenCalledTimes(1);
     const input = sendMock.mock.calls[0]?.[0].input;
     expect(input).toMatchObject({
@@ -149,17 +136,15 @@ describe('updateMenu', () => {
   it('別 userId の献立は見つからず 404 を返す', async () => {
     findMenuByMenuIdMock.mockResolvedValue(null);
 
-    const response = await updateMenu(
-      createEvent({
-        date: '2026-05-21',
-        mealType: 'LUNCH',
-        recipeId: 'recipe-new',
-        servings: 2,
-      })
-    );
+    const response = await putMenu({
+      date: '2026-05-21',
+      mealType: 'LUNCH',
+      recipeId: 'recipe-new',
+      servings: 2,
+    });
 
-    expect(response.statusCode).toBe(404);
-    expect(parseBody(response.body)).toEqual({
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
       error: {
         code: 'MENU_NOT_FOUND',
         message: 'Menu not found',
@@ -170,17 +155,15 @@ describe('updateMenu', () => {
   });
 
   it('servings が不正な場合は 400 を返す', async () => {
-    const response = await updateMenu(
-      createEvent({
-        date: '2026-05-21',
-        mealType: 'DINNER',
-        recipeId: 'recipe-new',
-        servings: 0,
-      })
-    );
+    const response = await putMenu({
+      date: '2026-05-21',
+      mealType: 'DINNER',
+      recipeId: 'recipe-new',
+      servings: 0,
+    });
 
-    expect(response.statusCode).toBe(400);
-    expect(parseBody(response.body)).toEqual({
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
       error: {
         code: 'BAD_REQUEST',
         message: '"servings" must be a positive number',

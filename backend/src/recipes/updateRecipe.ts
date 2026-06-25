@@ -1,4 +1,4 @@
-import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
+import type { Context } from 'hono';
 import {
   BatchWriteCommand,
   BatchWriteCommandInput,
@@ -11,12 +11,13 @@ import {
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeIngredient } from '../shared/types';
 import {
+  HandlerResult,
   badRequest,
   internalServerError,
   jsonResponse,
   notFound,
-  unauthorized,
 } from '../shared/http';
+import { getUserId } from '../shared/auth';
 import { isNonEmptyString, isPositiveNumber } from '../shared/validation';
 
 const BATCH_SIZE = 25;
@@ -149,9 +150,7 @@ const fetchAllRecipeIngredients = async (
   return ingredients;
 };
 
-const validateRequestBody = (
-  requestBody: UpdateRecipeRequestBody
-): APIGatewayProxyResultV2 | null => {
+const validateRequestBody = (requestBody: UpdateRecipeRequestBody): HandlerResult | null => {
   if (!isNonEmptyString(requestBody.name)) {
     return badRequest('Recipe name is required');
   }
@@ -216,28 +215,18 @@ const validateRequestBody = (
  * PUT /recipes/{recipeId}
  * Update an existing recipe and replace its ingredients for the logged-in user
  */
-export const updateRecipe = async (
-  event: APIGatewayProxyEventV2WithJWTAuthorizer
-): Promise<APIGatewayProxyResultV2> => {
+export const updateRecipe = async (c: Context): Promise<HandlerResult> => {
   try {
-    const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
+    const userId = getUserId(c);
 
-    if (typeof subClaim !== 'string' || !subClaim) {
-      return unauthorized('User ID not found in token');
-    }
-
-    const recipeId = event.pathParameters?.recipeId;
+    const recipeId = c.req.param('recipeId');
     if (!recipeId) {
       return badRequest('Recipe ID is required');
     }
 
-    if (!event.body) {
-      return badRequest('Request body is required');
-    }
-
     let requestBody: UpdateRecipeRequestBody;
     try {
-      requestBody = JSON.parse(event.body);
+      requestBody = await c.req.json();
     } catch {
       return badRequest('Invalid JSON in request body');
     }
@@ -246,8 +235,6 @@ export const updateRecipe = async (
     if (validationError) {
       return validationError;
     }
-
-    const userId = subClaim;
 
     const existingRecipeResult = await dynamoDbClient.send(
       new GetCommand({

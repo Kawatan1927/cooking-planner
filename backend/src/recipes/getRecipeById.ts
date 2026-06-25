@@ -1,14 +1,15 @@
-import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
+import type { Context } from 'hono';
 import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
 import { Recipe, RecipeIngredient } from '../shared/types';
 import {
+  HandlerResult,
   badRequest,
   internalServerError,
   jsonResponse,
   notFound,
-  unauthorized,
 } from '../shared/http';
+import { getUserId } from '../shared/auth';
 
 interface RecipeIngredientResponse {
   ingredientName: string;
@@ -33,22 +34,14 @@ interface RecipeDetailResponse {
  * GET /recipes/{recipeId}
  * Get a single recipe with its ingredients for the logged-in user
  */
-export const getRecipeById = async (
-  event: APIGatewayProxyEventV2WithJWTAuthorizer
-): Promise<APIGatewayProxyResultV2> => {
+export const getRecipeById = async (c: Context): Promise<HandlerResult> => {
   try {
-    const subClaim = event.requestContext.authorizer?.jwt?.claims?.sub;
+    const userId = getUserId(c);
 
-    if (typeof subClaim !== 'string' || !subClaim) {
-      return unauthorized('User ID not found in token');
-    }
-
-    const recipeId = event.pathParameters?.recipeId;
+    const recipeId = c.req.param('recipeId');
     if (!recipeId) {
       return badRequest('Recipe ID is required');
     }
-
-    const userId = subClaim;
 
     console.log(`Fetching recipe: userId=${userId}, recipeId=${recipeId}`);
 
