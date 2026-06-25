@@ -7,7 +7,9 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 export default defineConfig([
   globalIgnores(['dist']),
   {
-    files: ['src/**/*.ts'],
+    // 2つ目のグロブは lefthook の pre-commit フックがリポジトリルートから
+    // `backend/src/...` のパスで eslint を呼ぶため必要（これがないとファイルが無視される）。
+    files: ['src/**/*.ts', 'backend/src/**/*.ts'],
     extends: [js.configs.recommended, tseslint.configs.recommended, eslintConfigPrettier],
     languageOptions: {
       ecmaVersion: 2022,
