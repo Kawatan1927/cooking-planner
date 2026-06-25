@@ -19,16 +19,16 @@ pre-commit:
       run: ./frontend/node_modules/.bin/eslint --config frontend/eslint.config.js {staged_files}
       stage_fixed: false
 
-    # Lambdaのフォーマットチェック
-    lambda-format:
-      glob: "infra/lambda/**/*.{ts,js,json,md}"
-      run: ./infra/lambda/node_modules/.bin/prettier --check {staged_files}
+    # バックエンド（Hono）のフォーマットチェック
+    backend-format:
+      glob: "backend/**/*.{ts,js,json,md}"
+      run: ./backend/node_modules/.bin/prettier --check {staged_files}
       stage_fixed: false
 
-    # Lambdaのlint
-    lambda-lint:
-      glob: "infra/lambda/**/*.ts"
-      run: ./infra/lambda/node_modules/.bin/eslint --config infra/lambda/eslint.config.mjs {staged_files}
+    # バックエンド（Hono）のlint
+    backend-lint:
+      glob: "backend/**/*.ts"
+      run: ./backend/node_modules/.bin/eslint --config backend/eslint.config.mjs {staged_files}
       stage_fixed: false
 
     # CDKのフォーマットチェック
@@ -54,17 +54,16 @@ pre-push:
         echo "🏗️ フロントエンドのビルドを実行中..."
         bun run frontend:build
 
-    # Lambdaのビルド
-    lambda-build:
-      glob: "infra/lambda/**"
+    # バックエンド（Hono）の型チェック
+    backend-typecheck:
+      glob: "backend/**"
       run: |
-        echo "🏗️ Lambdaのビルドを実行中..."
-        bun run lambda:build
+        echo "🏗️ バックエンドの型チェックを実行中..."
+        bun run backend:type-check
 
     # CDKのビルド
     cdk-build:
       glob: "infra/**"
-      exclude: "infra/lambda/**"
       run: |
         echo "🏗️ CDKのビルドを実行中..."
         bun run cdk:build
@@ -73,7 +72,7 @@ pre-push:
     tests:
       glob:
         - "frontend/**"
-        - "infra/lambda/**"
+        - "backend/**"
       run: |
         echo "🧪 テストを実行中..."
         bun run test
