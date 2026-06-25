@@ -43,9 +43,6 @@ export const errorResponse = (
 export const badRequest = (message: string, code = 'BAD_REQUEST'): HandlerResult =>
   errorResponse(400, code, message);
 
-export const unauthorized = (message: string, code = 'UNAUTHORIZED'): HandlerResult =>
-  errorResponse(401, code, message);
-
 export const notFound = (message: string, code = 'NOT_FOUND'): HandlerResult =>
   errorResponse(404, code, message);
 

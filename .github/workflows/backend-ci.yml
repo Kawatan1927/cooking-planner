@@ -40,7 +40,7 @@ jobs:
 
     - name: TypeScript 型チェック
       working-directory: ./backend
-      run: bunx tsc --noEmit
+      run: bun run type-check
 
     - name: ESLint の実行
       working-directory: ./backend
