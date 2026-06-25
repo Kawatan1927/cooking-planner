@@ -26,10 +26,15 @@ app.use(
   })
 );
 
-app.route('/health', health);
-app.route('/recipes', recipes);
-app.route('/menus', menus);
-app.route('/shopping-list', shoppingList);
+const registerRoutes = (basePath = ''): void => {
+  app.route(`${basePath}/health`, health);
+  app.route(`${basePath}/recipes`, recipes);
+  app.route(`${basePath}/menus`, menus);
+  app.route(`${basePath}/shopping-list`, shoppingList);
+};
+
+registerRoutes();
+registerRoutes('/api');
 
 // 未定義ルートは docs/04-api-design.md のエラー形式で 404 を返す
 app.notFound(() => resultToResponse(notFound('Endpoint not found')));
