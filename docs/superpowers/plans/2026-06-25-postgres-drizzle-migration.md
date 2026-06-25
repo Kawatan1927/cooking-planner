@@ -39,13 +39,13 @@
   - `schema.recipes` / `schema.recipeIngredients` / `schema.menus`（Drizzle テーブル）
   - `db`（`drizzle-orm/postgres-js` の `PostgresJsDatabase`、`shared/db.ts` から export）
 
-- [ ] **Step 1: 依存の入れ替え**
+- [ ] **Step 1: 依存の追加**
 
-`backend/` で実行（依存解決はバージョン自動選択）:
+`backend/` で実行（依存解決はバージョン自動選択）。
+※ `@aws-sdk/*` の削除は旧ハンドラーがまだ import しているため**ここでは行わず Task 8 で実施**する（先に消すと Task 1 の型チェックが壊れる）。
 
 ```bash
 cd backend
-bun remove @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
 bun add drizzle-orm postgres
 bun add -d drizzle-kit
 cd ..
@@ -243,7 +243,7 @@ Expected: エラーなし（`db.ts` / `schema.ts` / `drizzle.config.ts` が型�
 
 ```bash
 git add backend/package.json backend/bun.lock .gitignore backend/.env.example backend/drizzle.config.ts backend/src/shared/schema.ts backend/src/shared/db.ts backend/drizzle
-git commit -m "$(printf 'feat: Drizzle ORM とスキーマ・初期マイグレーションを追加\n\n- drizzle-orm / postgres / drizzle-kit を導入し AWS SDK を削除\n- recipes / recipe_ingredients / menus の Drizzle スキーマを定義\n- DATABASE_URL 接続と初期マイグレーションを追加\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>')"
+git commit -m "$(printf 'feat: Drizzle ORM とスキーマ・初期マイグレーションを追加\n\n- drizzle-orm / postgres / drizzle-kit を導入\n- recipes / recipe_ingredients / menus の Drizzle スキーマを定義\n- DATABASE_URL 接続と初期マイグレーションを追加\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>')"
 ```
 
 ---
@@ -1875,10 +1875,11 @@ git commit -m "$(printf 'refactor: shopping-list を Drizzle リポジトリ経�
 - Modify: `backend/AGENTS.md`
 - Modify: `backend/IMPLEMENTATION_NOTES.md`（DB 記述があれば更新。なければスキップ可）
 
-- [ ] **Step 1: dynamodb.ts を削除**
+- [ ] **Step 1: dynamodb.ts を削除し AWS SDK 依存を撤去**
 
 ```bash
 git rm backend/src/shared/dynamodb.ts
+cd backend && bun remove @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb && cd ..
 ```
 
 - [ ] **Step 2: AWS SDK 残存参照がないことを確認**
