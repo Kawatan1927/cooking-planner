@@ -20,15 +20,18 @@
   - ボディ: `await c.req.json()`
 - `userId` は `shared/auth.ts` の `getUserId(c)` から一貫して取得してください。
   - これは認証移行（別 Issue）までの**暫定スタブ**です。認証方式が決まったらこの 1 関数のみを差し替えます。
-- DynamoDB との通信は AWS SDK v3（`@aws-sdk/lib-dynamodb`）を使ってください（DB 層の移行は別 Issue）。
-- DynamoDB 操作では `userId` を条件に含めてください。
+- DB アクセスは Drizzle ORM（`drizzle-orm/postgres-js`）で行い、ドメインごとの `repository.ts`（`recipes/` `menus/`）に集約してください。ハンドラーから直接 SQL/クライアントを呼ばないでください。
+- スキーマ定義は `src/shared/schema.ts`、接続は `src/shared/db.ts`（`DATABASE_URL`）です。
+- `recipes` / `menus` のクエリは必ず `user_id` でスコープしてください。`recipe_ingredients` は `recipe_id` 経由でユーザーコンテキストを継承します（独自の userId カラムは持ちません）。
+- API 上の `recipeId` / `menuId` は DB の `id` 列、`quantity` は `quantity_value` / `quantity_text` に対応します。変換はリポジトリ層に閉じてください。
 - レスポンス・エラーは `shared/http.ts` のヘルパー（`jsonResponse` / `badRequest` / `notFound` ほか）を使い、
   `docs/04-api-design.md` の形式（エラーは `{ error: { code, message, details } }`）に合わせてください。
 - CORS はローカルフロント（`http://localhost:5173`）を許可します（`src/app.ts`）。
 - サーバーは **127.0.0.1（ループバック）にのみバインド**してください（`docs/05-architecture-notes.md` §6.1）。
   `0.0.0.0` でバインドしないこと。
 - 既存 API のエンドポイント・レスポンス形式（`docs/04-api-design.md`）を変えないでください。
-- Lambda 固有の SDK（`@aws-sdk/client-lambda` 等）を新たに追加しないでください。
+- AWS SDK（`@aws-sdk/*`）を新たに追加しないでください。
+- スキーマ変更時は `bun run db:generate` でマイグレーションを生成し、`docs/03-domain-and-data-model.md` も更新してください。
 
 ## よく使うコマンド
 
@@ -42,3 +45,4 @@
 `backend/` 直下から:
 
 - `bun run dev` / `bun run start` / `bun run type-check` / `bun run lint` / `bun run test`
+- `bun run db:generate` / `bun run db:migrate`

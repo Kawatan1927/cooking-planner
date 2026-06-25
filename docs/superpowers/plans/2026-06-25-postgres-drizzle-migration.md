@@ -26,6 +26,7 @@
 ### Task 1: 基盤（依存・Drizzleスキーマ・接続・設定・初期マイグレーション）
 
 **Files:**
+
 - Modify: `backend/package.json`（依存・スクリプト）
 - Modify: `.gitignore`（`/backend/.env` 追加）
 - Create: `backend/.env.example`
@@ -35,6 +36,7 @@
 - Create: `backend/drizzle/0000_*.sql`（生成物）
 
 **Interfaces:**
+
 - Produces:
   - `schema.recipes` / `schema.recipeIngredients` / `schema.menus`（Drizzle テーブル）
   - `db`（`drizzle-orm/postgres-js` の `PostgresJsDatabase`、`shared/db.ts` から export）
@@ -89,7 +91,7 @@ DATABASE_URL=postgresql://user:password@localhost:5432/cooking_planner
 `backend/src/shared/schema.ts`:
 
 ```ts
-import { sql } from 'drizzle-orm';
+import { sql } from "drizzle-orm";
 import {
   check,
   date,
@@ -101,26 +103,26 @@ import {
   timestamp,
   uuid,
   varchar,
-} from 'drizzle-orm/pg-core';
+} from "drizzle-orm/pg-core";
 
 /**
  * recipes テーブル。API 上の recipeId は本テーブルの id（UUID）。
  * @see docs/03-domain-and-data-model.md §3
  */
 export const recipes = pgTable(
-  'recipes',
+  "recipes",
   {
-    id: uuid('id').primaryKey(),
-    userId: varchar('user_id').notNull(),
-    name: varchar('name').notNull(),
-    sourceBook: varchar('source_book'),
-    sourcePage: integer('source_page'),
-    baseServings: integer('base_servings').notNull(),
-    memo: text('memo'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+    id: uuid("id").primaryKey(),
+    userId: varchar("user_id").notNull(),
+    name: varchar("name").notNull(),
+    sourceBook: varchar("source_book"),
+    sourcePage: integer("source_page"),
+    baseServings: integer("base_servings").notNull(),
+    memo: text("memo"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
   },
-  table => [index('recipes_user_id_idx').on(table.userId)]
+  (table) => [index("recipes_user_id_idx").on(table.userId)],
 );
 
 /**
@@ -129,25 +131,25 @@ export const recipes = pgTable(
  * @see docs/03-domain-and-data-model.md §4
  */
 export const recipeIngredients = pgTable(
-  'recipe_ingredients',
+  "recipe_ingredients",
   {
-    id: uuid('id').primaryKey(),
-    recipeId: uuid('recipe_id')
+    id: uuid("id").primaryKey(),
+    recipeId: uuid("recipe_id")
       .notNull()
-      .references(() => recipes.id, { onDelete: 'cascade' }),
-    ingredientName: varchar('ingredient_name').notNull(),
-    quantityValue: numeric('quantity_value'),
-    quantityText: varchar('quantity_text'),
-    unit: varchar('unit').notNull(),
-    note: varchar('note'),
+      .references(() => recipes.id, { onDelete: "cascade" }),
+    ingredientName: varchar("ingredient_name").notNull(),
+    quantityValue: numeric("quantity_value"),
+    quantityText: varchar("quantity_text"),
+    unit: varchar("unit").notNull(),
+    note: varchar("note"),
   },
-  table => [
-    index('recipe_ingredients_recipe_id_idx').on(table.recipeId),
+  (table) => [
+    index("recipe_ingredients_recipe_id_idx").on(table.recipeId),
     check(
-      'recipe_ingredients_quantity_check',
-      sql`(${table.quantityValue} IS NULL) <> (${table.quantityText} IS NULL)`
+      "recipe_ingredients_quantity_check",
+      sql`(${table.quantityValue} IS NULL) <> (${table.quantityText} IS NULL)`,
     ),
-  ]
+  ],
 );
 
 /**
@@ -156,24 +158,27 @@ export const recipeIngredients = pgTable(
  * @see docs/03-domain-and-data-model.md §5
  */
 export const menus = pgTable(
-  'menus',
+  "menus",
   {
-    id: uuid('id').primaryKey(),
-    userId: varchar('user_id').notNull(),
-    date: date('date', { mode: 'string' }).notNull(),
-    mealType: varchar('meal_type').notNull(),
-    recipeId: uuid('recipe_id')
+    id: uuid("id").primaryKey(),
+    userId: varchar("user_id").notNull(),
+    date: date("date", { mode: "string" }).notNull(),
+    mealType: varchar("meal_type").notNull(),
+    recipeId: uuid("recipe_id")
       .notNull()
       .references(() => recipes.id),
-    servings: numeric('servings').notNull(),
-    memo: text('memo'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+    servings: numeric("servings").notNull(),
+    memo: text("memo"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
   },
-  table => [
-    index('menus_user_id_date_idx').on(table.userId, table.date),
-    check('menus_meal_type_check', sql`${table.mealType} IN ('BREAKFAST', 'LUNCH', 'DINNER', 'OTHER')`),
-  ]
+  (table) => [
+    index("menus_user_id_date_idx").on(table.userId, table.date),
+    check(
+      "menus_meal_type_check",
+      sql`${table.mealType} IN ('BREAKFAST', 'LUNCH', 'DINNER', 'OTHER')`,
+    ),
+  ],
 );
 ```
 
@@ -182,16 +187,16 @@ export const menus = pgTable(
 `backend/src/shared/db.ts`:
 
 ```ts
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from './schema';
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "./schema";
 
 /**
  * PostgreSQL 接続（postgres.js）。
  * 接続は遅延（初回クエリ時）に確立される。
  * テストではリポジトリ層をモックするため、本モジュールは評価されない。
  */
-const connectionString = process.env.DATABASE_URL ?? '';
+const connectionString = process.env.DATABASE_URL ?? "";
 const client = postgres(connectionString);
 
 export const db = drizzle(client, { schema });
@@ -202,14 +207,14 @@ export const db = drizzle(client, { schema });
 `backend/drizzle.config.ts`:
 
 ```ts
-import { defineConfig } from 'drizzle-kit';
+import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-  schema: './src/shared/schema.ts',
-  out: './drizzle',
-  dialect: 'postgresql',
+  schema: "./src/shared/schema.ts",
+  out: "./drizzle",
+  dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? '',
+    url: process.env.DATABASE_URL ?? "",
   },
 });
 ```
@@ -225,6 +230,7 @@ Expected: `backend/drizzle/0000_*.sql` と `backend/drizzle/meta/` が生成さ�
 - [ ] **Step 9: 生成 SQL を確認**
 
 `backend/drizzle/0000_*.sql` を開き、次が含まれることを目視確認:
+
 - `CREATE TABLE "recipes"` / `"recipe_ingredients"` / `"menus"`
 - `recipe_ingredients` の `CONSTRAINT ... CHECK ((quantity_value is null) <> (quantity_text is null))` 相当
 - `menus` の `CHECK (meal_type IN ('BREAKFAST', 'LUNCH', 'DINNER', 'OTHER'))` 相当
@@ -251,11 +257,13 @@ git commit -m "$(printf 'feat: Drizzle ORM とスキーマ・初期マイグレ�
 ### Task 2: quantity マッパー（純粋関数・TDD）と型の更新
 
 **Files:**
+
 - Create: `backend/src/shared/quantity.ts`
 - Test: `backend/src/shared/quantity.test.ts`
 - Modify: `backend/src/shared/types.ts`（`RecipeIngredient` から `userId` を削除）
 
 **Interfaces:**
+
 - Produces:
   - `splitQuantity(quantity: number | string): { quantityValue: string | null; quantityText: string | null }`
   - `mergeQuantity(quantityValue: string | null, quantityText: string | null): number | string`
@@ -265,34 +273,43 @@ git commit -m "$(printf 'feat: Drizzle ORM とスキーマ・初期マイグレ�
 `backend/src/shared/quantity.test.ts`:
 
 ```ts
-import { describe, expect, it } from 'vitest';
-import { mergeQuantity, splitQuantity } from './quantity';
+import { describe, expect, it } from "vitest";
+import { mergeQuantity, splitQuantity } from "./quantity";
 
-describe('splitQuantity', () => {
-  it('数値は quantityValue に文字列化して入れる', () => {
-    expect(splitQuantity(300)).toEqual({ quantityValue: '300', quantityText: null });
+describe("splitQuantity", () => {
+  it("数値は quantityValue に文字列化して入れる", () => {
+    expect(splitQuantity(300)).toEqual({
+      quantityValue: "300",
+      quantityText: null,
+    });
   });
 
-  it('小数も文字列化して保持する', () => {
-    expect(splitQuantity(1.5)).toEqual({ quantityValue: '1.5', quantityText: null });
+  it("小数も文字列化して保持する", () => {
+    expect(splitQuantity(1.5)).toEqual({
+      quantityValue: "1.5",
+      quantityText: null,
+    });
   });
 
-  it('文字列は quantityText に入れる', () => {
-    expect(splitQuantity('少々')).toEqual({ quantityValue: null, quantityText: '少々' });
+  it("文字列は quantityText に入れる", () => {
+    expect(splitQuantity("少々")).toEqual({
+      quantityValue: null,
+      quantityText: "少々",
+    });
   });
 });
 
-describe('mergeQuantity', () => {
-  it('quantityValue があれば数値に変換して返す', () => {
-    expect(mergeQuantity('300', null)).toBe(300);
+describe("mergeQuantity", () => {
+  it("quantityValue があれば数値に変換して返す", () => {
+    expect(mergeQuantity("300", null)).toBe(300);
   });
 
-  it('小数の quantityValue も数値で返す', () => {
-    expect(mergeQuantity('1.5', null)).toBe(1.5);
+  it("小数の quantityValue も数値で返す", () => {
+    expect(mergeQuantity("1.5", null)).toBe(1.5);
   });
 
-  it('quantityValue が null なら quantityText を返す', () => {
-    expect(mergeQuantity(null, '少々')).toBe('少々');
+  it("quantityValue が null なら quantityText を返す", () => {
+    expect(mergeQuantity(null, "少々")).toBe("少々");
   });
 });
 ```
@@ -315,9 +332,9 @@ Expected: FAIL（`./quantity` が解決できない / 関数未定義）。
  * quantity_value（数値分量）/ quantity_text（文字列分量）に振り分ける。
  */
 export const splitQuantity = (
-  quantity: number | string
+  quantity: number | string,
 ): { quantityValue: string | null; quantityText: string | null } =>
-  typeof quantity === 'number'
+  typeof quantity === "number"
     ? { quantityValue: String(quantity), quantityText: null }
     : { quantityValue: null, quantityText: quantity };
 
@@ -327,8 +344,9 @@ export const splitQuantity = (
  */
 export const mergeQuantity = (
   quantityValue: string | null,
-  quantityText: string | null
-): number | string => (quantityValue !== null ? Number(quantityValue) : (quantityText ?? ''));
+  quantityText: string | null,
+): number | string =>
+  quantityValue !== null ? Number(quantityValue) : (quantityText ?? "");
 ```
 
 - [ ] **Step 4: テストが通ることを確認**
@@ -375,9 +393,11 @@ git commit -m "$(printf 'feat: quantity 変換マッパーを追加し RecipeIng
 ### Task 3: recipes リポジトリ
 
 **Files:**
+
 - Create: `backend/src/recipes/repository.ts`
 
 **Interfaces:**
+
 - Consumes: `db`（Task 1）, `recipes`/`recipeIngredients`（Task 1）, `splitQuantity`/`mergeQuantity`（Task 2）, `Recipe`/`RecipeIngredient`（`shared/types.ts`）
 - Produces:
   - `interface NewRecipeInput { userId: string; name: string; sourceBook: string | null; sourcePage: number | null; baseServings: number; memo: string | null; }`
@@ -393,12 +413,12 @@ git commit -m "$(printf 'feat: quantity 変換マッパーを追加し RecipeIng
 `backend/src/recipes/repository.ts`:
 
 ```ts
-import { randomUUID } from 'crypto';
-import { and, asc, eq } from 'drizzle-orm';
-import { db } from '../shared/db';
-import { recipeIngredients, recipes } from '../shared/schema';
-import { mergeQuantity, splitQuantity } from '../shared/quantity';
-import type { Recipe, RecipeIngredient } from '../shared/types';
+import { randomUUID } from "crypto";
+import { and, asc, eq } from "drizzle-orm";
+import { db } from "../shared/db";
+import { recipeIngredients, recipes } from "../shared/schema";
+import { mergeQuantity, splitQuantity } from "../shared/quantity";
+import type { Recipe, RecipeIngredient } from "../shared/types";
 
 export interface NewRecipeInput {
   userId: string;
@@ -433,7 +453,9 @@ const toRecipe = (row: typeof recipes.$inferSelect): Recipe => ({
   updatedAt: row.updatedAt.toISOString(),
 });
 
-const toIngredient = (row: typeof recipeIngredients.$inferSelect): RecipeIngredient => ({
+const toIngredient = (
+  row: typeof recipeIngredients.$inferSelect,
+): RecipeIngredient => ({
   recipeId: row.recipeId,
   ingredientName: row.ingredientName,
   quantity: mergeQuantity(row.quantityValue, row.quantityText),
@@ -441,8 +463,11 @@ const toIngredient = (row: typeof recipeIngredients.$inferSelect): RecipeIngredi
   note: row.note ?? undefined,
 });
 
-const toIngredientRows = (recipeId: string, ingredients: NewIngredientInput[]) =>
-  ingredients.map(ingredient => {
+const toIngredientRows = (
+  recipeId: string,
+  ingredients: NewIngredientInput[],
+) =>
+  ingredients.map((ingredient) => {
     const { quantityValue, quantityText } = splitQuantity(ingredient.quantity);
     return {
       id: randomUUID(),
@@ -456,13 +481,16 @@ const toIngredientRows = (recipeId: string, ingredients: NewIngredientInput[]) =
   });
 
 export const listRecipesByUser = async (userId: string): Promise<Recipe[]> => {
-  const rows = await db.select().from(recipes).where(eq(recipes.userId, userId));
+  const rows = await db
+    .select()
+    .from(recipes)
+    .where(eq(recipes.userId, userId));
   return rows.map(toRecipe);
 };
 
 export const findRecipeWithIngredients = async (
   userId: string,
-  recipeId: string
+  recipeId: string,
 ): Promise<RecipeWithIngredients | null> => {
   const recipeRows = await db
     .select()
@@ -488,12 +516,12 @@ export const findRecipeWithIngredients = async (
 
 export const createRecipeWithIngredients = async (
   input: NewRecipeInput,
-  ingredients: NewIngredientInput[]
+  ingredients: NewIngredientInput[],
 ): Promise<string> => {
   const recipeId = randomUUID();
   const now = new Date();
 
-  await db.transaction(async tx => {
+  await db.transaction(async (tx) => {
     await tx.insert(recipes).values({
       id: recipeId,
       userId: input.userId,
@@ -507,7 +535,9 @@ export const createRecipeWithIngredients = async (
     });
 
     if (ingredients.length > 0) {
-      await tx.insert(recipeIngredients).values(toIngredientRows(recipeId, ingredients));
+      await tx
+        .insert(recipeIngredients)
+        .values(toIngredientRows(recipeId, ingredients));
     }
   });
 
@@ -517,12 +547,12 @@ export const createRecipeWithIngredients = async (
 export const replaceRecipeWithIngredients = async (
   userId: string,
   recipeId: string,
-  input: Omit<NewRecipeInput, 'userId'>,
-  ingredients: NewIngredientInput[]
+  input: Omit<NewRecipeInput, "userId">,
+  ingredients: NewIngredientInput[],
 ): Promise<boolean> => {
   const now = new Date();
 
-  return db.transaction(async tx => {
+  return db.transaction(async (tx) => {
     const updated = await tx
       .update(recipes)
       .set({
@@ -540,10 +570,14 @@ export const replaceRecipeWithIngredients = async (
       return false;
     }
 
-    await tx.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, recipeId));
+    await tx
+      .delete(recipeIngredients)
+      .where(eq(recipeIngredients.recipeId, recipeId));
 
     if (ingredients.length > 0) {
-      await tx.insert(recipeIngredients).values(toIngredientRows(recipeId, ingredients));
+      await tx
+        .insert(recipeIngredients)
+        .values(toIngredientRows(recipeId, ingredients));
     }
 
     return true;
@@ -571,6 +605,7 @@ git commit -m "$(printf 'feat: recipes の Drizzle リポジトリを追加\n\n-
 ### Task 4: recipes バリデーション共通化・ハンドラー移行・テスト更新
 
 **Files:**
+
 - Create: `backend/src/recipes/validation.ts`
 - Modify: `backend/src/recipes/getRecipes.ts`
 - Modify: `backend/src/recipes/getRecipeById.ts`
@@ -579,6 +614,7 @@ git commit -m "$(printf 'feat: recipes の Drizzle リポジトリを追加\n\n-
 - Test: `backend/src/recipes/getRecipeById.test.ts`（書き換え）
 
 **Interfaces:**
+
 - Consumes: `listRecipesByUser`/`findRecipeWithIngredients`/`createRecipeWithIngredients`/`replaceRecipeWithIngredients`（Task 3）
 - Produces:
   - `interface RecipeBody { name: string; sourceBook?: string | null; sourcePage?: number | null; baseServings: number; memo?: string | null; ingredients: Array<{ ingredientName: string; quantity: number | string; unit: string; note?: string | null }>; }`
@@ -589,8 +625,8 @@ git commit -m "$(printf 'feat: recipes の Drizzle リポジトリを追加\n\n-
 `backend/src/recipes/validation.ts`:
 
 ```ts
-import { HandlerResult, badRequest } from '../shared/http';
-import { isNonEmptyString, isPositiveNumber } from '../shared/validation';
+import { HandlerResult, badRequest } from "../shared/http";
+import { isNonEmptyString, isPositiveNumber } from "../shared/validation";
 
 export interface RecipeBody {
   name: string;
@@ -612,40 +648,47 @@ export interface RecipeBody {
  */
 export const validateRecipeBody = (body: RecipeBody): HandlerResult | null => {
   if (!isNonEmptyString(body.name)) {
-    return badRequest('Recipe name is required');
+    return badRequest("Recipe name is required");
   }
   if (!isPositiveNumber(body.baseServings)) {
-    return badRequest('baseServings must be a positive number');
+    return badRequest("baseServings must be a positive number");
   }
   if (!Array.isArray(body.ingredients)) {
-    return badRequest('ingredients must be an array');
+    return badRequest("ingredients must be an array");
   }
 
   const seenNames = new Set<string>();
   for (const ingredient of body.ingredients) {
-    if (typeof ingredient !== 'object' || ingredient === null || Array.isArray(ingredient)) {
-      return badRequest('Each ingredient must be an object');
+    if (
+      typeof ingredient !== "object" ||
+      ingredient === null ||
+      Array.isArray(ingredient)
+    ) {
+      return badRequest("Each ingredient must be an object");
     }
     if (!isNonEmptyString(ingredient.ingredientName)) {
-      return badRequest('Each ingredient must have a valid ingredientName');
+      return badRequest("Each ingredient must have a valid ingredientName");
     }
     const normalized = ingredient.ingredientName.toLowerCase().trim();
     if (seenNames.has(normalized)) {
-      return badRequest(`Duplicate ingredient name: ${ingredient.ingredientName}`);
+      return badRequest(
+        `Duplicate ingredient name: ${ingredient.ingredientName}`,
+      );
     }
     seenNames.add(normalized);
 
     const hasValidNumericQuantity =
-      typeof ingredient.quantity === 'number' && ingredient.quantity > 0;
+      typeof ingredient.quantity === "number" && ingredient.quantity > 0;
     const hasValidTextQuantity =
-      typeof ingredient.quantity === 'string' && ingredient.quantity.trim().length > 0;
+      typeof ingredient.quantity === "string" &&
+      ingredient.quantity.trim().length > 0;
     if (!hasValidNumericQuantity && !hasValidTextQuantity) {
       return badRequest(
-        'Each ingredient must have a positive numeric quantity or a non-empty text quantity'
+        "Each ingredient must have a positive numeric quantity or a non-empty text quantity",
       );
     }
     if (!isNonEmptyString(ingredient.unit)) {
-      return badRequest('Each ingredient must have a unit');
+      return badRequest("Each ingredient must have a unit");
     }
   }
 
@@ -658,11 +701,15 @@ export const validateRecipeBody = (body: RecipeBody): HandlerResult | null => {
 `backend/src/recipes/getRecipes.ts` を全置換:
 
 ```ts
-import type { Context } from 'hono';
-import { listRecipesByUser } from './repository';
-import { RecipeResponse } from '../shared/types';
-import { HandlerResult, internalServerError, jsonResponse } from '../shared/http';
-import { getUserId } from '../shared/auth';
+import type { Context } from "hono";
+import { listRecipesByUser } from "./repository";
+import { RecipeResponse } from "../shared/types";
+import {
+  HandlerResult,
+  internalServerError,
+  jsonResponse,
+} from "../shared/http";
+import { getUserId } from "../shared/auth";
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
@@ -673,11 +720,13 @@ const USER_ID_LOG_PREFIX_LENGTH = 12;
 export const getRecipes = async (c: Context): Promise<HandlerResult> => {
   try {
     const userId = getUserId(c);
-    console.log(`Fetching recipes for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`);
+    console.log(
+      `Fetching recipes for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`,
+    );
 
     const recipes = await listRecipesByUser(userId);
 
-    const response: RecipeResponse[] = recipes.map(recipe => ({
+    const response: RecipeResponse[] = recipes.map((recipe) => ({
       recipeId: recipe.recipeId,
       name: recipe.name,
       sourceBook: recipe.sourceBook ?? null,
@@ -689,8 +738,8 @@ export const getRecipes = async (c: Context): Promise<HandlerResult> => {
 
     return jsonResponse(200, response);
   } catch (error) {
-    console.error('Error fetching recipes:', error);
-    return internalServerError('Failed to fetch recipes');
+    console.error("Error fetching recipes:", error);
+    return internalServerError("Failed to fetch recipes");
   }
 };
 ```
@@ -700,16 +749,16 @@ export const getRecipes = async (c: Context): Promise<HandlerResult> => {
 `backend/src/recipes/getRecipeById.ts` を全置換:
 
 ```ts
-import type { Context } from 'hono';
-import { findRecipeWithIngredients } from './repository';
+import type { Context } from "hono";
+import { findRecipeWithIngredients } from "./repository";
 import {
   HandlerResult,
   badRequest,
   internalServerError,
   jsonResponse,
   notFound,
-} from '../shared/http';
-import { getUserId } from '../shared/auth';
+} from "../shared/http";
+import { getUserId } from "../shared/auth";
 
 interface RecipeIngredientResponse {
   ingredientName: string;
@@ -737,14 +786,14 @@ interface RecipeDetailResponse {
 export const getRecipeById = async (c: Context): Promise<HandlerResult> => {
   try {
     const userId = getUserId(c);
-    const recipeId = c.req.param('recipeId');
+    const recipeId = c.req.param("recipeId");
     if (!recipeId) {
-      return badRequest('Recipe ID is required');
+      return badRequest("Recipe ID is required");
     }
 
     const result = await findRecipeWithIngredients(userId, recipeId);
     if (!result) {
-      return notFound('Recipe not found', 'RECIPE_NOT_FOUND');
+      return notFound("Recipe not found", "RECIPE_NOT_FOUND");
     }
 
     const { recipe, ingredients } = result;
@@ -757,7 +806,7 @@ export const getRecipeById = async (c: Context): Promise<HandlerResult> => {
       memo: recipe.memo ?? null,
       createdAt: recipe.createdAt,
       updatedAt: recipe.updatedAt,
-      ingredients: ingredients.map(ingredient => ({
+      ingredients: ingredients.map((ingredient) => ({
         ingredientName: ingredient.ingredientName,
         quantity: ingredient.quantity,
         unit: ingredient.unit,
@@ -767,8 +816,8 @@ export const getRecipeById = async (c: Context): Promise<HandlerResult> => {
 
     return jsonResponse(200, response);
   } catch (error) {
-    console.error('Error fetching recipe by ID:', error);
-    return internalServerError('Failed to fetch recipe');
+    console.error("Error fetching recipe by ID:", error);
+    return internalServerError("Failed to fetch recipe");
   }
 };
 ```
@@ -778,11 +827,16 @@ export const getRecipeById = async (c: Context): Promise<HandlerResult> => {
 `backend/src/recipes/createRecipe.ts` を全置換:
 
 ```ts
-import type { Context } from 'hono';
-import { createRecipeWithIngredients } from './repository';
-import { RecipeBody, validateRecipeBody } from './validation';
-import { HandlerResult, badRequest, internalServerError, jsonResponse } from '../shared/http';
-import { getUserId } from '../shared/auth';
+import type { Context } from "hono";
+import { createRecipeWithIngredients } from "./repository";
+import { RecipeBody, validateRecipeBody } from "./validation";
+import {
+  HandlerResult,
+  badRequest,
+  internalServerError,
+  jsonResponse,
+} from "../shared/http";
+import { getUserId } from "../shared/auth";
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
@@ -793,13 +847,15 @@ const USER_ID_LOG_PREFIX_LENGTH = 12;
 export const createRecipe = async (c: Context): Promise<HandlerResult> => {
   try {
     const userId = getUserId(c);
-    console.log(`Creating recipe for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`);
+    console.log(
+      `Creating recipe for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`,
+    );
 
     let requestBody: RecipeBody;
     try {
       requestBody = await c.req.json();
     } catch {
-      return badRequest('Invalid JSON in request body');
+      return badRequest("Invalid JSON in request body");
     }
 
     const validationError = validateRecipeBody(requestBody);
@@ -816,18 +872,18 @@ export const createRecipe = async (c: Context): Promise<HandlerResult> => {
         baseServings: requestBody.baseServings,
         memo: requestBody.memo ?? null,
       },
-      requestBody.ingredients.map(ingredient => ({
+      requestBody.ingredients.map((ingredient) => ({
         ingredientName: ingredient.ingredientName,
         quantity: ingredient.quantity,
         unit: ingredient.unit,
         note: ingredient.note ?? null,
-      }))
+      })),
     );
 
     return jsonResponse(201, { recipeId });
   } catch (error) {
-    console.error('Error creating recipe:', error);
-    return internalServerError('Failed to create recipe');
+    console.error("Error creating recipe:", error);
+    return internalServerError("Failed to create recipe");
   }
 };
 ```
@@ -837,17 +893,17 @@ export const createRecipe = async (c: Context): Promise<HandlerResult> => {
 `backend/src/recipes/updateRecipe.ts` を全置換:
 
 ```ts
-import type { Context } from 'hono';
-import { replaceRecipeWithIngredients } from './repository';
-import { RecipeBody, validateRecipeBody } from './validation';
+import type { Context } from "hono";
+import { replaceRecipeWithIngredients } from "./repository";
+import { RecipeBody, validateRecipeBody } from "./validation";
 import {
   HandlerResult,
   badRequest,
   internalServerError,
   jsonResponse,
   notFound,
-} from '../shared/http';
-import { getUserId } from '../shared/auth';
+} from "../shared/http";
+import { getUserId } from "../shared/auth";
 
 /**
  * PUT /recipes/{recipeId}
@@ -856,16 +912,16 @@ import { getUserId } from '../shared/auth';
 export const updateRecipe = async (c: Context): Promise<HandlerResult> => {
   try {
     const userId = getUserId(c);
-    const recipeId = c.req.param('recipeId');
+    const recipeId = c.req.param("recipeId");
     if (!recipeId) {
-      return badRequest('Recipe ID is required');
+      return badRequest("Recipe ID is required");
     }
 
     let requestBody: RecipeBody;
     try {
       requestBody = await c.req.json();
     } catch {
-      return badRequest('Invalid JSON in request body');
+      return badRequest("Invalid JSON in request body");
     }
 
     const validationError = validateRecipeBody(requestBody);
@@ -883,22 +939,22 @@ export const updateRecipe = async (c: Context): Promise<HandlerResult> => {
         baseServings: requestBody.baseServings,
         memo: requestBody.memo ?? null,
       },
-      requestBody.ingredients.map(ingredient => ({
+      requestBody.ingredients.map((ingredient) => ({
         ingredientName: ingredient.ingredientName,
         quantity: ingredient.quantity,
         unit: ingredient.unit,
         note: ingredient.note ?? null,
-      }))
+      })),
     );
 
     if (!updated) {
-      return notFound('Recipe not found', 'RECIPE_NOT_FOUND');
+      return notFound("Recipe not found", "RECIPE_NOT_FOUND");
     }
 
     return jsonResponse(200, { recipeId });
   } catch (error) {
-    console.error('Error updating recipe:', error);
-    return internalServerError('Failed to update recipe');
+    console.error("Error updating recipe:", error);
+    return internalServerError("Failed to update recipe");
   }
 };
 ```
@@ -908,77 +964,95 @@ export const updateRecipe = async (c: Context): Promise<HandlerResult> => {
 `backend/src/recipes/getRecipeById.test.ts` を全置換:
 
 ```ts
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { findRecipeWithIngredientsMock } = vi.hoisted(() => ({
   findRecipeWithIngredientsMock: vi.fn(),
 }));
 
-vi.mock('./repository', () => ({
+vi.mock("./repository", () => ({
   listRecipesByUser: vi.fn(),
   findRecipeWithIngredients: findRecipeWithIngredientsMock,
   createRecipeWithIngredients: vi.fn(),
   replaceRecipeWithIngredients: vi.fn(),
 }));
 
-vi.mock('../shared/auth', () => ({
-  getUserId: () => 'user-123',
+vi.mock("../shared/auth", () => ({
+  getUserId: () => "user-123",
 }));
 
-import app from '../app';
+import app from "../app";
 
-describe('GET /recipes/:recipeId', () => {
+describe("GET /recipes/:recipeId", () => {
   beforeEach(() => {
     findRecipeWithIngredientsMock.mockReset();
   });
 
-  it('レシピ本体と材料一覧を返す', async () => {
+  it("レシピ本体と材料一覧を返す", async () => {
     findRecipeWithIngredientsMock.mockResolvedValue({
       recipe: {
-        recipeId: 'recipe-123',
-        userId: 'user-123',
-        name: '親子丼',
-        sourceBook: '和食本',
+        recipeId: "recipe-123",
+        userId: "user-123",
+        name: "親子丼",
+        sourceBook: "和食本",
         sourcePage: 12,
         baseServings: 2,
-        memo: 'メモ',
-        createdAt: '2026-05-20T00:00:00.000Z',
-        updatedAt: '2026-05-21T00:00:00.000Z',
+        memo: "メモ",
+        createdAt: "2026-05-20T00:00:00.000Z",
+        updatedAt: "2026-05-21T00:00:00.000Z",
       },
       ingredients: [
-        { recipeId: 'recipe-123', ingredientName: '鶏もも肉', quantity: 300, unit: 'g' },
-        { recipeId: 'recipe-123', ingredientName: '卵', quantity: 2, unit: '個', note: '溶く' },
+        {
+          recipeId: "recipe-123",
+          ingredientName: "鶏もも肉",
+          quantity: 300,
+          unit: "g",
+        },
+        {
+          recipeId: "recipe-123",
+          ingredientName: "卵",
+          quantity: 2,
+          unit: "個",
+          note: "溶く",
+        },
       ],
     });
 
-    const response = await app.request('/recipes/recipe-123');
+    const response = await app.request("/recipes/recipe-123");
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      recipeId: 'recipe-123',
-      name: '親子丼',
-      sourceBook: '和食本',
+      recipeId: "recipe-123",
+      name: "親子丼",
+      sourceBook: "和食本",
       sourcePage: 12,
       baseServings: 2,
-      memo: 'メモ',
-      createdAt: '2026-05-20T00:00:00.000Z',
-      updatedAt: '2026-05-21T00:00:00.000Z',
+      memo: "メモ",
+      createdAt: "2026-05-20T00:00:00.000Z",
+      updatedAt: "2026-05-21T00:00:00.000Z",
       ingredients: [
-        { ingredientName: '鶏もも肉', quantity: 300, unit: 'g', note: null },
-        { ingredientName: '卵', quantity: 2, unit: '個', note: '溶く' },
+        { ingredientName: "鶏もも肉", quantity: 300, unit: "g", note: null },
+        { ingredientName: "卵", quantity: 2, unit: "個", note: "溶く" },
       ],
     });
-    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-123');
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith(
+      "user-123",
+      "recipe-123",
+    );
   });
 
-  it('別 userId のレシピは取得できず 404 を返す', async () => {
+  it("別 userId のレシピは取得できず 404 を返す", async () => {
     findRecipeWithIngredientsMock.mockResolvedValue(null);
 
-    const response = await app.request('/recipes/recipe-123');
+    const response = await app.request("/recipes/recipe-123");
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
-      error: { code: 'RECIPE_NOT_FOUND', message: 'Recipe not found', details: null },
+      error: {
+        code: "RECIPE_NOT_FOUND",
+        message: "Recipe not found",
+        details: null,
+      },
     });
   });
 });
@@ -1004,9 +1078,11 @@ git commit -m "$(printf 'refactor: recipes ハンドラーを Drizzle リポジ�
 ### Task 5: menus リポジトリ
 
 **Files:**
+
 - Create: `backend/src/menus/repository.ts`
 
 **Interfaces:**
+
 - Consumes: `db`（Task 1）, `menus`（Task 1）, `Menu`（`shared/types.ts`）
 - Produces:
   - `interface NewMenuInput { userId: string; date: string; mealType: Menu['mealType']; recipeId: string; servings: number; memo: string | null; }`
@@ -1021,16 +1097,16 @@ git commit -m "$(printf 'refactor: recipes ハンドラーを Drizzle リポジ�
 `backend/src/menus/repository.ts`:
 
 ```ts
-import { randomUUID } from 'crypto';
-import { and, asc, between, eq } from 'drizzle-orm';
-import { db } from '../shared/db';
-import { menus } from '../shared/schema';
-import type { Menu } from '../shared/types';
+import { randomUUID } from "crypto";
+import { and, asc, between, eq } from "drizzle-orm";
+import { db } from "../shared/db";
+import { menus } from "../shared/schema";
+import type { Menu } from "../shared/types";
 
 export interface NewMenuInput {
   userId: string;
   date: string;
-  mealType: Menu['mealType'];
+  mealType: Menu["mealType"];
   recipeId: string;
   servings: number;
   memo: string | null;
@@ -1040,7 +1116,7 @@ const toMenu = (row: typeof menus.$inferSelect): Menu => ({
   menuId: row.id,
   userId: row.userId,
   date: row.date,
-  mealType: row.mealType as Menu['mealType'],
+  mealType: row.mealType as Menu["mealType"],
   recipeId: row.recipeId,
   servings: Number(row.servings),
   memo: row.memo ?? undefined,
@@ -1051,7 +1127,7 @@ const toMenu = (row: typeof menus.$inferSelect): Menu => ({
 export const listMenusInRange = async (
   userId: string,
   from: string,
-  to: string
+  to: string,
 ): Promise<Menu[]> => {
   const rows = await db
     .select()
@@ -1063,7 +1139,7 @@ export const listMenusInRange = async (
 
 export const findMenuByIdForUser = async (
   userId: string,
-  menuId: string
+  menuId: string,
 ): Promise<Menu | null> => {
   const rows = await db
     .select()
@@ -1092,7 +1168,7 @@ export const createMenu = async (input: NewMenuInput): Promise<string> => {
 export const updateMenuForUser = async (
   userId: string,
   menuId: string,
-  fields: Omit<NewMenuInput, 'userId'>
+  fields: Omit<NewMenuInput, "userId">,
 ): Promise<boolean> => {
   const now = new Date();
   const updated = await db
@@ -1110,7 +1186,10 @@ export const updateMenuForUser = async (
   return updated.length > 0;
 };
 
-export const deleteMenuForUser = async (userId: string, menuId: string): Promise<boolean> => {
+export const deleteMenuForUser = async (
+  userId: string,
+  menuId: string,
+): Promise<boolean> => {
   const deleted = await db
     .delete(menus)
     .where(and(eq(menus.id, menuId), eq(menus.userId, userId)))
@@ -1139,6 +1218,7 @@ git commit -m "$(printf 'feat: menus の Drizzle リポジトリを追加\n\n- �
 ### Task 6: menus バリデーション共通化・ハンドラー移行・テスト更新
 
 **Files:**
+
 - Create: `backend/src/menus/validation.ts`
 - Modify: `backend/src/menus/createMenu.ts`
 - Modify: `backend/src/menus/updateMenu.ts`
@@ -1148,6 +1228,7 @@ git commit -m "$(printf 'feat: menus の Drizzle リポジトリを追加\n\n- �
 - Test: `backend/src/menus/updateMenu.test.ts`（書き換え）
 
 **Interfaces:**
+
 - Consumes: `listMenusInRange`/`createMenu`/`updateMenuForUser`/`deleteMenuForUser`（Task 5）
 - Produces:
   - `const VALID_MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER', 'OTHER'] as const`
@@ -1160,10 +1241,19 @@ git commit -m "$(printf 'feat: menus の Drizzle リポジトリを追加\n\n- �
 `backend/src/menus/validation.ts`:
 
 ```ts
-import { HandlerResult, badRequest } from '../shared/http';
-import { isNonEmptyString, isPositiveNumber, isValidDate } from '../shared/validation';
+import { HandlerResult, badRequest } from "../shared/http";
+import {
+  isNonEmptyString,
+  isPositiveNumber,
+  isValidDate,
+} from "../shared/validation";
 
-export const VALID_MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER', 'OTHER'] as const;
+export const VALID_MEAL_TYPES = [
+  "BREAKFAST",
+  "LUNCH",
+  "DINNER",
+  "OTHER",
+] as const;
 export type MealType = (typeof VALID_MEAL_TYPES)[number];
 
 export interface MenuBody {
@@ -1186,7 +1276,9 @@ export const validateMenuBody = (body: MenuBody): HandlerResult | null => {
     return badRequest('Invalid "date" format. Use YYYY-MM-DD');
   }
   if (!isNonEmptyString(body.mealType) || !isValidMealType(body.mealType)) {
-    return badRequest('Invalid "mealType". Must be one of: BREAKFAST, LUNCH, DINNER, OTHER');
+    return badRequest(
+      'Invalid "mealType". Must be one of: BREAKFAST, LUNCH, DINNER, OTHER',
+    );
   }
   if (!isNonEmptyString(body.recipeId)) {
     return badRequest('"recipeId" is required');
@@ -1203,11 +1295,16 @@ export const validateMenuBody = (body: MenuBody): HandlerResult | null => {
 `backend/src/menus/createMenu.ts` を全置換:
 
 ```ts
-import type { Context } from 'hono';
-import { createMenu as insertMenu } from './repository';
-import { MealType, MenuBody, validateMenuBody } from './validation';
-import { HandlerResult, badRequest, internalServerError, jsonResponse } from '../shared/http';
-import { getUserId } from '../shared/auth';
+import type { Context } from "hono";
+import { createMenu as insertMenu } from "./repository";
+import { MealType, MenuBody, validateMenuBody } from "./validation";
+import {
+  HandlerResult,
+  badRequest,
+  internalServerError,
+  jsonResponse,
+} from "../shared/http";
+import { getUserId } from "../shared/auth";
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
@@ -1223,7 +1320,7 @@ export const createMenu = async (c: Context): Promise<HandlerResult> => {
     try {
       requestBody = await c.req.json();
     } catch {
-      return badRequest('Invalid JSON in request body');
+      return badRequest("Invalid JSON in request body");
     }
 
     const validationError = validateMenuBody(requestBody);
@@ -1231,7 +1328,9 @@ export const createMenu = async (c: Context): Promise<HandlerResult> => {
       return validationError;
     }
 
-    console.log(`Creating menu for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`);
+    console.log(
+      `Creating menu for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`,
+    );
 
     const menuId = await insertMenu({
       userId,
@@ -1244,8 +1343,8 @@ export const createMenu = async (c: Context): Promise<HandlerResult> => {
 
     return jsonResponse(201, { menuId });
   } catch (error) {
-    console.error('Error creating menu:', error);
-    return internalServerError('Failed to create menu');
+    console.error("Error creating menu:", error);
+    return internalServerError("Failed to create menu");
   }
 };
 ```
@@ -1255,17 +1354,17 @@ export const createMenu = async (c: Context): Promise<HandlerResult> => {
 `backend/src/menus/updateMenu.ts` を全置換:
 
 ```ts
-import type { Context } from 'hono';
-import { updateMenuForUser } from './repository';
-import { MealType, MenuBody, validateMenuBody } from './validation';
+import type { Context } from "hono";
+import { updateMenuForUser } from "./repository";
+import { MealType, MenuBody, validateMenuBody } from "./validation";
 import {
   HandlerResult,
   badRequest,
   internalServerError,
   jsonResponse,
   notFound,
-} from '../shared/http';
-import { getUserId } from '../shared/auth';
+} from "../shared/http";
+import { getUserId } from "../shared/auth";
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
@@ -1276,16 +1375,16 @@ const USER_ID_LOG_PREFIX_LENGTH = 12;
 export const updateMenu = async (c: Context): Promise<HandlerResult> => {
   try {
     const userId = getUserId(c);
-    const menuId = c.req.param('menuId');
+    const menuId = c.req.param("menuId");
     if (!menuId) {
-      return badRequest('Menu ID is required');
+      return badRequest("Menu ID is required");
     }
 
     let requestBody: MenuBody;
     try {
       requestBody = await c.req.json();
     } catch {
-      return badRequest('Invalid JSON in request body');
+      return badRequest("Invalid JSON in request body");
     }
 
     const validationError = validateMenuBody(requestBody);
@@ -1293,7 +1392,9 @@ export const updateMenu = async (c: Context): Promise<HandlerResult> => {
       return validationError;
     }
 
-    console.log(`Updating menu ${menuId} for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`);
+    console.log(
+      `Updating menu ${menuId} for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`,
+    );
 
     const updated = await updateMenuForUser(userId, menuId, {
       date: requestBody.date,
@@ -1304,13 +1405,13 @@ export const updateMenu = async (c: Context): Promise<HandlerResult> => {
     });
 
     if (!updated) {
-      return notFound('Menu not found', 'MENU_NOT_FOUND');
+      return notFound("Menu not found", "MENU_NOT_FOUND");
     }
 
     return jsonResponse(200, { menuId });
   } catch (error) {
-    console.error('Error updating menu:', error);
-    return internalServerError('Failed to update menu');
+    console.error("Error updating menu:", error);
+    return internalServerError("Failed to update menu");
   }
 };
 ```
@@ -1320,10 +1421,16 @@ export const updateMenu = async (c: Context): Promise<HandlerResult> => {
 `backend/src/menus/deleteMenu.ts` を全置換:
 
 ```ts
-import type { Context } from 'hono';
-import { deleteMenuForUser } from './repository';
-import { HandlerResult, badRequest, internalServerError, noContent, notFound } from '../shared/http';
-import { getUserId } from '../shared/auth';
+import type { Context } from "hono";
+import { deleteMenuForUser } from "./repository";
+import {
+  HandlerResult,
+  badRequest,
+  internalServerError,
+  noContent,
+  notFound,
+} from "../shared/http";
+import { getUserId } from "../shared/auth";
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
@@ -1334,22 +1441,24 @@ const USER_ID_LOG_PREFIX_LENGTH = 12;
 export const deleteMenu = async (c: Context): Promise<HandlerResult> => {
   try {
     const userId = getUserId(c);
-    const menuId = c.req.param('menuId');
+    const menuId = c.req.param("menuId");
     if (!menuId) {
-      return badRequest('Menu ID is required');
+      return badRequest("Menu ID is required");
     }
 
-    console.log(`Deleting menu ${menuId} for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`);
+    console.log(
+      `Deleting menu ${menuId} for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`,
+    );
 
     const deleted = await deleteMenuForUser(userId, menuId);
     if (!deleted) {
-      return notFound('Menu not found', 'MENU_NOT_FOUND');
+      return notFound("Menu not found", "MENU_NOT_FOUND");
     }
 
     return noContent();
   } catch (error) {
-    console.error('Error deleting menu:', error);
-    return internalServerError('Failed to delete menu');
+    console.error("Error deleting menu:", error);
+    return internalServerError("Failed to delete menu");
   }
 };
 ```
@@ -1359,11 +1468,16 @@ export const deleteMenu = async (c: Context): Promise<HandlerResult> => {
 `backend/src/menus/getMenus.ts` を全置換:
 
 ```ts
-import type { Context } from 'hono';
-import { listMenusInRange } from './repository';
-import { HandlerResult, badRequest, internalServerError, jsonResponse } from '../shared/http';
-import { getUserId } from '../shared/auth';
-import { isValidDate } from '../shared/validation';
+import type { Context } from "hono";
+import { listMenusInRange } from "./repository";
+import {
+  HandlerResult,
+  badRequest,
+  internalServerError,
+  jsonResponse,
+} from "../shared/http";
+import { getUserId } from "../shared/auth";
+import { isValidDate } from "../shared/validation";
 
 const DEFAULT_PERIOD_DAYS = 7;
 const USER_ID_LOG_PREFIX_LENGTH = 12;
@@ -1372,7 +1486,7 @@ const getDefaultDateRange = (): { from: string; to: string } => {
   const today = new Date();
   const toDate = new Date(today);
   toDate.setDate(today.getDate() + DEFAULT_PERIOD_DAYS - 1);
-  const formatDate = (d: Date): string => d.toISOString().split('T')[0];
+  const formatDate = (d: Date): string => d.toISOString().split("T")[0];
   return { from: formatDate(today), to: formatDate(toDate) };
 };
 
@@ -1393,8 +1507,8 @@ export const getMenus = async (c: Context): Promise<HandlerResult> => {
     const userId = getUserId(c);
 
     const defaults = getDefaultDateRange();
-    const from = c.req.query('from') ?? defaults.from;
-    const to = c.req.query('to') ?? defaults.to;
+    const from = c.req.query("from") ?? defaults.from;
+    const to = c.req.query("to") ?? defaults.to;
 
     if (!isValidDate(from)) {
       return badRequest('Invalid "from" date format. Use YYYY-MM-DD');
@@ -1407,12 +1521,12 @@ export const getMenus = async (c: Context): Promise<HandlerResult> => {
     }
 
     console.log(
-      `Fetching menus for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}..., from: ${from}, to: ${to}`
+      `Fetching menus for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}..., from: ${from}, to: ${to}`,
     );
 
     const menus = await listMenusInRange(userId, from, to);
 
-    const items: MenuItemResponse[] = menus.map(menu => ({
+    const items: MenuItemResponse[] = menus.map((menu) => ({
       date: menu.date,
       mealType: menu.mealType,
       menuId: menu.menuId,
@@ -1422,8 +1536,8 @@ export const getMenus = async (c: Context): Promise<HandlerResult> => {
 
     return jsonResponse(200, { from, to, items });
   } catch (error) {
-    console.error('Error fetching menus:', error);
-    return internalServerError('Failed to fetch menus');
+    console.error("Error fetching menus:", error);
+    return internalServerError("Failed to fetch menus");
   }
 };
 ```
@@ -1441,13 +1555,13 @@ git rm backend/src/menus/utils.ts
 `backend/src/menus/updateMenu.test.ts` を全置換:
 
 ```ts
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { updateMenuForUserMock } = vi.hoisted(() => ({
   updateMenuForUserMock: vi.fn(),
 }));
 
-vi.mock('./repository', () => ({
+vi.mock("./repository", () => ({
   listMenusInRange: vi.fn(),
   findMenuByIdForUser: vi.fn(),
   createMenu: vi.fn(),
@@ -1455,73 +1569,81 @@ vi.mock('./repository', () => ({
   deleteMenuForUser: vi.fn(),
 }));
 
-vi.mock('../shared/auth', () => ({
-  getUserId: () => 'user-123',
+vi.mock("../shared/auth", () => ({
+  getUserId: () => "user-123",
 }));
 
-import app from '../app';
+import app from "../app";
 
 const putMenu = (body: unknown): Promise<Response> =>
-  app.request('/menus/menu-123', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+  app.request("/menus/menu-123", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 
-describe('PUT /menus/:menuId', () => {
+describe("PUT /menus/:menuId", () => {
   beforeEach(() => {
     updateMenuForUserMock.mockReset();
   });
 
-  it('更新に成功すると 200 と menuId を返す', async () => {
+  it("更新に成功すると 200 と menuId を返す", async () => {
     updateMenuForUserMock.mockResolvedValue(true);
 
     const response = await putMenu({
-      date: '2026-05-21',
-      mealType: 'LUNCH',
-      recipeId: 'recipe-new',
+      date: "2026-05-21",
+      mealType: "LUNCH",
+      recipeId: "recipe-new",
       servings: 3,
-      memo: '作り置き',
+      memo: "作り置き",
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ menuId: 'menu-123' });
-    expect(updateMenuForUserMock).toHaveBeenCalledWith('user-123', 'menu-123', {
-      date: '2026-05-21',
-      mealType: 'LUNCH',
-      recipeId: 'recipe-new',
+    expect(await response.json()).toEqual({ menuId: "menu-123" });
+    expect(updateMenuForUserMock).toHaveBeenCalledWith("user-123", "menu-123", {
+      date: "2026-05-21",
+      mealType: "LUNCH",
+      recipeId: "recipe-new",
       servings: 3,
-      memo: '作り置き',
+      memo: "作り置き",
     });
   });
 
-  it('対象が見つからない場合は 404 を返す', async () => {
+  it("対象が見つからない場合は 404 を返す", async () => {
     updateMenuForUserMock.mockResolvedValue(false);
 
     const response = await putMenu({
-      date: '2026-05-21',
-      mealType: 'LUNCH',
-      recipeId: 'recipe-new',
+      date: "2026-05-21",
+      mealType: "LUNCH",
+      recipeId: "recipe-new",
       servings: 2,
     });
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
-      error: { code: 'MENU_NOT_FOUND', message: 'Menu not found', details: null },
+      error: {
+        code: "MENU_NOT_FOUND",
+        message: "Menu not found",
+        details: null,
+      },
     });
   });
 
-  it('servings が不正な場合は 400 を返し、リポジトリを呼ばない', async () => {
+  it("servings が不正な場合は 400 を返し、リポジトリを呼ばない", async () => {
     const response = await putMenu({
-      date: '2026-05-21',
-      mealType: 'DINNER',
-      recipeId: 'recipe-new',
+      date: "2026-05-21",
+      mealType: "DINNER",
+      recipeId: "recipe-new",
       servings: 0,
     });
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: { code: 'BAD_REQUEST', message: '"servings" must be a positive number', details: null },
+      error: {
+        code: "BAD_REQUEST",
+        message: '"servings" must be a positive number',
+        details: null,
+      },
     });
     expect(updateMenuForUserMock).not.toHaveBeenCalled();
   });
@@ -1548,10 +1670,12 @@ git commit -m "$(printf 'refactor: menus ハンドラーを Drizzle リポジト
 ### Task 7: shopping list ハンドラー移行・テスト更新
 
 **Files:**
+
 - Modify: `backend/src/shoppingList/getShoppingList.ts`
 - Test: `backend/src/shoppingList/getShoppingList.test.ts`（書き換え）
 
 **Interfaces:**
+
 - Consumes: `listMenusInRange`（Task 5）, `findRecipeWithIngredients` / `RecipeWithIngredients`（Task 3）
 
 - [ ] **Step 1: getShoppingList を移行**
@@ -1559,12 +1683,20 @@ git commit -m "$(printf 'refactor: menus ハンドラーを Drizzle リポジト
 `backend/src/shoppingList/getShoppingList.ts` を全置換:
 
 ```ts
-import type { Context } from 'hono';
-import { listMenusInRange } from '../menus/repository';
-import { findRecipeWithIngredients, RecipeWithIngredients } from '../recipes/repository';
-import { HandlerResult, badRequest, internalServerError, jsonResponse } from '../shared/http';
-import { getUserId } from '../shared/auth';
-import { isNonEmptyString, isValidDate } from '../shared/validation';
+import type { Context } from "hono";
+import { listMenusInRange } from "../menus/repository";
+import {
+  findRecipeWithIngredients,
+  RecipeWithIngredients,
+} from "../recipes/repository";
+import {
+  HandlerResult,
+  badRequest,
+  internalServerError,
+  jsonResponse,
+} from "../shared/http";
+import { getUserId } from "../shared/auth";
+import { isNonEmptyString, isValidDate } from "../shared/validation";
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
@@ -1574,7 +1706,8 @@ type ShoppingListItem = {
   unit: string;
 };
 
-const roundQuantity = (value: number): number => Math.round(value * 1_000_000) / 1_000_000;
+const roundQuantity = (value: number): number =>
+  Math.round(value * 1_000_000) / 1_000_000;
 
 const buildAggregationKey = (ingredientName: string, unit: string): string =>
   `${ingredientName} ${unit}`;
@@ -1592,12 +1725,12 @@ const formatTotalQuantity = (aggregate: AggregatedItem): number | string => {
   const hasText = texts.length > 0;
 
   if (hasText && !hasNumeric) {
-    return texts.join(' + ');
+    return texts.join(" + ");
   }
   if (!hasText) {
     return roundQuantity(aggregate.totalNumeric);
   }
-  return `${roundQuantity(aggregate.totalNumeric)} + ${texts.join(' + ')}`;
+  return `${roundQuantity(aggregate.totalNumeric)} + ${texts.join(" + ")}`;
 };
 
 /**
@@ -1613,8 +1746,8 @@ export const getShoppingList = async (c: Context): Promise<HandlerResult> => {
   try {
     const userId = getUserId(c);
 
-    const from = c.req.query('from');
-    const to = c.req.query('to');
+    const from = c.req.query("from");
+    const to = c.req.query("to");
 
     if (!isNonEmptyString(from)) {
       return badRequest('"from" query parameter is required');
@@ -1633,7 +1766,7 @@ export const getShoppingList = async (c: Context): Promise<HandlerResult> => {
     }
 
     console.log(
-      `Computing shopping list for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}..., from: ${from}, to: ${to}`
+      `Computing shopping list for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}..., from: ${from}, to: ${to}`,
     );
 
     const menus = await listMenusInRange(userId, from, to);
@@ -1651,20 +1784,29 @@ export const getShoppingList = async (c: Context): Promise<HandlerResult> => {
       }
 
       if (!data) {
-        console.error('Recipe referenced by menu was not found', { recipeId, menuId: menu.menuId });
-        return internalServerError('Failed to compute shopping list');
+        console.error("Recipe referenced by menu was not found", {
+          recipeId,
+          menuId: menu.menuId,
+        });
+        return internalServerError("Failed to compute shopping list");
       }
 
       const { recipe, ingredients } = data;
-      if (typeof recipe.baseServings !== 'number' || recipe.baseServings <= 0) {
-        console.error('Invalid baseServings on recipe', { recipeId, baseServings: recipe.baseServings });
-        return internalServerError('Failed to compute shopping list');
+      if (typeof recipe.baseServings !== "number" || recipe.baseServings <= 0) {
+        console.error("Invalid baseServings on recipe", {
+          recipeId,
+          baseServings: recipe.baseServings,
+        });
+        return internalServerError("Failed to compute shopping list");
       }
 
       const scale = menu.servings / recipe.baseServings;
 
       for (const ingredient of ingredients) {
-        const key = buildAggregationKey(ingredient.ingredientName, ingredient.unit);
+        const key = buildAggregationKey(
+          ingredient.ingredientName,
+          ingredient.unit,
+        );
         let current = aggregated.get(key);
         if (!current) {
           current = {
@@ -1676,11 +1818,14 @@ export const getShoppingList = async (c: Context): Promise<HandlerResult> => {
           aggregated.set(key, current);
         }
 
-        if (typeof ingredient.quantity === 'number' && Number.isFinite(ingredient.quantity)) {
+        if (
+          typeof ingredient.quantity === "number" &&
+          Number.isFinite(ingredient.quantity)
+        ) {
           current.totalNumeric += ingredient.quantity * scale;
           continue;
         }
-        if (typeof ingredient.quantity === 'string') {
+        if (typeof ingredient.quantity === "string") {
           const trimmed = ingredient.quantity.trim();
           if (trimmed.length > 0) {
             current.textQuantities.add(trimmed);
@@ -1690,7 +1835,7 @@ export const getShoppingList = async (c: Context): Promise<HandlerResult> => {
     }
 
     const items: ShoppingListItem[] = [...aggregated.values()]
-      .map(aggregate => ({
+      .map((aggregate) => ({
         ingredientName: aggregate.ingredientName,
         totalQuantity: formatTotalQuantity(aggregate),
         unit: aggregate.unit,
@@ -1698,13 +1843,13 @@ export const getShoppingList = async (c: Context): Promise<HandlerResult> => {
       .sort((a, b) =>
         a.ingredientName === b.ingredientName
           ? a.unit.localeCompare(b.unit)
-          : a.ingredientName.localeCompare(b.ingredientName)
+          : a.ingredientName.localeCompare(b.ingredientName),
       );
 
     return jsonResponse(200, { from, to, items });
   } catch (error) {
-    console.error('Error computing shopping list:', error);
-    return internalServerError('Failed to compute shopping list');
+    console.error("Error computing shopping list:", error);
+    return internalServerError("Failed to compute shopping list");
   }
 };
 ```
@@ -1714,14 +1859,16 @@ export const getShoppingList = async (c: Context): Promise<HandlerResult> => {
 `backend/src/shoppingList/getShoppingList.test.ts` を全置換:
 
 ```ts
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { listMenusInRangeMock, findRecipeWithIngredientsMock } = vi.hoisted(() => ({
-  listMenusInRangeMock: vi.fn(),
-  findRecipeWithIngredientsMock: vi.fn(),
-}));
+const { listMenusInRangeMock, findRecipeWithIngredientsMock } = vi.hoisted(
+  () => ({
+    listMenusInRangeMock: vi.fn(),
+    findRecipeWithIngredientsMock: vi.fn(),
+  }),
+);
 
-vi.mock('../menus/repository', () => ({
+vi.mock("../menus/repository", () => ({
   listMenusInRange: listMenusInRangeMock,
   findMenuByIdForUser: vi.fn(),
   createMenu: vi.fn(),
@@ -1729,123 +1876,173 @@ vi.mock('../menus/repository', () => ({
   deleteMenuForUser: vi.fn(),
 }));
 
-vi.mock('../recipes/repository', () => ({
+vi.mock("../recipes/repository", () => ({
   listRecipesByUser: vi.fn(),
   findRecipeWithIngredients: findRecipeWithIngredientsMock,
   createRecipeWithIngredients: vi.fn(),
   replaceRecipeWithIngredients: vi.fn(),
 }));
 
-vi.mock('../shared/auth', () => ({
-  getUserId: () => 'user-123',
+vi.mock("../shared/auth", () => ({
+  getUserId: () => "user-123",
 }));
 
-import app from '../app';
+import app from "../app";
 
 const getShoppingListRequest = (from: string, to: string): Promise<Response> =>
   app.request(`/shopping-list?from=${from}&to=${to}`);
 
-const menu = (menuId: string, date: string, recipeId: string, servings: number) => ({
+const menu = (
+  menuId: string,
+  date: string,
+  recipeId: string,
+  servings: number,
+) => ({
   menuId,
-  userId: 'user-123',
+  userId: "user-123",
   date,
-  mealType: 'DINNER' as const,
+  mealType: "DINNER" as const,
   recipeId,
   servings,
-  createdAt: '2026-05-20T00:00:00.000Z',
-  updatedAt: '2026-05-20T00:00:00.000Z',
+  createdAt: "2026-05-20T00:00:00.000Z",
+  updatedAt: "2026-05-20T00:00:00.000Z",
 });
 
-describe('GET /shopping-list', () => {
+describe("GET /shopping-list", () => {
   beforeEach(() => {
     listMenusInRangeMock.mockReset();
     findRecipeWithIngredientsMock.mockReset();
   });
 
-  it('人数換算しながら材料を集計し、文字列数量は重複排除する', async () => {
+  it("人数換算しながら材料を集計し、文字列数量は重複排除する", async () => {
     listMenusInRangeMock.mockResolvedValue([
-      menu('menu-1', '2026-05-22', 'recipe-1', 1),
-      menu('menu-2', '2026-05-23', 'recipe-1', 3),
-      menu('menu-3', '2026-05-24', 'recipe-2', 1),
+      menu("menu-1", "2026-05-22", "recipe-1", 1),
+      menu("menu-2", "2026-05-23", "recipe-1", 3),
+      menu("menu-3", "2026-05-24", "recipe-2", 1),
     ]);
 
-    findRecipeWithIngredientsMock.mockImplementation(async (_userId: string, recipeId: string) => {
-      if (recipeId === 'recipe-1') {
-        return {
-          recipe: {
-            recipeId: 'recipe-1',
-            userId: 'user-123',
-            name: 'カレー',
-            baseServings: 2,
-            createdAt: '2026-05-20T00:00:00.000Z',
-            updatedAt: '2026-05-20T00:00:00.000Z',
-          },
-          ingredients: [
-            { recipeId: 'recipe-1', ingredientName: '玉ねぎ', quantity: 1, unit: '個' },
-            { recipeId: 'recipe-1', ingredientName: '塩', quantity: '少々', unit: '適量' },
-          ],
-        };
-      }
-      if (recipeId === 'recipe-2') {
-        return {
-          recipe: {
-            recipeId: 'recipe-2',
-            userId: 'user-123',
-            name: 'サラダ',
-            baseServings: 1,
-            createdAt: '2026-05-20T00:00:00.000Z',
-            updatedAt: '2026-05-20T00:00:00.000Z',
-          },
-          ingredients: [
-            { recipeId: 'recipe-2', ingredientName: '玉ねぎ', quantity: 0.5, unit: '個' },
-            { recipeId: 'recipe-2', ingredientName: '塩', quantity: '少々', unit: '適量' },
-            { recipeId: 'recipe-2', ingredientName: 'こしょう', quantity: '適量', unit: '適量' },
-          ],
-        };
-      }
-      return null;
-    });
+    findRecipeWithIngredientsMock.mockImplementation(
+      async (_userId: string, recipeId: string) => {
+        if (recipeId === "recipe-1") {
+          return {
+            recipe: {
+              recipeId: "recipe-1",
+              userId: "user-123",
+              name: "カレー",
+              baseServings: 2,
+              createdAt: "2026-05-20T00:00:00.000Z",
+              updatedAt: "2026-05-20T00:00:00.000Z",
+            },
+            ingredients: [
+              {
+                recipeId: "recipe-1",
+                ingredientName: "玉ねぎ",
+                quantity: 1,
+                unit: "個",
+              },
+              {
+                recipeId: "recipe-1",
+                ingredientName: "塩",
+                quantity: "少々",
+                unit: "適量",
+              },
+            ],
+          };
+        }
+        if (recipeId === "recipe-2") {
+          return {
+            recipe: {
+              recipeId: "recipe-2",
+              userId: "user-123",
+              name: "サラダ",
+              baseServings: 1,
+              createdAt: "2026-05-20T00:00:00.000Z",
+              updatedAt: "2026-05-20T00:00:00.000Z",
+            },
+            ingredients: [
+              {
+                recipeId: "recipe-2",
+                ingredientName: "玉ねぎ",
+                quantity: 0.5,
+                unit: "個",
+              },
+              {
+                recipeId: "recipe-2",
+                ingredientName: "塩",
+                quantity: "少々",
+                unit: "適量",
+              },
+              {
+                recipeId: "recipe-2",
+                ingredientName: "こしょう",
+                quantity: "適量",
+                unit: "適量",
+              },
+            ],
+          };
+        }
+        return null;
+      },
+    );
 
-    const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
+    const response = await getShoppingListRequest("2026-05-22", "2026-05-24");
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
       from: string;
       to: string;
-      items: Array<{ ingredientName: string; totalQuantity: number | string; unit: string }>;
+      items: Array<{
+        ingredientName: string;
+        totalQuantity: number | string;
+        unit: string;
+      }>;
     };
-    expect(body.from).toBe('2026-05-22');
-    expect(body.to).toBe('2026-05-24');
+    expect(body.from).toBe("2026-05-22");
+    expect(body.to).toBe("2026-05-24");
     expect(body.items).toEqual(
       expect.arrayContaining([
-        { ingredientName: '玉ねぎ', totalQuantity: 2.5, unit: '個' },
-        { ingredientName: '塩', totalQuantity: '少々', unit: '適量' },
-        { ingredientName: 'こしょう', totalQuantity: '適量', unit: '適量' },
-      ])
+        { ingredientName: "玉ねぎ", totalQuantity: 2.5, unit: "個" },
+        { ingredientName: "塩", totalQuantity: "少々", unit: "適量" },
+        { ingredientName: "こしょう", totalQuantity: "適量", unit: "適量" },
+      ]),
     );
     expect(body.items).toHaveLength(3);
-    expect(listMenusInRangeMock).toHaveBeenCalledWith('user-123', '2026-05-22', '2026-05-24');
+    expect(listMenusInRangeMock).toHaveBeenCalledWith(
+      "user-123",
+      "2026-05-22",
+      "2026-05-24",
+    );
   });
 
-  it('from が to より後なら 400 を返す', async () => {
-    const response = await getShoppingListRequest('2026-05-25', '2026-05-24');
+  it("from が to より後なら 400 を返す", async () => {
+    const response = await getShoppingListRequest("2026-05-25", "2026-05-24");
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: { code: 'BAD_REQUEST', message: '"from" date must not be after "to" date', details: null },
+      error: {
+        code: "BAD_REQUEST",
+        message: '"from" date must not be after "to" date',
+        details: null,
+      },
     });
     expect(listMenusInRangeMock).not.toHaveBeenCalled();
   });
 
-  it('献立が参照するレシピが見つからない場合は 500 を返す', async () => {
-    listMenusInRangeMock.mockResolvedValue([menu('menu-1', '2026-05-22', 'recipe-missing', 2)]);
+  it("献立が参照するレシピが見つからない場合は 500 を返す", async () => {
+    listMenusInRangeMock.mockResolvedValue([
+      menu("menu-1", "2026-05-22", "recipe-missing", 2),
+    ]);
     findRecipeWithIngredientsMock.mockResolvedValue(null);
 
-    const response = await getShoppingListRequest('2026-05-22', '2026-05-22');
+    const response = await getShoppingListRequest("2026-05-22", "2026-05-22");
 
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({
-      error: { code: 'INTERNAL_SERVER_ERROR', message: 'Failed to compute shopping list', details: null },
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to compute shopping list",
+        details: null,
+      },
     });
   });
 });
@@ -1871,6 +2068,7 @@ git commit -m "$(printf 'refactor: shopping-list を Drizzle リポジトリ経�
 ### Task 8: 後始末・ドキュメント更新・全体検証・PR
 
 **Files:**
+
 - Delete: `backend/src/shared/dynamodb.ts`
 - Modify: `backend/AGENTS.md`
 - Modify: `backend/IMPLEMENTATION_NOTES.md`（DB 記述があれば更新。なければスキップ可）
@@ -1900,7 +2098,9 @@ Expected: 一致なし（出力が空）。一致があればその箇所を修�
 - DynamoDB との通信は AWS SDK v3（`@aws-sdk/lib-dynamodb`）を使ってください（DB 層の移行は別 Issue）。
 - DynamoDB 操作では `userId` を条件に含めてください。
 ```
+
 と
+
 ```
 - Lambda 固有の SDK（`@aws-sdk/client-lambda` 等）を新たに追加しないでください。
 ```
@@ -1952,6 +2152,7 @@ Expected: すべて成功。`format:check` で差分が出たら `bun run backen
 # 1) マイグレーションでテーブル作成（受け入れ条件①）
 cd backend && bun run db:migrate && cd ..
 ```
+
 Expected: `recipes` / `recipe_ingredients` / `menus` テーブルが作成される（`psql` で `\dt` を確認）。
 
 ```bash
@@ -2005,6 +2206,7 @@ gh pr create --base main --label enhancement --title "データストアをPostg
 ## Self-Review（計画作成者によるチェック結果）
 
 **1. Spec coverage:**
+
 - スキーマ定義 → Task 1（schema.ts）/ 初期マイグレーション → Task 1 Step 8。
 - Drizzle 導入・AWS SDK 削除・DATABASE_URL → Task 1。
 - recipes CRUD → Task 3/4。menus + 買い物リスト → Task 5/6/7。

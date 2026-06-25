@@ -32,8 +32,6 @@
     "vitest": "^4.1.7"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.717.0",
-    "@aws-sdk/lib-dynamodb": "^3.717.0",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.6.0",
     "postgres": "^3.4.9"

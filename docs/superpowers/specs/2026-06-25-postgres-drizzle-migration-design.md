@@ -27,31 +27,31 @@ Drizzle のテーブル定義。カラム名は snake_case、TypeScript プロ�
 
 ### recipes
 
-| カラム | 型 | NULL | 備考 |
-|---|---|---|---|
-| `id` | uuid | NOT NULL | 主キー。アプリ側で `crypto.randomUUID()` 生成して INSERT |
-| `user_id` | varchar | NOT NULL | |
-| `name` | varchar | NOT NULL | |
-| `source_book` | varchar | NULL | |
-| `source_page` | integer | NULL | |
-| `base_servings` | integer | NOT NULL | |
-| `memo` | text | NULL | |
-| `created_at` | timestamptz | NOT NULL | |
-| `updated_at` | timestamptz | NOT NULL | |
+| カラム          | 型          | NULL     | 備考                                                     |
+| --------------- | ----------- | -------- | -------------------------------------------------------- |
+| `id`            | uuid        | NOT NULL | 主キー。アプリ側で `crypto.randomUUID()` 生成して INSERT |
+| `user_id`       | varchar     | NOT NULL |                                                          |
+| `name`          | varchar     | NOT NULL |                                                          |
+| `source_book`   | varchar     | NULL     |                                                          |
+| `source_page`   | integer     | NULL     |                                                          |
+| `base_servings` | integer     | NOT NULL |                                                          |
+| `memo`          | text        | NULL     |                                                          |
+| `created_at`    | timestamptz | NOT NULL |                                                          |
+| `updated_at`    | timestamptz | NOT NULL |                                                          |
 
 - INDEX: `(user_id)`
 
 ### recipe_ingredients
 
-| カラム | 型 | NULL | 備考 |
-|---|---|---|---|
-| `id` | uuid | NOT NULL | 主キー |
-| `recipe_id` | uuid | NOT NULL | FK → `recipes(id)` ON DELETE CASCADE |
-| `ingredient_name` | varchar | NOT NULL | |
-| `quantity_value` | numeric | NULL | 数値分量 |
-| `quantity_text` | varchar | NULL | 文字列分量（「少々」など） |
-| `unit` | varchar | NOT NULL | |
-| `note` | varchar | NULL | |
+| カラム            | 型      | NULL     | 備考                                 |
+| ----------------- | ------- | -------- | ------------------------------------ |
+| `id`              | uuid    | NOT NULL | 主キー                               |
+| `recipe_id`       | uuid    | NOT NULL | FK → `recipes(id)` ON DELETE CASCADE |
+| `ingredient_name` | varchar | NOT NULL |                                      |
+| `quantity_value`  | numeric | NULL     | 数値分量                             |
+| `quantity_text`   | varchar | NULL     | 文字列分量（「少々」など）           |
+| `unit`            | varchar | NOT NULL |                                      |
+| `note`            | varchar | NULL     |                                      |
 
 - INDEX: `(recipe_id)`
 - CHECK: `(quantity_value IS NULL) <> (quantity_text IS NULL)`（どちらか一方のみ設定）
@@ -59,17 +59,17 @@ Drizzle のテーブル定義。カラム名は snake_case、TypeScript プロ�
 
 ### menus
 
-| カラム | 型 | NULL | 備考 |
-|---|---|---|---|
-| `id` | uuid | NOT NULL | 主キー |
-| `user_id` | varchar | NOT NULL | |
-| `date` | date | NOT NULL | `YYYY-MM-DD` |
-| `meal_type` | varchar | NOT NULL | CHECK で `BREAKFAST`/`LUNCH`/`DINNER`/`OTHER` に限定 |
-| `recipe_id` | uuid | NOT NULL | FK → `recipes(id)` |
-| `servings` | numeric | NOT NULL | |
-| `memo` | text | NULL | |
-| `created_at` | timestamptz | NOT NULL | |
-| `updated_at` | timestamptz | NOT NULL | |
+| カラム       | 型          | NULL     | 備考                                                 |
+| ------------ | ----------- | -------- | ---------------------------------------------------- |
+| `id`         | uuid        | NOT NULL | 主キー                                               |
+| `user_id`    | varchar     | NOT NULL |                                                      |
+| `date`       | date        | NOT NULL | `YYYY-MM-DD`                                         |
+| `meal_type`  | varchar     | NOT NULL | CHECK で `BREAKFAST`/`LUNCH`/`DINNER`/`OTHER` に限定 |
+| `recipe_id`  | uuid        | NOT NULL | FK → `recipes(id)`                                   |
+| `servings`   | numeric     | NOT NULL |                                                      |
+| `memo`       | text        | NULL     |                                                      |
+| `created_at` | timestamptz | NOT NULL |                                                      |
+| `updated_at` | timestamptz | NOT NULL |                                                      |
 
 - INDEX: `(user_id, date)`
 - `meal_type` は PG enum ではなく varchar + CHECK（PG固有機能への過度な依存を避ける）
@@ -95,7 +95,7 @@ Drizzle のテーブル定義。カラム名は snake_case、TypeScript プロ�
 - `backend/src/shared/db.ts`: `DATABASE_URL` から postgres.js クライアントを生成し、`drizzle()` でラップした `db` をエクスポート。接続は遅延（初回クエリ時）。
 - `backend/src/shared/schema.ts`: 上記3テーブルの Drizzle 定義。
 - `backend/src/recipes/repository.ts`: レシピ・材料のデータアクセス関数。
-  - `listRecipesByUser(userId)` 
+  - `listRecipesByUser(userId)`
   - `findRecipeWithIngredients(userId, recipeId)` → 本体（userIdスコープ）＋材料、なければ null
   - `createRecipeWithIngredients(recipe, ingredients)` … `db.transaction` 内で recipes INSERT → recipe_ingredients 一括 INSERT
   - `replaceRecipeWithIngredients(userId, recipeId, recipe, ingredients)` … `db.transaction` 内で本体 UPDATE（存在＋userId確認）→ 旧材料 DELETE → 新材料 INSERT。対象なしは null
