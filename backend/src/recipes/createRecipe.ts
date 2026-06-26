@@ -1,301 +1,52 @@
 import type { Context } from 'hono';
-import {
-  PutCommand,
-  DeleteCommand,
-  BatchWriteCommand,
-  BatchWriteCommandInput,
-  BatchWriteCommandOutput,
-} from '@aws-sdk/lib-dynamodb';
-import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
-import { Recipe, RecipeIngredient } from '../shared/types';
-import { randomUUID } from 'crypto';
+import { createRecipeWithIngredients } from './repository';
+import { RecipeBody, validateRecipeBody } from './validation';
 import { HandlerResult, badRequest, internalServerError, jsonResponse } from '../shared/http';
 import { getUserId } from '../shared/auth';
-import { isNonEmptyString, isPositiveNumber } from '../shared/validation';
 
 const USER_ID_LOG_PREFIX_LENGTH = 12;
 
 /**
- * Sanitize ingredient name for use in DynamoDB sort key
- * Replaces '#' with '_' to avoid conflicts with the delimiter
- */
-const sanitizeIngredientNameForSK = (ingredientName: string): string => {
-  return ingredientName.replace(/#/g, '_');
-};
-
-const BATCH_SIZE = 25;
-const MAX_RETRIES = 3;
-
-interface CreateRecipeRequestBody {
-  name: string;
-  sourceBook?: string | null;
-  sourcePage?: number | null;
-  baseServings: number;
-  memo?: string | null;
-  ingredients: Array<{
-    ingredientName: string;
-    quantity: number | string;
-    unit: string;
-    note?: string | null;
-  }>;
-}
-
-/**
  * POST /recipes
- * Create a new recipe with ingredients
+ * 新しいレシピを材料とともに登録する。
  */
 export const createRecipe = async (c: Context): Promise<HandlerResult> => {
   try {
     const userId = getUserId(c);
-
     console.log(`Creating recipe for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`);
 
-    // Parse request body
-    let requestBody: CreateRecipeRequestBody;
+    let requestBody: RecipeBody;
     try {
       requestBody = await c.req.json();
     } catch {
       return badRequest('Invalid JSON in request body');
     }
 
-    // Validate required fields
-    if (!isNonEmptyString(requestBody.name)) {
-      return badRequest('Recipe name is required');
+    const validationError = validateRecipeBody(requestBody);
+    if (validationError) {
+      return validationError;
     }
 
-    if (!isPositiveNumber(requestBody.baseServings)) {
-      return badRequest('baseServings must be a positive number');
-    }
-
-    if (!Array.isArray(requestBody.ingredients)) {
-      return badRequest('ingredients must be an array');
-    }
-
-    // Validate each ingredient
-    const ingredientNames = new Set<string>();
-    const sanitizedIngredientNames = new Map<string, string>(); // sanitized -> original
-
-    for (const ingredient of requestBody.ingredients) {
-      if (typeof ingredient !== 'object' || ingredient === null || Array.isArray(ingredient)) {
-        return badRequest('Each ingredient must be an object');
-      }
-
-      if (!isNonEmptyString(ingredient.ingredientName)) {
-        return badRequest('Each ingredient must have a valid ingredientName');
-      }
-
-      // Normalize ingredient name for duplicate checking (case-insensitive)
-      const normalizedName = ingredient.ingredientName.toLowerCase().trim();
-
-      // Check for duplicate ingredient names (case-insensitive)
-      if (ingredientNames.has(normalizedName)) {
-        return badRequest(`Duplicate ingredient name: ${ingredient.ingredientName}`);
-      }
-      ingredientNames.add(normalizedName);
-
-      // Check for duplicates after sanitization
-      const sanitizedName = sanitizeIngredientNameForSK(ingredient.ingredientName)
-        .toLowerCase()
-        .trim();
-      if (sanitizedIngredientNames.has(sanitizedName)) {
-        const conflictingName = sanitizedIngredientNames.get(sanitizedName);
-        return badRequest(
-          `Ingredient names "${ingredient.ingredientName}" and "${conflictingName}" would conflict after sanitization`
-        );
-      }
-      sanitizedIngredientNames.set(sanitizedName, ingredient.ingredientName);
-
-      const hasValidNumericQuantity =
-        typeof ingredient.quantity === 'number' && ingredient.quantity > 0;
-      const hasValidTextQuantity =
-        typeof ingredient.quantity === 'string' && ingredient.quantity.trim().length > 0;
-
-      if (!hasValidNumericQuantity && !hasValidTextQuantity) {
-        return badRequest(
-          'Each ingredient must have a positive numeric quantity or a non-empty text quantity'
-        );
-      }
-      if (!isNonEmptyString(ingredient.unit)) {
-        return badRequest('Each ingredient must have a unit');
-      }
-    }
-
-    // Generate recipeId and timestamps
-    const recipeId = randomUUID();
-    const now = new Date().toISOString();
-
-    // Create recipe object
-    const recipe: Recipe = {
-      userId,
-      recipeId,
-      name: requestBody.name,
-      sourceBook: requestBody.sourceBook ?? undefined,
-      sourcePage: requestBody.sourcePage ?? undefined,
-      baseServings: requestBody.baseServings,
-      memo: requestBody.memo ?? undefined,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    // Prepare ingredient items
-    const ingredientItems = requestBody.ingredients.map(ingredient => {
-      const recipeIngredient: RecipeIngredient = {
+    const recipeId = await createRecipeWithIngredients(
+      {
         userId,
-        recipeId,
+        name: requestBody.name,
+        sourceBook: requestBody.sourceBook ?? null,
+        sourcePage: requestBody.sourcePage ?? null,
+        baseServings: requestBody.baseServings,
+        memo: requestBody.memo ?? null,
+      },
+      requestBody.ingredients.map(ingredient => ({
         ingredientName: ingredient.ingredientName,
         quantity: ingredient.quantity,
         unit: ingredient.unit,
-        note: ingredient.note ?? undefined,
-      };
-      return recipeIngredient;
-    });
-
-    try {
-      // Save recipe first. If ingredient writes fail later, compensate by deleting recipe+ingredients.
-      await dynamoDbClient.send(
-        new PutCommand({
-          TableName: TABLE_NAMES.RECIPES,
-          Item: recipe,
-        })
-      );
-
-      console.log(`Recipe created: ${recipeId}`);
-
-      // Save ingredients if any
-      if (ingredientItems.length > 0) {
-        // BatchWrite has a limit of 25 items per request
-        // Split into chunks if needed
-        for (let i = 0; i < ingredientItems.length; i += BATCH_SIZE) {
-          const chunk = ingredientItems.slice(i, i + BATCH_SIZE);
-
-          let requestItems: BatchWriteCommandInput['RequestItems'] = {
-            [TABLE_NAMES.RECIPE_INGREDIENTS]: chunk.map(item => ({
-              PutRequest: {
-                Item: {
-                  ...item,
-                  SK: `${recipeId}#${sanitizeIngredientNameForSK(item.ingredientName)}`,
-                },
-              },
-            })),
-          };
-
-          // Retry logic for unprocessed items
-          let retryCount = 0;
-
-          while (retryCount < MAX_RETRIES) {
-            const result: BatchWriteCommandOutput = await dynamoDbClient.send(
-              new BatchWriteCommand({
-                RequestItems: requestItems,
-              })
-            );
-
-            // Check if there are unprocessed items
-            if (!result.UnprocessedItems || Object.keys(result.UnprocessedItems).length === 0) {
-              break; // All items processed successfully
-            }
-
-            // If there are unprocessed items, retry with exponential backoff
-            requestItems = result.UnprocessedItems;
-            retryCount++;
-
-            if (retryCount < MAX_RETRIES) {
-              const backoffTime = Math.pow(2, retryCount) * 100; // 200ms, 400ms, 800ms
-              await new Promise(resolve => setTimeout(resolve, backoffTime));
-              console.log(`Retrying unprocessed items (attempt ${retryCount + 1}/${MAX_RETRIES})`);
-            } else {
-              // Max retries reached, log error and fail
-              console.error(`Failed to write all ingredients after ${MAX_RETRIES} retries`);
-              throw new Error('Failed to save all ingredients due to throttling');
-            }
-          }
-        }
-
-        console.log(`Saved ${ingredientItems.length} ingredients for recipe ${recipeId}`);
-      }
-    } catch (error) {
-      console.error('Failed to persist recipe transactionally. Starting compensation.', {
-        recipeId,
-        error,
-      });
-
-      // Compensating delete for partial writes (ingredients)
-      for (let i = 0; i < ingredientItems.length; i += BATCH_SIZE) {
-        const chunk = ingredientItems.slice(i, i + BATCH_SIZE);
-
-        let requestItems: BatchWriteCommandInput['RequestItems'] = {
-          [TABLE_NAMES.RECIPE_INGREDIENTS]: chunk.map(item => ({
-            DeleteRequest: {
-              Key: {
-                userId: item.userId,
-                SK: `${recipeId}#${sanitizeIngredientNameForSK(item.ingredientName)}`,
-              },
-            },
-          })),
-        };
-
-        let retryCount = 0;
-        while (retryCount < MAX_RETRIES) {
-          const result: BatchWriteCommandOutput = await dynamoDbClient.send(
-            new BatchWriteCommand({
-              RequestItems: requestItems,
-            })
-          );
-
-          if (!result.UnprocessedItems || Object.keys(result.UnprocessedItems).length === 0) {
-            break;
-          }
-
-          requestItems = result.UnprocessedItems;
-          retryCount++;
-
-          if (retryCount < MAX_RETRIES) {
-            const backoffTime = Math.pow(2, retryCount) * 100;
-            await new Promise(resolve => setTimeout(resolve, backoffTime));
-          } else {
-            console.error(
-              'Failed to delete all partially written ingredients during compensation',
-              {
-                recipeId,
-              }
-            );
-          }
-        }
-      }
-
-      // Compensating delete for recipe item
-      await dynamoDbClient.send(
-        new DeleteCommand({
-          TableName: TABLE_NAMES.RECIPES,
-          Key: {
-            userId,
-            recipeId,
-          },
-        })
-      );
-
-      throw error;
-    }
+        note: ingredient.note ?? null,
+      }))
+    );
 
     return jsonResponse(201, { recipeId });
   } catch (error) {
-    const errorName =
-      typeof error === 'object' && error !== null && 'name' in error
-        ? String(error.name)
-        : 'UnknownError';
-
-    console.error('Error creating recipe:', {
-      errorName,
-      error,
-    });
-
-    if (errorName === 'ResourceNotFoundException') {
-      return internalServerError('Required table not found', 'RESOURCE_NOT_FOUND');
-    }
-
-    if (errorName === 'AccessDeniedException') {
-      return internalServerError('Access denied while creating recipe', 'ACCESS_DENIED');
-    }
-
+    console.error('Error creating recipe:', error);
     return internalServerError('Failed to create recipe');
   }
 };

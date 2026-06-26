@@ -1,4 +1,8 @@
-# Lambda 実装ノート
+# backend 実装ノート
+
+> **注意**: このファイルは旧 `infra/lambda/` 時代（DynamoDB + Lambda 構成）の実装メモをベースにしています。
+> 現在のバックエンドは **Bun + Hono + Drizzle ORM + PostgreSQL** 構成に移行済みです（Issue #128）。
+> コード例・ファイルパス・テーブル設計の記述は歴史的経緯として残しますが、最新の仕様は `docs/` 配下を参照してください。
 
 ## Recipes API
 
@@ -7,22 +11,14 @@
 #### 概要
 `docs/04-api-design.md` で規定された `GET /recipes` エンドポイントを処理します。
 
-#### 実装詳細
+#### 現在の実装（Drizzle/PostgreSQL）
 
-**作成したファイル**
-- `infra/lambda/src/recipes/getRecipes.ts` - GET /recipes のメインハンドラー
-- `infra/lambda/src/recipes/index.ts` - recipes ハンドラーのエクスポートモジュール
+- ハンドラー: `backend/src/recipes/`
+- リポジトリ: `backend/src/recipes/repository.ts`
+- スキーマ: `backend/src/shared/schema.ts`（`recipes` / `recipe_ingredients` テーブル）
+- DB 接続: `backend/src/shared/db.ts`（`DATABASE_URL` 環境変数）
 
-**変更したファイル**
-- `infra/lambda/src/index.ts` - GET /recipes エンドポイントのルーティングを追加
-
-#### 動作仕様
-
-1. **認証**: Cognito の JWT 認証を処理するため `APIGatewayProxyEventV2WithJWTAuthorizer` 型を使用
-2. **ユーザー識別**: `event.requestContext.authorizer.jwt.claims.sub` から `userId` を抽出
-3. **データ取得**: `userId` をパーティションキーとして DynamoDB `Recipes` テーブルをクエリ
-4. **レスポンス整形**: DynamoDB のアイテムを API 仕様のフォーマットにマッピング
-5. **エラー処理**: 適切な HTTP ステータスコードとエラーメッセージを返却
+クエリは `user_id` でスコープされます。
 
 #### レスポンスフォーマット
 
@@ -45,12 +41,6 @@
 - 401: Unauthorized (JWT が無効または欠如)
 - 500: Internal Server Error
 
-#### セキュリティ機能
-
-- **プライバシー保護**: ユーザー ID はログ内で切り詰められます（最初の 12 文字のみ）
-- **Nullish Coalescing**: falsy な値を適切に処理するため `??` 演算子を使用
-- **ユーザー分離**: クエリは認証済みユーザーのデータのみにスコープされます
-
 ---
 
 ## Menus API
@@ -60,110 +50,63 @@
 #### 概要
 `docs/04-api-design.md` で規定された Menus API の全エンドポイントを処理します。
 
-#### 実装詳細
+#### 現在の実装（Drizzle/PostgreSQL）
 
-**作成したファイル**
-- `infra/lambda/src/menus/getMenus.ts` - GET /menus のメインハンドラー
-- `infra/lambda/src/menus/createMenu.ts` - POST /menus のメインハンドラー
-- `infra/lambda/src/menus/updateMenu.ts` - PUT /menus/{menuId} のメインハンドラー
-- `infra/lambda/src/menus/deleteMenu.ts` - DELETE /menus/{menuId} のメインハンドラー
-- `infra/lambda/src/menus/utils.ts` - `findMenuByMenuId` などの共通ユーティリティ
-- `infra/lambda/src/menus/index.ts` - menus ハンドラーのエクスポートモジュール
+- ハンドラー: `backend/src/menus/`
+- リポジトリ: `backend/src/menus/repository.ts`
+- スキーマ: `backend/src/shared/schema.ts`（`menus` テーブル）
 
-**変更したファイル**
-- `infra/lambda/src/index.ts` - Menus API エンドポイントのルーティングを追加
-- `infra/lambda/src/shared/types.ts` - `Menu` 型を追加
+#### PostgreSQL テーブル設計
 
-#### DynamoDB テーブル設計
+**テーブル名**: `menus`
 
-**テーブル名**: `Menus`
-
-| キー | 値 | 説明 |
+| カラム | 型 | 説明 |
 |---|---|---|
-| PK (`userId`) | Cognito の `sub` クレーム | ユーザーを識別するパーティションキー |
-| SK | `{date}#{mealType}#{menuId}` | 日付・食事区分・IDで構成されるソートキー |
+| `id` | `uuid` (PK) | メニュー ID（API 上の `menuId`） |
+| `user_id` | `varchar(255)` | ユーザー識別子（Cognito `sub`） |
+| `date` | `date` | 日付 |
+| `meal_type` | `varchar(20)` CHECK | `BREAKFAST` / `LUNCH` / `DINNER` / `OTHER` |
+| `recipe_id` | `uuid` (FK) | 参照レシピ |
+| `servings` | `numeric(6,2)` | 人数 |
+| `created_at` | `timestamptz` | 作成日時 |
+| `updated_at` | `timestamptz` | 更新日時 |
 
-SK のフォーマットにより、`BETWEEN` を使った日付範囲クエリが効率的に行えます。
+`user_id` でスコープした日付範囲クエリで `GET /menus` を実装しています。
 
 #### GET /menus の動作仕様
 
 1. `from` / `to` クエリパラメータを検証（未指定時は今日から 7 日分を自動設定）
-2. DynamoDB の `BETWEEN` クエリで `{from}#` 〜 `{to}#\uffff` の範囲を取得
-3. ページネーション対応（`ExclusiveStartKey` を使ったループ処理）
-4. 取得したアイテムをレスポンス形式にマッピングして返却
+2. `user_id` と日付範囲で `menus` テーブルを検索
+3. 取得したアイテムをレスポンス形式にマッピングして返却
 
 #### POST /menus の動作仕様
 
 1. リクエストボディを JSON パースしてバリデーション
 2. `mealType` は `BREAKFAST` / `LUNCH` / `DINNER` / `OTHER` のいずれかに制限
-3. `menuId` は `randomUUID()` で生成
-4. SK を `{date}#{mealType}#{menuId}` 形式で構築して DynamoDB に Put
+3. `menuId` は PostgreSQL の `gen_random_uuid()` / `randomUUID()` で生成
+4. `menus` テーブルに INSERT
 
 #### PUT /menus/{menuId} の動作仕様
 
-1. `findMenuByMenuId` で既存アイテムを検索（存在しない場合は 404）
+1. `id` と `user_id` で既存アイテムを検索（存在しない場合は 404）
 2. リクエストボディをバリデーション
-3. `date` または `mealType` が変更された場合は SK も変わるため、  
-   旧アイテムの削除と新アイテムの作成を `TransactWriteCommand` で原子的に実行
-4. SK が変わらない場合は通常の `PutCommand` で上書き
+3. `menus` テーブルを UPDATE
 
 #### DELETE /menus/{menuId} の動作仕様
 
-1. `findMenuByMenuId` で既存アイテムを検索（存在しない場合は 404）
-2. `DeleteCommand` で DynamoDB からアイテムを削除
+1. `id` と `user_id` で既存アイテムを検索（存在しない場合は 404）
+2. `menus` テーブルから DELETE
 3. 204 No Content を返却
 
 #### エラーコード一覧
 
 | コード | HTTP | 説明 |
 |---|---|---|
-| `UNAUTHORIZED` | 401 | JWT に `sub` クレームが存在しない |
+| `UNAUTHORIZED` | 401 | userId が取得できない |
 | `BAD_REQUEST` | 400 | バリデーションエラー（日付形式・mealType・必須フィールドなど） |
 | `MENU_NOT_FOUND` | 404 | 指定された `menuId` の献立が存在しない |
-| `RESOURCE_NOT_FOUND` | 500 | DynamoDB の `Menus` テーブルが存在しない |
-| `ACCESS_DENIED` | 500 | DynamoDB へのアクセスが拒否された |
 | `INTERNAL_SERVER_ERROR` | 500 | 予期せぬエラー |
-
-#### テスト方法
-
-デプロイ後にこれらのエンドポイントをテストするには：
-
-**前提条件**
-- DynamoDB `Menus` テーブルが PK=`userId`、SK=`{date}#{mealType}#{menuId}` で作成されていること
-- JWT Authorizer が設定された API Gateway
-- ユーザーが登録された Cognito User Pool
-
-**テストリクエスト例**
-
-```bash
-# 献立一覧取得
-curl -H "Authorization: Bearer <JWT_TOKEN>" \
-     "https://your-api-domain/menus?from=2025-11-21&to=2025-11-27"
-
-# 献立登録
-curl -X POST \
-     -H "Authorization: Bearer <JWT_TOKEN>" \
-     -H "Content-Type: application/json" \
-     -d '{"date":"2025-11-21","mealType":"DINNER","recipeId":"<recipeId>","servings":2}' \
-     https://your-api-domain/menus
-
-# 献立更新
-curl -X PUT \
-     -H "Authorization: Bearer <JWT_TOKEN>" \
-     -H "Content-Type: application/json" \
-     -d '{"date":"2025-11-21","mealType":"DINNER","recipeId":"<recipeId>","servings":3}' \
-     https://your-api-domain/menus/<menuId>
-
-# 献立削除
-curl -X DELETE \
-     -H "Authorization: Bearer <JWT_TOKEN>" \
-     https://your-api-domain/menus/<menuId>
-```
 
 #### 必要な環境変数
 
-Lambda 関数には以下の環境変数が必要です（CDK 経由で設定）：
-- Recipes API（GET /recipes）
-  - `RECIPES_TABLE_NAME`: DynamoDB Recipes テーブルの名前
-- Menus API（GET / POST / PUT / DELETE）
-  - `MENUS_TABLE_NAME`: DynamoDB Menus テーブルの名前
+- `DATABASE_URL`: PostgreSQL 接続文字列（例: `postgres://user:pass@localhost:5432/cooking_planner`）

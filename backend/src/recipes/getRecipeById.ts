@@ -1,7 +1,5 @@
 import type { Context } from 'hono';
-import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
-import { dynamoDbClient, TABLE_NAMES } from '../shared/dynamodb';
-import { Recipe, RecipeIngredient } from '../shared/types';
+import { findRecipeWithIngredients } from './repository';
 import {
   HandlerResult,
   badRequest,
@@ -10,6 +8,7 @@ import {
   notFound,
 } from '../shared/http';
 import { getUserId } from '../shared/auth';
+import { isUuid } from '../shared/validation';
 
 interface RecipeIngredientResponse {
   ingredientName: string;
@@ -32,48 +31,25 @@ interface RecipeDetailResponse {
 
 /**
  * GET /recipes/{recipeId}
- * Get a single recipe with its ingredients for the logged-in user
+ * レシピ本体＋材料一覧を返す。
  */
 export const getRecipeById = async (c: Context): Promise<HandlerResult> => {
   try {
     const userId = getUserId(c);
-
     const recipeId = c.req.param('recipeId');
     if (!recipeId) {
       return badRequest('Recipe ID is required');
     }
-
-    console.log(`Fetching recipe: userId=${userId}, recipeId=${recipeId}`);
-
-    const recipeResult = await dynamoDbClient.send(
-      new GetCommand({
-        TableName: TABLE_NAMES.RECIPES,
-        Key: {
-          userId,
-          recipeId,
-        },
-      })
-    );
-
-    if (!recipeResult.Item) {
+    if (!isUuid(recipeId)) {
       return notFound('Recipe not found', 'RECIPE_NOT_FOUND');
     }
 
-    const recipe = recipeResult.Item as Recipe;
+    const result = await findRecipeWithIngredients(userId, recipeId);
+    if (!result) {
+      return notFound('Recipe not found', 'RECIPE_NOT_FOUND');
+    }
 
-    const ingredientsResult = await dynamoDbClient.send(
-      new QueryCommand({
-        TableName: TABLE_NAMES.RECIPE_INGREDIENTS,
-        KeyConditionExpression: 'userId = :userId AND begins_with(SK, :recipeIdPrefix)',
-        ExpressionAttributeValues: {
-          ':userId': userId,
-          ':recipeIdPrefix': `${recipeId}#`,
-        },
-      })
-    );
-
-    const ingredientItems = (ingredientsResult.Items || []) as RecipeIngredient[];
-
+    const { recipe, ingredients } = result;
     const response: RecipeDetailResponse = {
       recipeId: recipe.recipeId,
       name: recipe.name,
@@ -83,7 +59,7 @@ export const getRecipeById = async (c: Context): Promise<HandlerResult> => {
       memo: recipe.memo ?? null,
       createdAt: recipe.createdAt,
       updatedAt: recipe.updatedAt,
-      ingredients: ingredientItems.map(ingredient => ({
+      ingredients: ingredients.map(ingredient => ({
         ingredientName: ingredient.ingredientName,
         quantity: ingredient.quantity,
         unit: ingredient.unit,
@@ -93,16 +69,7 @@ export const getRecipeById = async (c: Context): Promise<HandlerResult> => {
 
     return jsonResponse(200, response);
   } catch (error) {
-    const errorName =
-      typeof error === 'object' && error !== null && 'name' in error
-        ? String(error.name)
-        : 'UnknownError';
-
-    console.error('Error fetching recipe by ID:', {
-      errorName,
-      error,
-    });
-
+    console.error('Error fetching recipe by ID:', error);
     return internalServerError('Failed to fetch recipe');
   }
 };

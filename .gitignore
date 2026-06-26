@@ -26,6 +26,7 @@ yarn-error.log*
 
 # バックエンド（Hono サーバー）の依存
 /backend/node_modules
+/backend/.env
 
 # CDK の作業ディレクトリと依存
 /infra/cdk.out/
