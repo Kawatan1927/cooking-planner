@@ -18,36 +18,28 @@ const buildQueryString = (params: GetMenusParams): string => {
   return query ? `?${query}` : '';
 };
 
-export async function getMenus(params: GetMenusParams = {}, token: string): Promise<MenusResponse> {
+export async function getMenus(params: GetMenusParams = {}): Promise<MenusResponse> {
   return apiFetch<MenusResponse>(`/menus${buildQueryString(params)}`, {
     method: 'GET',
-    token,
   });
 }
 
-export async function createMenu(data: MenuInput, token: string): Promise<CreateMenuResponse> {
+export async function createMenu(data: MenuInput): Promise<CreateMenuResponse> {
   return apiFetch<CreateMenuResponse>('/menus', {
     method: 'POST',
-    token,
     body: data,
   });
 }
 
-export async function updateMenu(
-  menuId: string,
-  data: MenuInput,
-  token: string
-): Promise<UpdateMenuResponse> {
+export async function updateMenu(menuId: string, data: MenuInput): Promise<UpdateMenuResponse> {
   return apiFetch<UpdateMenuResponse>(`/menus/${menuId}`, {
     method: 'PUT',
-    token,
     body: data,
   });
 }
 
-export async function deleteMenu(menuId: string, token: string): Promise<void> {
+export async function deleteMenu(menuId: string): Promise<void> {
   await apiFetch<null>(`/menus/${menuId}`, {
     method: 'DELETE',
-    token,
   });
 }

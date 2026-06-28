@@ -14,8 +14,7 @@
 import { useRecipes } from '@features/recipes';
 
 function RecipeListPage() {
-  const token = useAuthToken(); // 認証トークンを取得（仮）
-  const { data: recipes, isLoading, error, refetch } = useRecipes({ token });
+  const { data: recipes, isLoading, error, refetch } = useRecipes();
 
   if (isLoading) return <div>読み込み中...</div>;
   if (error) return <div>エラー: {error.message}</div>;
@@ -36,8 +35,7 @@ function RecipeListPage() {
 
 **オプション:**
 
-- `token`: 認証トークン（必須）
-- `userCacheKey`: クエリキー分離用のユーザー識別子（任意、未指定時は token から自動導出）
+- `userCacheKey`: クエリキー分離用のユーザー識別子（任意、未指定時は固定キー）
 - `enabled`: クエリの有効化フラグ（デフォルト: `true`）
 
 ### `useRecipe`
@@ -52,14 +50,12 @@ import { useParams } from 'react-router-dom';
 
 function RecipeDetailPage() {
   const { recipeId } = useParams<{ recipeId: string }>();
-  const token = useAuthToken(); // 認証トークンを取得（仮）
   const {
     data: recipe,
     isLoading,
     error,
   } = useRecipe({
     recipeId: recipeId || '',
-    token,
   });
 
   if (isLoading) return <div>読み込み中...</div>;
@@ -92,8 +88,7 @@ function RecipeDetailPage() {
 **オプション:**
 
 - `recipeId`: レシピID（必須）
-- `token`: 認証トークン（必須）
-- `userCacheKey`: クエリキー分離用のユーザー識別子（任意、未指定時は token から自動導出）
+- `userCacheKey`: クエリキー分離用のユーザー識別子（任意、未指定時は固定キー）
 - `enabled`: クエリの有効化フラグ（デフォルト: `true`）
 
 ## React Query の機能
@@ -125,7 +120,7 @@ function RecipeDetailPage() {
 import { ApiError } from '@/lib/apiClient';
 
 function RecipeListPage() {
-  const { data, error } = useRecipes({ token });
+  const { data, error } = useRecipes();
 
   if (error) {
     if (error instanceof ApiError) {
@@ -142,9 +137,7 @@ function RecipeListPage() {
 
 ## 認証について
 
-すべてのAPIエンドポイントは認証が必要です。`token` パラメータには、Cognito から取得した JWT トークンを渡してください。
-
-トークンが `null` または空の場合、クエリは実行されません（`enabled: false` と同じ動作）。
+すべてのAPIエンドポイントは Cloudflare Access による認証が必要です。フロントエンドは JWT を保持せず、API 呼び出しに `Authorization` ヘッダを付与しません。
 
 ## 型定義
 

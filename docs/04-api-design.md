@@ -26,6 +26,7 @@ Cloudflare Access を通過したリクエストのみがサーバーに到達�
 
 - リクエスト
   - `Content-Type: application/json`（ボディがある場合）
+  - `Cf-Access-Jwt-Assertion`（Cloudflare Access がオリジンへの転送時に付与）
 
 - レスポンス
   - `Content-Type: application/json; charset=utf-8`
@@ -37,8 +38,10 @@ Cloudflare Access を通過したリクエストのみがサーバーに到達�
   - フロントエンドのユーザーは Cloudflare Access の認証フロー（メール OTP や Google など設定方法による）を経由する
 
 - Hono 側設定：
-  - Cloudflare Access を通過したリクエストのみが届くため、Hono での追加JWT検証は行わない
   - すべての業務エンドポイントは Cloudflare Access により **認証必須**
+  - Hono の認証ミドルウェアは `Cf-Access-Jwt-Assertion` の JWT を Cloudflare Access の公開鍵で検証する
+  - 検証後、JWT の `email`（なければ `sub`）を `userId` として扱う
+  - ローカル開発では `DEV_USER_ID` を設定すると Cloudflare Access JWT なしで動作する
 
 ### 1.4 日付・時刻の扱い
 

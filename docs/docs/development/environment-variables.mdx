@@ -6,119 +6,65 @@ sidebar_position: 4
 
 ## 概要
 
-このリポジトリで管理する環境変数は、**フロントエンド**と **Lambda（バックエンド）** の2か所に分かれます。
+このリポジトリで管理する環境変数は、**フロントエンド**と **Hono バックエンド** に分かれます。
 
 :::warning
 環境変数ファイル（`.env` など）は **Git にコミットしない**でください。
-実際の値はローカルの `.env` ファイルや AWS Lambda の環境変数設定で管理します。
+実際の値はローカルの `.env` ファイルや実行環境の環境変数で管理します。
 :::
 
 ---
 
 ## フロントエンド（`frontend/.env`）
 
-Vite の [環境変数機能](https://vitejs.dev/guide/env-and-mode) を使用します。
-ブラウザに公開されるため、`VITE_` プレフィックスが必須です。
+Vite の環境変数機能を使用します。ブラウザに公開されるため、`VITE_` プレフィックスが必須です。
 
-| 変数名                             | 説明                                                                          | 例                                                           |
-| ---------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `VITE_API_BASE_URL`                | API のベース URL                                                              | `https://xxx.cloudfront.net/api`                             |
-| `VITE_AUTH_TOKEN`                  | ローカル開発用の固定トークン（現在のフロントエンド実装で使用）                | `dummy-local-token`                                          |
-| `VITE_COGNITO_USER_POOL_ID`        | Cognito User Pool ID                                                          | `ap-northeast-1_XXXXXXX`                                     |
-| `VITE_COGNITO_CLIENT_ID`           | Cognito App Client ID                                                         | `xxxxxxxxxxxxxxxxxxxxxxxxxx`                                 |
-| `VITE_COGNITO_REGION`              | AWS リージョン                                                                | `ap-northeast-1`                                             |
-| `VITE_COGNITO_DOMAIN`              | Cognito Hosted UI ドメイン（`<prefix>.auth.<region>.amazoncognito.com` 形式） | `cooking-planner-prod.auth.ap-northeast-1.amazoncognito.com` |
-| `VITE_COGNITO_REDIRECT_URI`        | ログイン後のリダイレクト URI                                                  | `http://localhost:5173/callback`                             |
-| `VITE_COGNITO_LOGOUT_REDIRECT_URI` | ログアウト後のリダイレクト URI                                                | `http://localhost:5173`                                      |
+| 変数名              | 説明             | 例                                        |
+| ------------------- | ---------------- | ----------------------------------------- |
+| `VITE_API_BASE_URL` | API のベース URL | `http://localhost:3000/api` または `/api` |
 
-### セットアップ手順
-
-1. `frontend/.env` ファイルをローカルに作成する
-2. CDK デプロイ後に出力される値（後述）を設定する
+フロントエンドは Cloudflare Access の JWT を保持せず、Cognito 関連の環境変数も使用しません。
 
 ```bash
 # frontend/.env（例）
-VITE_API_BASE_URL=https://xxx.cloudfront.net/api
-VITE_AUTH_TOKEN=dummy-local-token
-
-# Cognito 認証設定（cdk deploy の Outputs から取得した値を設定する）
-VITE_COGNITO_USER_POOL_ID=ap-northeast-1_XXXXXXX
-VITE_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
-VITE_COGNITO_REGION=ap-northeast-1
-VITE_COGNITO_DOMAIN=cooking-planner-prod.auth.ap-northeast-1.amazoncognito.com
-VITE_COGNITO_REDIRECT_URI=http://localhost:5173/callback
-VITE_COGNITO_LOGOUT_REDIRECT_URI=http://localhost:5173
+VITE_API_BASE_URL=http://localhost:3000/api
 ```
-
-### CDK Outputs からの値取得
-
-CDK デプロイ後、スタックの Outputs に以下のキーで値が出力されます。
-出力値をベースに `.env` へ設定してください。変数によっては `/api` や `/callback` などのサフィックスを付与します。
-
-| CDK Output キー                        | 対応する `.env` 変数               | 備考                                           |
-| -------------------------------------- | ---------------------------------- | ---------------------------------------------- |
-| `CloudFrontUrl`                        | `VITE_API_BASE_URL`                | `<CloudFrontUrl>/api` の形式で設定する         |
-| `UserPoolId`                           | `VITE_COGNITO_USER_POOL_ID`        | 現状の frontend 実装では未使用（将来利用予定） |
-| `UserPoolClientId`                     | `VITE_COGNITO_CLIENT_ID`           |                                                |
-| `UserPoolDomainName`                   | `VITE_COGNITO_DOMAIN`              |                                                |
-| （CDK デプロイ時に指定したリージョン） | `VITE_COGNITO_REGION`              |                                                |
-| `CloudFrontUrl`                        | `VITE_COGNITO_REDIRECT_URI`        | `<CloudFrontUrl>/callback` の形式              |
-| `CloudFrontUrl`                        | `VITE_COGNITO_LOGOUT_REDIRECT_URI` | `<CloudFrontUrl>` をそのまま使用               |
-
-```bash
-# CDK Outputs を確認する例
-aws cloudformation describe-stacks \
-  --stack-name CookingPlanner-prod \
-  --query "Stacks[0].Outputs" \
-  --output table
-```
-
-:::note
-`VITE_COGNITO_USER_POOL_ID` や `VITE_COGNITO_CLIENT_ID` はセキュリティ上問題のない値のため、フロントエンドに持たせています。
-シークレットキーや IAM 認証情報はフロントエンドに含めないでください。
-:::
 
 ---
 
-## Lambda / バックエンド
+## Hono バックエンド（`backend/.env`）
 
-Lambda の環境変数は CDK スタック内で設定し、DynamoDB テーブル作成時の名前をそのまま渡します。
-ローカル開発・テスト時は `.env` ファイルや環境変数を手動で設定してください。
+| 変数名                        | 説明                                                                 | 例                                                                 |
+| ----------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `PORT`                        | Hono サーバーのリッスンポート（デフォルト `3000`）                   | `3000`                                                             |
+| `FRONTEND_ORIGIN`             | ローカル開発時に CORS で許可するフロントエンド origin                | `http://localhost:5173`                                            |
+| `DATABASE_URL`                | PostgreSQL 接続文字列                                                | `postgresql://user:pass@localhost:5432/cooking_planner`            |
+| `DEV_USER_ID`                 | ローカル開発用 userId。設定時は Cloudflare Access JWT 検証をスキップ | `local-dev-user`                                                   |
+| `CLOUDFLARE_ACCESS_TEAM_NAME` | Cloudflare Access チーム名                                           | `my-team`                                                          |
+| `CLOUDFLARE_ACCESS_AUD`       | Cloudflare Access Application Audience (AUD)                         | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
 
-| 変数名                          | 説明                                   |
-| ------------------------------- | -------------------------------------- |
-| `RECIPES_TABLE_NAME`            | Recipes テーブル名                     |
-| `RECIPE_INGREDIENTS_TABLE_NAME` | RecipeIngredients テーブル名           |
-| `MENUS_TABLE_NAME`              | Menus テーブル名                       |
-| `PANTRY_ITEMS_TABLE_NAME`       | PantryItems テーブル名（将来追加予定） |
-| `NODE_ENV`                      | `production` / `development` など      |
-| `LOG_LEVEL`                     | ログレベル（必要に応じて追加）         |
-
-### CDK での設定方法
-
-CDK スタック（Lambda と DynamoDB テーブルを定義しているスタック）内で、DynamoDB テーブルの名前を Lambda の環境変数として渡します。
-
-```ts
-const recipesTable = new dynamodb.Table(this, 'RecipesTable', { ... });
-
-const handler = new nodejs.NodejsFunction(this, 'Handler', {
-  environment: {
-    RECIPES_TABLE_NAME: recipesTable.tableName,
-    // ...
-  },
-});
+```bash
+# backend/.env（ローカル開発例）
+PORT=3000
+FRONTEND_ORIGIN=http://localhost:5173
+DATABASE_URL=postgresql://user:pass@localhost:5432/cooking_planner
+DEV_USER_ID=local-dev-user
 ```
+
+Cloudflare Tunnel 経由で利用する場合は、`DEV_USER_ID` を外し、
+`CLOUDFLARE_ACCESS_TEAM_NAME` と `CLOUDFLARE_ACCESS_AUD` を設定します。
+Hono は `Cf-Access-Jwt-Assertion` を Cloudflare Access の公開鍵で検証し、
+JWT の `email`（なければ `sub`）を `userId` として扱います。
 
 ---
 
 ## 環境別の運用方針
 
-| 環境          | 説明                                                                                        |
-| ------------- | ------------------------------------------------------------------------------------------- |
-| ローカル開発  | `frontend/.env` にローカル用の値を設定。Lambda は dev ステージの実環境か `sam local` を使用 |
-| `dev`（任意） | 開発検証用の AWS 環境。CDK の `stage` パラメータで分岐                                      |
-| `prod`        | 本番環境。GitHub Actions または手動 CDK デプロイで管理                                      |
+| 環境         | 説明                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| ローカル開発 | `frontend/.env` と `backend/.env` にローカル用の値を設定し、`DEV_USER_ID` で認証をバイパス |
+| 本番相当     | Hono サーバーを 127.0.0.1 にバインドし、Cloudflare Tunnel + Cloudflare Access 経由で公開   |
 
 :::tip
-環境変数を追加・変更した際は、このページと CDK スタック・`docs/05-architecture-notes.md` もあわせて更新してください。
+環境変数を追加・変更した際は、このページと `docs/05-architecture-notes.md` もあわせて更新してください。
 :::

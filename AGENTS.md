@@ -8,7 +8,7 @@
 - 仕様のソースオブトゥルースは `docs/` 配下の Markdown です。
 - フロントエンドは Vite + React + TypeScript です。
 - バックエンドは AWS Lambda + API Gateway + DynamoDB です。
-- 認証は Amazon Cognito User Pool を前提とします。
+- 認証は Cloudflare Access を前提とします。
 - インフラは AWS CDK で管理します。
 
 ## 作業前の確認
@@ -21,10 +21,10 @@
 
 `docs/` 配下には役割が異なる2つの層があります。混同しないでください。
 
-| パス | 役割 | 編集主体 |
-|---|---|---|
-| `docs/01-vision-and-scope.md`<br>`docs/02-features-and-screens.md`<br>`docs/03-domain-and-data-model.md`<br>`docs/04-api-design.md`<br>`docs/05-architecture-notes.md` | **仕様書・設計書（ソースオブトゥルース）** | 人間のみ。自動エージェントは変更しない |
-| `docs/docs/` | **Docusaurus サイトのソース**（GitHub Pages にデプロイされる） | 自動エージェントが更新してよい |
+| パス                                                                                                                                                                   | 役割                                                           | 編集主体                               |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------- |
+| `docs/01-vision-and-scope.md`<br>`docs/02-features-and-screens.md`<br>`docs/03-domain-and-data-model.md`<br>`docs/04-api-design.md`<br>`docs/05-architecture-notes.md` | **仕様書・設計書（ソースオブトゥルース）**                     | 人間のみ。自動エージェントは変更しない |
+| `docs/docs/`                                                                                                                                                           | **Docusaurus サイトのソース**（GitHub Pages にデプロイされる） | 自動エージェントが更新してよい         |
 
 ## 出力ルール
 
@@ -44,15 +44,15 @@
 
 形式: `<type>: <日本語で変更内容を1行に>`
 
-| type | 用途 |
-|---|---|
-| `feat` | 新機能の追加 |
-| `fix` | バグ修正 |
-| `docs` | ドキュメントのみの変更 |
-| `chore` | 設定・依存・CI など雑務 |
+| type       | 用途                           |
+| ---------- | ------------------------------ |
+| `feat`     | 新機能の追加                   |
+| `fix`      | バグ修正                       |
+| `docs`     | ドキュメントのみの変更         |
+| `chore`    | 設定・依存・CI など雑務        |
 | `refactor` | 動作を変えないリファクタリング |
-| `test` | テストの追加・修正 |
-| `style` | フォーマットのみの変更 |
+| `test`     | テストの追加・修正             |
+| `style`    | フォーマットのみの変更         |
 
 - 1行目は50文字以内を目安にしてください。
 - 例: `feat: ショッピングリストにフィルター機能を追加`
@@ -61,12 +61,12 @@
 
 ブランチ名は必ず **`<type>/<Issue番号>-<kebab-case-説明>`** 形式に統一します。
 
-| type | 用途 |
-|---|---|
-| `feature` | 新機能の実装 |
-| `fix` | バグ修正 |
-| `docs` | ドキュメントのみの変更 |
-| `chore` | 設定・依存・CI など雑務 |
+| type       | 用途                           |
+| ---------- | ------------------------------ |
+| `feature`  | 新機能の実装                   |
+| `fix`      | バグ修正                       |
+| `docs`     | ドキュメントのみの変更         |
+| `chore`    | 設定・依存・CI など雑務        |
 | `refactor` | 動作を変えないリファクタリング |
 
 **作成コマンド:**
@@ -78,6 +78,7 @@ gh issue develop <Issue番号> --name <type>/<Issue番号>-<kebab-case-説明> -
 例: `gh issue develop 42 --name feature/42-add-shopping-list-filter --base main --checkout`
 
 **禁止事項:**
+
 - `#` 記号をブランチ名に含めない（`feature/#1` は不可）
 - Issue番号を末尾に置かない（`add-foo-7915` は不可）
 - SHA やタイムスタンプをサフィックスに付けない

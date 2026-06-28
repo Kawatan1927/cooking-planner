@@ -9,12 +9,11 @@ sidebar_position: 3
 
 バックエンド構成は以下の通り：
 
-- API Gateway (HTTP API)
-- Lambda (Node.js + TypeScript)
-- DynamoDB
+- Hono (Bun ランタイム)
+- PostgreSQL
 
-認証は Amazon Cognito による JWT（ID トークン or Access トークン）で行い、
-API Gateway で JWT Authorizer を用いて検証する。
+認証は Cloudflare Access による Zero Trust アクセス制御で行い、
+Hono の認証ミドルウェアが `Cf-Access-Jwt-Assertion` を検証する。
 
 ---
 
@@ -22,33 +21,31 @@ API Gateway で JWT Authorizer を用いて検証する。
 
 ### 1.1 ベース URL
 
-- `https://<cloudfront-domain>/api` を想定
-  - CloudFront → API Gateway へのパスベースルーティングで `/api` をバックエンドに転送
-  - または、フロントと API を別ドメインにしても良い
+- `https://<cloudflare-tunnel-domain>/api` を想定
+  - Cloudflare Tunnel → ローカル PC 上の Hono サーバーへ転送
+  - フロントエンドと API は同一 Hono サーバーで配信するため、同一ドメイン
 - フロントエンドからは `.env` などで `VITE_API_BASE_URL` として指定する。
 
 ### 1.2 HTTP ヘッダ
 
 - リクエスト
   - `Content-Type: application/json`（ボディがある場合）
-  - `Authorization: Bearer <JWT>`（ログイン済みの場合・全エンドポイント必須）
+  - `Cf-Access-Jwt-Assertion`（Cloudflare Access がオリジンへの転送時に付与）
 
 - レスポンス
   - `Content-Type: application/json; charset=utf-8`
 
 ### 1.3 認証
 
-- 認証方式：**Bearer Token (JWT)**
-  - Amazon Cognito User Pool による認証
-  - フロントは Cognito Hosted UI or SDK 経由でログインし、
-    ID トークン or Access トークンを取得する
+- 認証方式：**Cloudflare Access（Zero Trust）**
+  - Cloudflare Access がアクセス制御の境界となり、認証済みリクエストのみ Hono サーバーに到達する
+  - フロントエンドは JWT を保持せず、API 呼び出し時に `Authorization` ヘッダを付与しない
 
-- API Gateway 側設定：
-  - JWT Authorizer を利用し、User Pool を紐付ける
+- Hono 側設定：
+  - `Cf-Access-Jwt-Assertion` を Cloudflare Access の公開鍵で検証する
+  - JWT の `email`（なければ `sub`）を `userId` として扱う
+  - ローカル開発では `DEV_USER_ID` を設定すると JWT なしで動作する
   - すべての業務エンドポイントは **認証必須**
-
-- Lambda 側：
-  - `event.requestContext.authorizer.jwt.claims` から `sub` or email などを取得し、`userId` として利用する
 
 ### 1.4 日付・時刻の扱い
 
@@ -56,7 +53,7 @@ API Gateway で JWT Authorizer を用いて検証する。
 - 日時文字列（ISO8601）：
   - `2025-11-21T12:34:56.789Z`
 - タイムゾーン：
-  - DynamoDB に保存する日時は UTC を基本とする（`Z`）
+  - PostgreSQL に保存する日時は UTC を基本とする（`Z`）
 
 ### 1.5 エラーレスポンス形式
 
@@ -77,7 +74,7 @@ API Gateway で JWT Authorizer を用いて検証する。
 - `400 Bad Request`
   - バリデーションエラーなど
 - `401 Unauthorized`
-  - JWT 不正・欠如（API Gateway 側で弾かれる場合もある）
+  - Cloudflare Access JWT 不正・欠如
 - `403 Forbidden`
   - 認証は通っているが、対象リソースの `userId` が異なるなど
 - `404 Not Found`
@@ -448,12 +445,12 @@ POST `/recipes` と同じ構造：
 >   文字列 quantity は人数比でスケーリングできないため **スケーリングせず**、同一キー内では `+` で連結して返す。
 > - 数値と文字列が混在する場合は `"<数値> + <文字列>"` のような **文字列** として `totalQuantity` を返す。
 
-**処理概要（Lambda 側）**
+**処理概要（Hono / サーバー側）**
 
-1. `Menus` から `from`〜`to` の献立を取得
-2. 各 `menuItem` について：
-   - `Recipes` から `baseServings` を取得
-   - `RecipeIngredients` から材料一覧を取得
+1. `menus` テーブルから `from`〜`to` の献立を取得
+2. 各 `menu_item` について：
+   - `recipes` から `base_servings` を取得
+   - `recipe_ingredients` から材料一覧を取得
    - `servings / baseServings` で分量をスケーリング
 3. `ingredientName + unit` 単位で合計値を集計
 4. 上記形式でレスポンスに整形

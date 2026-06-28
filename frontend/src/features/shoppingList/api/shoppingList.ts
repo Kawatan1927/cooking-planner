@@ -7,8 +7,7 @@ export interface GetShoppingListParams {
 }
 
 export async function getShoppingList(
-  params: GetShoppingListParams,
-  token: string
+  params: GetShoppingListParams
 ): Promise<ShoppingListResponse> {
   const searchParams = new URLSearchParams({
     from: params.from,
@@ -17,6 +16,5 @@ export async function getShoppingList(
 
   return apiFetch<ShoppingListResponse>(`/shopping-list?${searchParams.toString()}`, {
     method: 'GET',
-    token,
   });
 }

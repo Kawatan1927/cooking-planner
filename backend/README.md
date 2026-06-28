@@ -21,7 +21,7 @@ backend/
 │   ├── menus/                # 献立ドメイン（ハンドラー + repository.ts）
 │   ├── shoppingList/         # 買い物リストドメイン（ハンドラー）
 │   └── shared/               # 共通レイヤー
-│       ├── auth.ts           # getUserId(c)（認証移行までの暫定スタブ）
+│       ├── auth.ts           # Cloudflare Access JWT 検証 / getUserId(c)
 │       ├── db.ts             # postgres-js + Drizzle ORM 接続設定
 │       ├── schema.ts         # Drizzle スキーマ定義（テーブル / 型）
 │       ├── http.ts           # HandlerResult とレスポンスヘルパー
@@ -69,7 +69,7 @@ curl http://localhost:3000/health
 - **小さめモノリス構成**: 1 つの Hono app が全パスを処理します。
 - **型安全性**: TypeScript の strict モードを有効化。
 - **データアクセス**: Drizzle ORM（`drizzle-orm/postgres-js`）を使用。スキーマは `src/shared/schema.ts`、接続設定は `src/shared/db.ts`。各ドメインの `repository.ts` が DB 操作を担います。
-- **認証**: 認証ロジックの移行は別 Issue。現状 `getUserId(c)` は環境変数ベースの暫定スタブです。
+- **認証**: Cloudflare Access が付与する `Cf-Access-Jwt-Assertion` を検証し、JWT の `email`（なければ `sub`）を `userId` として扱います。ローカル開発では `DEV_USER_ID` を設定すると JWT なしで動作します。
 
 ## マイグレーション
 
@@ -85,5 +85,7 @@ bun run db:migrate
 
 - `PORT` - リッスンポート（デフォルト `3000`）
 - `FRONTEND_ORIGIN` - CORS で許可するフロントのオリジン（デフォルト `http://localhost:5173`）
-- `DEV_USER_ID` - 暫定 userId スタブが返す値（デフォルト `local-dev-user`、認証移行で廃止予定）
+- `DEV_USER_ID` - ローカル開発用 userId。設定時は Cloudflare Access JWT 検証をスキップします
+- `CLOUDFLARE_ACCESS_TEAM_NAME` - Cloudflare Access チーム名（`https://<team>.cloudflareaccess.com` の `<team>`）
+- `CLOUDFLARE_ACCESS_AUD` - Cloudflare Access Application Audience (AUD)
 - `DATABASE_URL` - PostgreSQL 接続文字列（例: `postgresql://user:pass@localhost:5432/cooking_planner`）
