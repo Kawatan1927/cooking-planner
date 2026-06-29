@@ -1,0 +1,15 @@
+# Copy this file to your cloudflared config location, then replace every
+# placeholder with values from `cloudflared tunnel create <NAME>`.
+#
+# Default config locations:
+# - Windows: %USERPROFILE%\.cloudflared\config.yml
+# - macOS/Linux: ~/.cloudflared/config.yml
+
+tunnel: <TUNNEL_UUID>
+credentials-file: <ABSOLUTE_PATH_TO_TUNNEL_CREDENTIALS_JSON>
+
+ingress:
+  - hostname: <APP_HOSTNAME>
+    service: http://127.0.0.1:3000
+
+  - service: http_status:404
