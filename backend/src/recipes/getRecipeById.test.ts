@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
+import { Blob } from 'node:buffer';
 
 const { findRecipeWithIngredientsMock } = vi.hoisted(() => ({
   findRecipeWithIngredientsMock: vi.fn(),
@@ -16,9 +19,36 @@ vi.mock('../shared/auth', () => ({
   getUserId: () => 'user-123',
 }));
 
-import app from '../app';
+let app: (typeof import('../app'))['default'];
 
-describe('GET /recipes/:recipeId', () => {
+type BunFile = Blob & { exists: () => Promise<boolean> };
+type BunStaticRuntime = {
+  file: (path: string) => BunFile;
+  write: (path: string, data: string | Blob) => Promise<void>;
+};
+
+const installBunStaticShim = (): void => {
+  const runtimeGlobal = globalThis as typeof globalThis & {
+    Bun?: BunStaticRuntime;
+  };
+
+  runtimeGlobal.Bun ??= {
+    file: path =>
+      Object.assign(new Blob(existsSync(path) ? [readFileSync(path)] : []), {
+        exists: async () => existsSync(path),
+      }),
+    write: async (path, data) => {
+      await writeFile(path, data instanceof Blob ? Buffer.from(await data.arrayBuffer()) : data);
+    },
+  };
+};
+
+beforeAll(async () => {
+  installBunStaticShim();
+  ({ default: app } = await import('../app'));
+});
+
+describe('GET /api/recipes/:recipeId', () => {
   beforeEach(() => {
     findRecipeWithIngredientsMock.mockReset();
   });
@@ -43,7 +73,7 @@ describe('GET /recipes/:recipeId', () => {
       ],
     });
 
-    const response = await app.request(`/recipes/${recipeId}`);
+    const response = await app.request(`/api/recipes/${recipeId}`);
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
@@ -67,7 +97,7 @@ describe('GET /recipes/:recipeId', () => {
     const recipeId = '22222222-2222-2222-2222-222222222222';
     findRecipeWithIngredientsMock.mockResolvedValue(null);
 
-    const response = await app.request(`/recipes/${recipeId}`);
+    const response = await app.request(`/api/recipes/${recipeId}`);
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
@@ -76,7 +106,7 @@ describe('GET /recipes/:recipeId', () => {
   });
 
   it('UUID 形式でない recipeId は 404 を返し、リポジトリを呼ばない', async () => {
-    const response = await app.request('/recipes/not-a-uuid');
+    const response = await app.request('/api/recipes/not-a-uuid');
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({

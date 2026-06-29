@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { serveStatic } from 'hono/bun';
 import { cors } from 'hono/cors';
 import health from './routes/health';
 import recipes from './routes/recipes';
@@ -15,6 +16,8 @@ import { authMiddleware } from './shared/auth';
  * @see docs/05-architecture-notes.md §8.1
  */
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173';
+const FRONTEND_DIST_DIR = process.env.FRONTEND_DIST_DIR ?? '../frontend/dist';
+const FRONTEND_INDEX_HTML = 'index.html';
 
 const app = new Hono();
 
@@ -28,12 +31,6 @@ app.use(
 );
 
 const protectedPaths = [
-  '/recipes',
-  '/recipes/*',
-  '/menus',
-  '/menus/*',
-  '/shopping-list',
-  '/shopping-list/*',
   '/api/recipes',
   '/api/recipes/*',
   '/api/menus',
@@ -46,15 +43,15 @@ for (const path of protectedPaths) {
   app.use(path, authMiddleware());
 }
 
-const registerRoutes = (basePath = ''): void => {
-  app.route(`${basePath}/health`, health);
-  app.route(`${basePath}/recipes`, recipes);
-  app.route(`${basePath}/menus`, menus);
-  app.route(`${basePath}/shopping-list`, shoppingList);
-};
+app.route('/health', health);
+app.route('/api/health', health);
+app.route('/api/recipes', recipes);
+app.route('/api/menus', menus);
+app.route('/api/shopping-list', shoppingList);
+app.all('/api/*', () => resultToResponse(notFound('Endpoint not found', 'RESOURCE_NOT_FOUND')));
 
-registerRoutes();
-registerRoutes('/api');
+app.use('*', serveStatic({ root: FRONTEND_DIST_DIR }));
+app.get('*', serveStatic({ root: FRONTEND_DIST_DIR, path: FRONTEND_INDEX_HTML }));
 
 // 未定義ルートは docs/04-api-design.md のエラー形式で 404 を返す
 app.notFound(() => resultToResponse(notFound('Endpoint not found')));

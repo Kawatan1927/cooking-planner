@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
+import { Blob } from 'node:buffer';
 
 const { updateMenuForUserMock } = vi.hoisted(() => ({
   updateMenuForUserMock: vi.fn(),
@@ -17,18 +20,45 @@ vi.mock('../shared/auth', () => ({
   getUserId: () => 'user-123',
 }));
 
-import app from '../app';
+let app: (typeof import('../app'))['default'];
+
+type BunFile = Blob & { exists: () => Promise<boolean> };
+type BunStaticRuntime = {
+  file: (path: string) => BunFile;
+  write: (path: string, data: string | Blob) => Promise<void>;
+};
+
+const installBunStaticShim = (): void => {
+  const runtimeGlobal = globalThis as typeof globalThis & {
+    Bun?: BunStaticRuntime;
+  };
+
+  runtimeGlobal.Bun ??= {
+    file: path =>
+      Object.assign(new Blob(existsSync(path) ? [readFileSync(path)] : []), {
+        exists: async () => existsSync(path),
+      }),
+    write: async (path, data) => {
+      await writeFile(path, data instanceof Blob ? Buffer.from(await data.arrayBuffer()) : data);
+    },
+  };
+};
+
+beforeAll(async () => {
+  installBunStaticShim();
+  ({ default: app } = await import('../app'));
+});
 
 const MENU_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 
 const putMenu = (body: unknown): Promise<Response> =>
-  app.request(`/menus/${MENU_UUID}`, {
+  app.request(`/api/menus/${MENU_UUID}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 
-describe('PUT /menus/:menuId', () => {
+describe('PUT /api/menus/:menuId', () => {
   beforeEach(() => {
     updateMenuForUserMock.mockReset();
   });
@@ -76,7 +106,7 @@ describe('PUT /menus/:menuId', () => {
   });
 
   it('UUID 形式でない menuId は 404 を返し、リポジトリを呼ばない', async () => {
-    const response = await app.request('/menus/not-a-uuid', {
+    const response = await app.request('/api/menus/not-a-uuid', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
