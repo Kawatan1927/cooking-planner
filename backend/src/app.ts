@@ -18,6 +18,15 @@ import { authMiddleware } from './shared/auth';
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173';
 const FRONTEND_DIST_DIR = process.env.FRONTEND_DIST_DIR ?? '../frontend/dist';
 const FRONTEND_INDEX_HTML = 'index.html';
+const spaFallback = serveStatic({ root: FRONTEND_DIST_DIR, path: FRONTEND_INDEX_HTML });
+
+const isAssetLikePath = (path: string): boolean => {
+  const lastSegment = path.split('/').at(-1) ?? '';
+  return path.startsWith('/assets/') || lastSegment.includes('.');
+};
+
+const acceptsHtml = (acceptHeader: string | undefined): boolean =>
+  acceptHeader?.split(',').some(value => value.trim().startsWith('text/html')) ?? false;
 
 const app = new Hono();
 
@@ -51,7 +60,13 @@ app.route('/api/shopping-list', shoppingList);
 app.all('/api/*', () => resultToResponse(notFound('Endpoint not found', 'RESOURCE_NOT_FOUND')));
 
 app.use('*', serveStatic({ root: FRONTEND_DIST_DIR }));
-app.get('*', serveStatic({ root: FRONTEND_DIST_DIR, path: FRONTEND_INDEX_HTML }));
+app.get('*', async (c, next) => {
+  if (!acceptsHtml(c.req.header('Accept')) || isAssetLikePath(c.req.path)) {
+    return resultToResponse(notFound('Endpoint not found'));
+  }
+
+  return spaFallback(c, next);
+});
 
 // 未定義ルートは docs/04-api-design.md のエラー形式で 404 を返す
 app.notFound(() => resultToResponse(notFound('Endpoint not found')));

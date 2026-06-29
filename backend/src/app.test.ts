@@ -72,7 +72,9 @@ describe('app route prefixes', () => {
 
 describe('frontend static delivery', () => {
   it('非 API ルートでは SPA の index.html を返す', async () => {
-    const response = await app.request('/recipes');
+    const response = await app.request('/recipes', {
+      headers: { Accept: 'text/html' },
+    });
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('text/html');
@@ -84,6 +86,34 @@ describe('frontend static delivery', () => {
 
     expect(response.status).toBe(200);
     expect(await response.text()).toContain('cooking planner');
+  });
+
+  it('存在しない静的アセットでは SPA の index.html を返さない', async () => {
+    const response = await app.request('/assets/missing.js');
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'NOT_FOUND',
+        message: 'Endpoint not found',
+        details: null,
+      },
+    });
+  });
+
+  it('favicon が存在しない場合は SPA の index.html を返さない', async () => {
+    const response = await app.request('/favicon.ico');
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'NOT_FOUND',
+        message: 'Endpoint not found',
+        details: null,
+      },
+    });
   });
 
   it('未定義の /api/* は JSON 404 を返し SPA にフォールバックしない', async () => {
