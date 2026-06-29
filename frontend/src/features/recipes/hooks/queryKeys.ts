@@ -1,8 +1,8 @@
-const RECIPES_QUERY_SCOPE = 'recipes';
-const DEFAULT_USER_CACHE_KEY = 'cloudflare-access-user';
+import { getUserCacheKey } from '@/lib/queryKeyUtils';
 
-export const getUserCacheKey = (userCacheKey?: string | null): string =>
-  userCacheKey || DEFAULT_USER_CACHE_KEY;
+const RECIPES_QUERY_SCOPE = 'recipes';
+
+export { getUserCacheKey };
 
 export const recipesQueryKeys = {
   list: (userKey: string) => [RECIPES_QUERY_SCOPE, userKey] as const,

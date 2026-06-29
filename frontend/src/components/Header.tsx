@@ -39,8 +39,6 @@ export function Header() {
             </NavLink>
           ))}
         </nav>
-
-        <div style={styles.userArea} />
       </div>
     </header>
   );
@@ -95,8 +93,5 @@ const styles = {
   navLinkActive: {
     color: '#2563eb',
     backgroundColor: '#eff6ff',
-  },
-  userArea: {
-    flexShrink: 0,
   },
 } as const;

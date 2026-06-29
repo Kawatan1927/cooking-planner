@@ -20,6 +20,7 @@ type JsonWebKeySet = {
 };
 
 const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
 const base64UrlToBytes = (value: string): Uint8Array => {
   const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
@@ -29,7 +30,7 @@ const base64UrlToBytes = (value: string): Uint8Array => {
 
 const decodeJsonPart = <T>(value: string): T => {
   const bytes = base64UrlToBytes(value);
-  return JSON.parse(new TextDecoder().decode(bytes)) as T;
+  return JSON.parse(textDecoder.decode(bytes)) as T;
 };
 
 const getCloudflareAccessConfig = () => {
@@ -47,12 +48,22 @@ const getCloudflareAccessConfig = () => {
   };
 };
 
+type JwksCache = { keys: JsonWebKey[]; fetchedAt: number };
+let jwksCache: JwksCache | null = null;
+const JWKS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
 const fetchJwks = async (jwksUrl: string): Promise<JsonWebKeySet> => {
+  const now = Date.now();
+  if (jwksCache && now - jwksCache.fetchedAt < JWKS_CACHE_TTL_MS) {
+    return { keys: jwksCache.keys };
+  }
   const response = await fetch(jwksUrl);
   if (!response.ok) {
     throw new Error(`Failed to fetch Cloudflare Access certs: ${response.status}`);
   }
-  return (await response.json()) as JsonWebKeySet;
+  const jwks = (await response.json()) as JsonWebKeySet;
+  jwksCache = { keys: jwks.keys ?? [], fetchedAt: now };
+  return jwks;
 };
 
 const audienceMatches = (actual: string | string[] | undefined, expected: string): boolean => {
@@ -62,12 +73,10 @@ const audienceMatches = (actual: string | string[] | undefined, expected: string
   return actual === expected;
 };
 
-const verifyCloudflareAccessJwt = async (jwt: string): Promise<string> => {
-  const config = getCloudflareAccessConfig();
-  if (!config) {
-    throw new Error('Cloudflare Access configuration is required');
-  }
-
+const verifyCloudflareAccessJwt = async (
+  jwt: string,
+  config: NonNullable<ReturnType<typeof getCloudflareAccessConfig>>
+): Promise<string> => {
   const parts = jwt.split('.');
   if (parts.length !== 3) {
     throw new Error('Invalid Cloudflare Access JWT format');
@@ -82,7 +91,7 @@ const verifyCloudflareAccessJwt = async (jwt: string): Promise<string> => {
   }
 
   const now = Math.floor(Date.now() / 1000);
-  if (typeof payload.exp !== 'number' || payload.exp <= now) {
+  if (typeof payload.exp !== 'number' || payload.exp < now) {
     throw new Error('Cloudflare Access JWT has expired');
   }
   if (payload.iss !== config.issuer) {
@@ -128,7 +137,7 @@ export const authMiddleware = (): MiddlewareHandler => async (c, next) => {
   if (devUserId) {
     c.set(USER_ID_CONTEXT_KEY, devUserId);
     await next();
-    return undefined;
+    return;
   }
 
   const config = getCloudflareAccessConfig();
@@ -146,13 +155,13 @@ export const authMiddleware = (): MiddlewareHandler => async (c, next) => {
   }
 
   try {
-    c.set(USER_ID_CONTEXT_KEY, await verifyCloudflareAccessJwt(jwt));
+    c.set(USER_ID_CONTEXT_KEY, await verifyCloudflareAccessJwt(jwt, config));
   } catch {
     return resultToResponse(errorResponse(401, 'UNAUTHORIZED', 'Cloudflare Access JWT is invalid'));
   }
 
   await next();
-  return undefined;
+  return;
 };
 
 /**
@@ -163,7 +172,7 @@ export const authMiddleware = (): MiddlewareHandler => async (c, next) => {
  * ローカル開発では `DEV_USER_ID` を設定した場合のみ userId として使う。
  */
 export const getUserId = (c: Context): string => {
-  const userId = (c.get(USER_ID_CONTEXT_KEY) as string | undefined) ?? process.env.DEV_USER_ID;
+  const userId = c.get(USER_ID_CONTEXT_KEY) as string | undefined;
   if (!userId) {
     throw new Error('Authenticated userId is not available');
   }

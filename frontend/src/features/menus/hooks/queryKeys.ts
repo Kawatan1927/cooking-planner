@@ -1,8 +1,8 @@
-const MENUS_QUERY_SCOPE = 'menus';
-const DEFAULT_USER_CACHE_KEY = 'cloudflare-access-user';
+import { getUserCacheKey } from '@/lib/queryKeyUtils';
 
-export const getUserCacheKey = (userCacheKey?: string | null): string =>
-  userCacheKey || DEFAULT_USER_CACHE_KEY;
+const MENUS_QUERY_SCOPE = 'menus';
+
+export { getUserCacheKey };
 
 export const menusQueryKeys = {
   all: (userKey: string) => [MENUS_QUERY_SCOPE, userKey] as const,

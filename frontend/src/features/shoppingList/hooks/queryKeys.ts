@@ -1,8 +1,8 @@
-const SHOPPING_LIST_QUERY_SCOPE = 'shoppingList';
-const DEFAULT_USER_CACHE_KEY = 'cloudflare-access-user';
+import { getUserCacheKey } from '@/lib/queryKeyUtils';
 
-export const getUserCacheKey = (userCacheKey?: string | null): string =>
-  userCacheKey || DEFAULT_USER_CACHE_KEY;
+const SHOPPING_LIST_QUERY_SCOPE = 'shoppingList';
+
+export { getUserCacheKey };
 
 export const shoppingListQueryKeys = {
   list: (userKey: string, from: string, to: string) =>
