@@ -17,13 +17,13 @@ import { authMiddleware } from './shared/auth';
  */
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173';
 const FRONTEND_DIST_DIR = process.env.FRONTEND_DIST_DIR ?? '../frontend/dist';
-const FRONTEND_INDEX_HTML = 'index.html';
-const spaFallback = serveStatic({ root: FRONTEND_DIST_DIR, path: FRONTEND_INDEX_HTML });
+const spaFallback = serveStatic({ root: FRONTEND_DIST_DIR, path: 'index.html' });
 
-const isAssetLikePath = (path: string): boolean => {
-  const lastSegment = path.split('/').at(-1) ?? '';
-  return path.startsWith('/assets/') || lastSegment.includes('.');
-};
+const STATIC_EXT_RE =
+  /\.(?:js|css|html|ico|png|jpg|jpeg|gif|svg|woff2?|ttf|eot|map|json|txt|xml|webp|avif)$/i;
+
+const isAssetLikePath = (path: string): boolean =>
+  path.startsWith('/assets/') || STATIC_EXT_RE.test(path);
 
 const acceptsHtml = (acceptHeader: string | undefined): boolean =>
   acceptHeader?.split(',').some(value => value.trim().startsWith('text/html')) ?? false;

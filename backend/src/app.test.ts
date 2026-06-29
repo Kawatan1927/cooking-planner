@@ -1,36 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { Blob } from 'node:buffer';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { installBunStaticShim } from './test-utils/bun-static-shim';
 
 const originalFrontendDistDir = process.env.FRONTEND_DIST_DIR;
 
 let frontendDistDir: string;
 let app: (typeof import('./app'))['default'];
-
-type BunFile = Blob & { exists: () => Promise<boolean> };
-type BunStaticRuntime = {
-  file: (path: string) => BunFile;
-  write: (path: string, data: string | Blob) => Promise<void>;
-};
-
-const installBunStaticShim = (): void => {
-  const runtimeGlobal = globalThis as typeof globalThis & {
-    Bun?: BunStaticRuntime;
-  };
-
-  runtimeGlobal.Bun ??= {
-    file: path =>
-      Object.assign(new Blob(existsSync(path) ? [readFileSync(path)] : []), {
-        exists: async () => existsSync(path),
-      }),
-    write: async (path, data) => {
-      await writeFile(path, data instanceof Blob ? Buffer.from(await data.arrayBuffer()) : data);
-    },
-  };
-};
 
 beforeAll(async () => {
   installBunStaticShim();
