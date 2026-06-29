@@ -137,4 +137,29 @@ describe('authMiddleware', () => {
       },
     });
   });
+
+  it('DEV_USER_ID も Cloudflare Access 設定もない場合は 401 にする', async () => {
+    const app = new Hono();
+    app.use('*', authMiddleware());
+    app.get('/recipes', c => c.text(getUserId(c)));
+
+    const response = await app.request('/recipes');
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body).toMatchObject({
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Cloudflare Access configuration is required',
+      },
+    });
+  });
+
+  it('認証コンテキストがない場合は getUserId がエラーにする', () => {
+    const context = {
+      get: () => undefined,
+    };
+
+    expect(() => getUserId(context as never)).toThrow('Authenticated userId is not available');
+  });
 });

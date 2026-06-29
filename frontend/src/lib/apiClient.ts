@@ -104,6 +104,7 @@ export async function apiFetch<T = unknown>(
   // fetch を実行
   const response = await fetch(url, {
     ...restOptions,
+    credentials: restOptions.credentials ?? 'include',
     headers: requestHeaders,
     body: requestBody,
   });

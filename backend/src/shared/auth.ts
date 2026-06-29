@@ -5,7 +5,6 @@ import { resultToResponse } from './adapt';
 
 const USER_ID_CONTEXT_KEY = 'userId';
 const ACCESS_JWT_HEADER = 'Cf-Access-Jwt-Assertion';
-const DEFAULT_DEV_USER_ID = 'local-dev-user';
 
 type CloudflareAccessPayload = {
   aud?: string | string[];
@@ -66,7 +65,7 @@ const audienceMatches = (actual: string | string[] | undefined, expected: string
 const verifyCloudflareAccessJwt = async (jwt: string): Promise<string> => {
   const config = getCloudflareAccessConfig();
   if (!config) {
-    return process.env.DEV_USER_ID ?? DEFAULT_DEV_USER_ID;
+    throw new Error('Cloudflare Access configuration is required');
   }
 
   const parts = jwt.split('.');
@@ -134,9 +133,9 @@ export const authMiddleware = (): MiddlewareHandler => async (c, next) => {
 
   const config = getCloudflareAccessConfig();
   if (!config) {
-    c.set(USER_ID_CONTEXT_KEY, DEFAULT_DEV_USER_ID);
-    await next();
-    return undefined;
+    return resultToResponse(
+      errorResponse(401, 'UNAUTHORIZED', 'Cloudflare Access configuration is required')
+    );
   }
 
   const jwt = c.req.header(ACCESS_JWT_HEADER);
@@ -161,9 +160,12 @@ export const authMiddleware = (): MiddlewareHandler => async (c, next) => {
  *
  * 本番では `authMiddleware()` が Cloudflare Access JWT を検証し、
  * JWT の `email`（なければ `sub`）を userId として Hono context に設定する。
- * ローカル開発では `DEV_USER_ID`、未指定時は `local-dev-user` を使う。
+ * ローカル開発では `DEV_USER_ID` を設定した場合のみ userId として使う。
  */
-export const getUserId = (c: Context): string =>
-  (c.get(USER_ID_CONTEXT_KEY) as string | undefined) ??
-  process.env.DEV_USER_ID ??
-  DEFAULT_DEV_USER_ID;
+export const getUserId = (c: Context): string => {
+  const userId = (c.get(USER_ID_CONTEXT_KEY) as string | undefined) ?? process.env.DEV_USER_ID;
+  if (!userId) {
+    throw new Error('Authenticated userId is not available');
+  }
+  return userId;
+};
