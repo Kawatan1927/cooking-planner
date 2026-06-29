@@ -8,7 +8,6 @@
  */
 
 import { NavLink } from 'react-router-dom';
-import { useAuth } from '../features/auth/hooks/useAuth';
 
 const NAV_ITEMS = [
   { to: '/', label: 'ダッシュボード' },
@@ -18,8 +17,6 @@ const NAV_ITEMS = [
 ] as const;
 
 export function Header() {
-  const { logout } = useAuth();
-
   return (
     <header style={styles.header}>
       <div style={styles.inner}>
@@ -42,12 +39,6 @@ export function Header() {
             </NavLink>
           ))}
         </nav>
-
-        <div style={styles.userArea}>
-          <button type="button" style={styles.logoutButton} onClick={logout}>
-            ログアウト
-          </button>
-        </div>
       </div>
     </header>
   );
@@ -102,17 +93,5 @@ const styles = {
   navLinkActive: {
     color: '#2563eb',
     backgroundColor: '#eff6ff',
-  },
-  userArea: {
-    flexShrink: 0,
-  },
-  logoutButton: {
-    border: '1px solid #d1d5db',
-    backgroundColor: '#ffffff',
-    color: '#374151',
-    borderRadius: '6px',
-    padding: '6px 10px',
-    fontSize: '0.8rem',
-    cursor: 'pointer',
   },
 } as const;

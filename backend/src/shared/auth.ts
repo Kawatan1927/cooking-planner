@@ -1,13 +1,180 @@
-import type { Context } from 'hono';
+import type { Context, MiddlewareHandler } from 'hono';
+import type { JsonWebKey } from 'crypto';
+import { errorResponse } from './http';
+import { resultToResponse } from './adapt';
+
+const USER_ID_CONTEXT_KEY = 'userId';
+const ACCESS_JWT_HEADER = 'Cf-Access-Jwt-Assertion';
+
+type CloudflareAccessPayload = {
+  aud?: string | string[];
+  email?: string;
+  exp?: number;
+  iat?: number;
+  iss?: string;
+  sub?: string;
+};
+
+type JsonWebKeySet = {
+  keys?: JsonWebKey[];
+};
+
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
+
+const base64UrlToBytes = (value: string): Uint8Array => {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+  return Uint8Array.from(Buffer.from(padded, 'base64'));
+};
+
+const decodeJsonPart = <T>(value: string): T => {
+  const bytes = base64UrlToBytes(value);
+  return JSON.parse(textDecoder.decode(bytes)) as T;
+};
+
+const getCloudflareAccessConfig = () => {
+  const teamName = process.env.CLOUDFLARE_ACCESS_TEAM_NAME;
+  const audience = process.env.CLOUDFLARE_ACCESS_AUD;
+
+  if (!teamName || !audience) {
+    return null;
+  }
+
+  return {
+    audience,
+    issuer: `https://${teamName}.cloudflareaccess.com`,
+    jwksUrl: `https://${teamName}.cloudflareaccess.com/cdn-cgi/access/certs`,
+  };
+};
+
+type JwksCache = { keys: JsonWebKey[]; fetchedAt: number };
+let jwksCache: JwksCache | null = null;
+const JWKS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+const fetchJwks = async (jwksUrl: string): Promise<JsonWebKeySet> => {
+  const now = Date.now();
+  if (jwksCache && now - jwksCache.fetchedAt < JWKS_CACHE_TTL_MS) {
+    return { keys: jwksCache.keys };
+  }
+  const response = await fetch(jwksUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Cloudflare Access certs: ${response.status}`);
+  }
+  const jwks = (await response.json()) as JsonWebKeySet;
+  jwksCache = { keys: jwks.keys ?? [], fetchedAt: now };
+  return jwks;
+};
+
+const audienceMatches = (actual: string | string[] | undefined, expected: string): boolean => {
+  if (Array.isArray(actual)) {
+    return actual.includes(expected);
+  }
+  return actual === expected;
+};
+
+const verifyCloudflareAccessJwt = async (
+  jwt: string,
+  config: NonNullable<ReturnType<typeof getCloudflareAccessConfig>>
+): Promise<string> => {
+  const parts = jwt.split('.');
+  if (parts.length !== 3) {
+    throw new Error('Invalid Cloudflare Access JWT format');
+  }
+
+  const [encodedHeader, encodedPayload, encodedSignature] = parts;
+  const header = decodeJsonPart<{ alg?: string; kid?: string }>(encodedHeader);
+  const payload = decodeJsonPart<CloudflareAccessPayload>(encodedPayload);
+
+  if (header.alg !== 'RS256' || !header.kid) {
+    throw new Error('Unsupported Cloudflare Access JWT header');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (typeof payload.exp !== 'number' || payload.exp < now) {
+    throw new Error('Cloudflare Access JWT has expired');
+  }
+  if (payload.iss !== config.issuer) {
+    throw new Error('Cloudflare Access JWT issuer mismatch');
+  }
+  if (!audienceMatches(payload.aud, config.audience)) {
+    throw new Error('Cloudflare Access JWT audience mismatch');
+  }
+
+  const jwks = await fetchJwks(config.jwksUrl);
+  const jwk = jwks.keys?.find(key => key.kid === header.kid);
+  if (!jwk) {
+    throw new Error('Cloudflare Access signing key not found');
+  }
+
+  const publicKey = await crypto.subtle.importKey(
+    'jwk',
+    jwk,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['verify']
+  );
+  const verified = await crypto.subtle.verify(
+    'RSASSA-PKCS1-v1_5',
+    publicKey,
+    base64UrlToBytes(encodedSignature),
+    textEncoder.encode(`${encodedHeader}.${encodedPayload}`)
+  );
+  if (!verified) {
+    throw new Error('Cloudflare Access JWT signature verification failed');
+  }
+
+  const userId = payload.email || payload.sub;
+  if (!userId) {
+    throw new Error('Cloudflare Access JWT does not contain email or sub');
+  }
+
+  return userId;
+};
+
+export const authMiddleware = (): MiddlewareHandler => async (c, next) => {
+  const devUserId = process.env.DEV_USER_ID;
+  if (devUserId) {
+    c.set(USER_ID_CONTEXT_KEY, devUserId);
+    await next();
+    return;
+  }
+
+  const config = getCloudflareAccessConfig();
+  if (!config) {
+    return resultToResponse(
+      errorResponse(401, 'UNAUTHORIZED', 'Cloudflare Access configuration is required')
+    );
+  }
+
+  const jwt = c.req.header(ACCESS_JWT_HEADER);
+  if (!jwt) {
+    return resultToResponse(
+      errorResponse(401, 'UNAUTHORIZED', 'Cloudflare Access JWT is required')
+    );
+  }
+
+  try {
+    c.set(USER_ID_CONTEXT_KEY, await verifyCloudflareAccessJwt(jwt, config));
+  } catch {
+    return resultToResponse(errorResponse(401, 'UNAUTHORIZED', 'Cloudflare Access JWT is invalid'));
+  }
+
+  await next();
+  return;
+};
 
 /**
  * リクエストから userId を取得する。
  *
- * TODO(別Issue: 認証移行): 現状は認証ロジック移行までの「暫定スタブ」。
- *   本番では Cloudflare Access が前段で認証し、認証済みユーザー情報を
- *   ヘッダ（例: `Cf-Access-Authenticated-User-Email`）として注入する想定。
- *   認証移行 Issue では、この 1 関数だけを差し替えればよいように隔離している。
- *
- * 暫定挙動: 環境変数 `DEV_USER_ID`（未設定時は `local-dev-user`）を返す。
+ * 本番では `authMiddleware()` が Cloudflare Access JWT を検証し、
+ * JWT の `email`（なければ `sub`）を userId として Hono context に設定する。
+ * ローカル開発では `DEV_USER_ID` を設定した場合のみ userId として使う。
  */
-export const getUserId = (_c: Context): string => process.env.DEV_USER_ID ?? 'local-dev-user';
+export const getUserId = (c: Context): string => {
+  const userId = c.get(USER_ID_CONTEXT_KEY) as string | undefined;
+  if (!userId) {
+    throw new Error('Authenticated userId is not available');
+  }
+  return userId;
+};

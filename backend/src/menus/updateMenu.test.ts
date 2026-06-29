@@ -13,6 +13,7 @@ vi.mock('./repository', () => ({
 }));
 
 vi.mock('../shared/auth', () => ({
+  authMiddleware: () => async (_c: unknown, next: () => Promise<void>) => next(),
   getUserId: () => 'user-123',
 }));
 

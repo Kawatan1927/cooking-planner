@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useAuthToken } from '@/features/auth';
 import { getShoppingList } from '../api/shoppingList';
 import type { ShoppingListResponse } from '../types';
 import { getUserCacheKey, shoppingListQueryKeys } from './queryKeys';
@@ -17,20 +16,16 @@ export function useShoppingList({
   userCacheKey,
   enabled = true,
 }: UseShoppingListOptions = {}) {
-  const token = useAuthToken();
-  const cacheUserKey = getUserCacheKey(token, userCacheKey);
+  const cacheUserKey = getUserCacheKey(userCacheKey);
 
   return useQuery<ShoppingListResponse, Error>({
     queryKey: shoppingListQueryKeys.list(cacheUserKey, from ?? '', to ?? ''),
     queryFn: async () => {
-      if (!token) {
-        throw new Error('認証トークンが必要です');
-      }
       if (!from || !to) {
         throw new Error('from と to の指定が必要です');
       }
-      return getShoppingList({ from, to }, token);
+      return getShoppingList({ from, to });
     },
-    enabled: enabled && !!token && !!from && !!to,
+    enabled: enabled && !!from && !!to,
   });
 }

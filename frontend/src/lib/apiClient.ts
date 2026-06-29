@@ -1,7 +1,7 @@
 /**
  * API クライアント共通処理
  *
- * VITE_API_BASE_URL と Authorization ヘッダを扱う共通 apiFetch 関数を提供します。
+ * VITE_API_BASE_URL と JSON 通信を扱う共通 apiFetch 関数を提供します。
  */
 
 /**
@@ -14,8 +14,6 @@ export interface ApiErrorResponse {
     details?: unknown;
   };
 }
-
-import { getAuthToken } from '@/features/auth/utils/cognito';
 
 /**
  * API エラークラス
@@ -39,7 +37,6 @@ export class ApiError extends Error {
  */
 export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
-  token?: string | null;
 }
 
 /**
@@ -65,10 +62,7 @@ export async function apiFetch<T = unknown>(
   path: string,
   options: ApiFetchOptions = {}
 ): Promise<T> {
-  const { body, token, headers = {}, ...restOptions } = options;
-  // token が明示的に null の場合はトークンを付与しない（パブリックエンドポイント向け）。
-  // undefined の場合のみ localStorage のトークンへフォールバックする。
-  const resolvedToken = token !== undefined ? token : getAuthToken();
+  const { body, headers = {}, ...restOptions } = options;
 
   // ベース URL を取得
   const baseUrl = getApiBaseUrl();
@@ -100,11 +94,6 @@ export async function apiFetch<T = unknown>(
     }
   }
 
-  // Authorization ヘッダを追加（token が提供されている場合）
-  if (resolvedToken) {
-    requestHeaders['Authorization'] = `Bearer ${resolvedToken}`;
-  }
-
   // body がある場合は JSON.stringify して Content-Type を設定
   let requestBody: string | undefined;
   if (body !== undefined) {
@@ -115,6 +104,7 @@ export async function apiFetch<T = unknown>(
   // fetch を実行
   const response = await fetch(url, {
     ...restOptions,
+    credentials: restOptions.credentials ?? 'include',
     headers: requestHeaders,
     body: requestBody,
   });

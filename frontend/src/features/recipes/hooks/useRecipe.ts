@@ -5,7 +5,6 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { useAuthToken } from '@/features/auth';
 import { getRecipe } from '../api/recipes';
 import type { RecipeDetail } from '../types';
 import { getUserCacheKey, recipesQueryKeys } from './queryKeys';
@@ -21,13 +20,13 @@ export interface UseRecipeOptions {
 
   /**
    * クエリキー分離用のユーザー識別子
-   * 未指定時は認証トークンから自動導出します
+   * 未指定時は Cloudflare Access 前提の固定キーを使います
    */
   userCacheKey?: string | null;
 
   /**
    * React Query の enabled オプション
-   * デフォルトでは recipeId と token が存在する場合のみクエリを実行します
+   * デフォルトでは recipeId が存在する場合のみクエリを実行します
    */
   enabled?: boolean;
 }
@@ -65,17 +64,11 @@ export interface UseRecipeOptions {
  * ```
  */
 export function useRecipe({ recipeId, userCacheKey, enabled = true }: UseRecipeOptions) {
-  const token = useAuthToken();
-  const cacheUserKey = getUserCacheKey(token, userCacheKey);
+  const cacheUserKey = getUserCacheKey(userCacheKey);
 
   return useQuery<RecipeDetail, Error>({
     queryKey: recipesQueryKeys.detail(cacheUserKey, recipeId),
-    queryFn: async () => {
-      if (!token) {
-        throw new Error('認証トークンが必要です');
-      }
-      return getRecipe(recipeId, token);
-    },
-    enabled: enabled && !!token && !!recipeId,
+    queryFn: () => getRecipe(recipeId),
+    enabled: enabled && !!recipeId,
   });
 }

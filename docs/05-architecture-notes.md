@@ -140,6 +140,18 @@ flowchart LR
   - PostgreSQL 接続文字列
   - 例：`postgresql://user:password@localhost:5432/cooking_planner`
 
+- `DEV_USER_ID`
+  - ローカル開発用の userId
+  - 設定時は Cloudflare Access JWT 検証をスキップする
+
+- `CLOUDFLARE_ACCESS_TEAM_NAME`
+  - Cloudflare Access チーム名
+  - `https://<team>.cloudflareaccess.com/cdn-cgi/access/certs` から公開鍵を取得するために使う
+
+- `CLOUDFLARE_ACCESS_AUD`
+  - Cloudflare Access Application Audience (AUD)
+  - JWT の `aud` claim 検証に使う
+
 ---
 
 ## 5. デプロイ / 起動の方針
@@ -183,9 +195,9 @@ flowchart LR
 
 ### 6.2 認可（Hono側）
 
-- 個人利用のため、厳密な多ユーザー認可は不要。
-- 将来的に複数ユーザーを想定する場合は、Hono ミドルウェアで Cloudflare Access JWT を検証し、
-  メールアドレスやユーザーIDをリクエストコンテキストに設定する実装を追加する。
+- Hono ミドルウェアで `Cf-Access-Jwt-Assertion` を検証し、
+  JWT の `email`（なければ `sub`）をリクエストコンテキストの `userId` に設定する。
+- 個人利用のためロール管理は不要だが、`recipes` / `menus` は従来どおり `user_id` でスコープする。
 
 ### 6.3 通信の保護
 
@@ -252,7 +264,7 @@ flowchart LR
 
 ## 10. 今後のアーキ面での拡張余地（メモ）
 
-- Honoミドルウェアでの Cloudflare Access JWT 検証（多ユーザー対応時）
+- Cloudflare Access のポリシーや `DEV_USER_ID` と DB 上の `user_id` の運用整理
 - PostgreSQL の接続プール設定（利用が増えた場合）
 - PWA 対応（オフラインでの買い物リスト利用）
 - 家族など複数ユーザー利用を見据えた権限管理（role ベースなど）

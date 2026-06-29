@@ -6,6 +6,7 @@ import menus from './routes/menus';
 import shoppingList from './routes/shoppingList';
 import { internalServerError, notFound } from './shared/http';
 import { resultToResponse } from './shared/adapt';
+import { authMiddleware } from './shared/auth';
 
 /**
  * 開発フロント（Vite dev server）のオリジン。
@@ -21,10 +22,29 @@ app.use(
   '*',
   cors({
     origin: FRONTEND_ORIGIN,
-    allowHeaders: ['Content-Type', 'Authorization'],
+    allowHeaders: ['Content-Type'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   })
 );
+
+const protectedPaths = [
+  '/recipes',
+  '/recipes/*',
+  '/menus',
+  '/menus/*',
+  '/shopping-list',
+  '/shopping-list/*',
+  '/api/recipes',
+  '/api/recipes/*',
+  '/api/menus',
+  '/api/menus/*',
+  '/api/shopping-list',
+  '/api/shopping-list/*',
+] as const;
+
+for (const path of protectedPaths) {
+  app.use(path, authMiddleware());
+}
 
 const registerRoutes = (basePath = ''): void => {
   app.route(`${basePath}/health`, health);
