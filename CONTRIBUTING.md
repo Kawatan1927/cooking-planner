@@ -6,8 +6,9 @@
 
 ### 前提条件
 
-- Node.js 20.x以上
-- npm
+- Bun 1.x 以上
+- Node.js 20.x 以上
+- PostgreSQL
 - Git
 
 ### 初回セットアップ手順
@@ -22,23 +23,16 @@ cd cooking-planner
 2. 依存関係をインストール
 
 ```bash
-# ルートの依存関係（lefthook含む）
-npm install
-
-# フロントエンドの依存関係
-cd frontend && npm install && cd ..
-
-# Lambdaの依存関係
-cd infra/lambda && npm install && cd ../..
+bun install --frozen-lockfile
+cd frontend && bun install --frozen-lockfile && cd ..
+cd backend && bun install --frozen-lockfile && cd ..
+cd docs && bun install --frozen-lockfile && cd ..
 ```
 
-3. Gitフックの自動セットアップ
-
-`npm install` を実行すると、`prepare` スクリプトによって自動的にlefthookフックがインストールされます。
-手動でインストールする場合は：
+3. Git フックをセットアップ
 
 ```bash
-npm run prepare
+bun run prepare
 ```
 
 ## 開発ワークフロー
@@ -60,258 +54,137 @@ npm run prepare
 
 - **TypeScript**: 厳格モードを有効化
 
-#### Lambda
+#### バックエンド
 
 - **Formatter**: Prettier
-  - 設定: `infra/lambda/.prettierrc`
+  - 設定: `backend/.prettierrc`
   - セミコロン: あり
   - シングルクォート: あり
   - タブ幅: 2スペース
   - 行の長さ: 100文字
 
 - **Linter**: ESLint
-  - 設定: `infra/lambda/eslint.config.mjs`
+  - 設定: `backend/eslint.config.mjs`
   - ルール: TypeScript ESLint + Prettier 競合ルールの無効化
 
 - **TypeScript**: 厳格モードを有効化
 
-### Gitフックによる自動チェック
+### Git フックによる自動チェック
 
 このプロジェクトでは [lefthook](https://github.com/evilmartians/lefthook) を使用して、コミット前・プッシュ前に自動でチェックを実行します。
 
 #### pre-commit フック（コミット前）
 
-コミットに含める `frontend/` と `infra/lambda/` 配下の staged ファイルに対して以下のチェックを並列実行します：
+コミットに含める `frontend/` と `backend/` 配下の staged ファイルに対して以下のチェックを並列実行します。
 
-1. **フォーマットチェック** (`frontend-format`)
-   - 対象: `frontend/**/*.{ts,tsx,js,jsx,json,css,md,html}`
-   - コマンド: `prettier --check {staged_files}`
-   - 失敗時: コミットがブロックされます
-
-2. **Lint** (`frontend-lint`)
-   - 対象: `frontend/**/*.{ts,tsx,js,jsx}`
-   - コマンド: `eslint {staged_files}`
-   - 失敗時: コミットがブロックされます
-
-3. **フォーマットチェック** (`lambda-format`)
-   - 対象: `infra/lambda/**/*.{ts,js,json,md}`
-   - コマンド: `prettier --check {staged_files}`
-   - 失敗時: コミットがブロックされます
-
-4. **Lint** (`lambda-lint`)
-   - 対象: `infra/lambda/**/*.ts`
-   - コマンド: `eslint {staged_files}`
-   - 失敗時: コミットがブロックされます
-
-**目的**: 軽量なチェックで即座にフィードバックを得る
+| フック名          | 対象                                      | 内容               |
+| ----------------- | ----------------------------------------- | ------------------ |
+| `frontend-format` | `frontend/**/*.{ts,tsx,js,jsx,json,css,md,html}` | Prettier チェック |
+| `frontend-lint`   | `frontend/**/*.{ts,tsx,js,jsx}`           | ESLint             |
+| `backend-format`  | `backend/**/*.{ts,js,json,md}`            | Prettier チェック |
+| `backend-lint`    | `backend/**/*.ts`                         | ESLint             |
 
 #### pre-push フック（プッシュ前）
 
-リモートにプッシュする前に、push 対象に `frontend/**` または `infra/lambda/**` の変更が含まれる場合だけ、以下のチェックを順次実行します：
-
-1. **フロントエンドのビルド** (`frontend-build`)
-   - Viteビルド
-   - 内部で `tsc -b` による型チェックを実行
-   - 対象: `frontend/**`
-   - 所要時間: 約3秒
-
-2. **Lambdaのフォーマットチェック** (`lambda-format-check`)
-   - Prettier による整形ルール検証
-   - 対象: `infra/lambda/**`
-
-3. **LambdaのLint** (`lambda-lint`)
-   - ESLint による静的解析
-   - 対象: `infra/lambda/**`
-
-4. **Lambdaのビルド** (`lambda-build`)
-   - TypeScriptコンパイル
-   - コンパイル時に型エラーも検出
-   - 対象: `infra/lambda/**`
-   - 所要時間: 約1秒
-
-5. **テスト** (`tests`)
-   - 現在はプレースホルダー（将来的にテストを追加予定）
-
-**目的**: 関連する変更に対して、CIで実行されるチェックをローカルで事前検証
+push 対象に `frontend/**` または `backend/**` の変更が含まれる場合だけ、関連するビルド・フォーマットチェック・lint・テストを実行します。
 
 ### フックをスキップする場合
 
-緊急時や特別な理由がある場合は、以下のコマンドでフックをスキップできます：
-
 ```bash
-# pre-commitフックをスキップしてコミット
 git commit --no-verify -m "コミットメッセージ"
-
-# pre-pushフックをスキップしてプッシュ
 git push --no-verify
 ```
 
-**⚠️ 注意**: フックをスキップした場合でも、`frontend/**` や `infra/lambda/**` の変更を含む push では GitHub Actions の CI が実行されます。
-CIで失敗する可能性が高いため、フックのスキップは極力避けてください。
+フックをスキップした場合でも、`frontend/**` や `backend/**` の変更を含む push では GitHub Actions の CI が実行されます。CI で失敗する可能性が高いため、フックのスキップは極力避けてください。
 
 ### 開発コマンド
 
 #### リポジトリ全体
 
 ```bash
-# すべてのlint実行
-npm run lint
-
-# すべてのフォーマットチェック
-npm run format:check
-
-# TypeScript型チェック
-npm run type-check
-
-# フロントエンドとLambdaのビルド
-npm run build:all
-
-# テスト実行（将来的に実装予定）
-npm run test
+bun run lint
+bun run format:check
+bun run type-check
+bun run build:all
+bun run test
 ```
 
 #### フロントエンド
 
 ```bash
-# 開発サーバー起動（ホットリロード）
-npm run frontend:dev
-
-# プロダクションビルド
-npm run frontend:build
-
-# プレビューサーバー（ビルド後の確認用）
-npm run frontend:preview
-
-# Lint実行
-npm run frontend:lint
-
-# フォーマット適用
-npm run frontend:format
-
-# フォーマットチェックのみ
-npm run frontend:format:check
+bun run frontend:dev
+bun run frontend:build
+bun run frontend:preview
+bun run frontend:lint
+bun run frontend:format
+bun run frontend:format:check
 ```
 
-#### Lambda
+#### バックエンド
 
 ```bash
-# Lint実行
-npm run lambda:lint
-
-# フォーマット適用
-npm run lambda:format
-
-# フォーマットチェックのみ
-npm run lambda:format:check
-
-# ビルド
-npm run lambda:build
-
-# ウォッチモード（ファイル変更を監視して自動ビルド）
-npm run lambda:watch
-
-# クリーン（distディレクトリを削除）
-npm run lambda:clean
-
-# リビルド（クリーン + ビルド）
-npm run lambda:rebuild
+bun run backend:dev
+bun run backend:start
+bun run backend:lint
+bun run backend:format
+bun run backend:format:check
+bun run backend:type-check
+bun run backend:test
 ```
 
 ## CI/CD
 
-GitHub Actionsを使用してCI/CDを実行しています。
+GitHub Actions を使用して CI/CD を実行しています。
 
 ### ワークフロー
 
-1. **Frontend CI** (`.github/workflows/frontend-ci.yml`)
-   - トリガー: `frontend/**` の変更がプッシュまたはPR
-   - チェック項目:
-     - TypeScript型チェック
-     - ESLint
-     - Prettier
-     - Viteビルド
+1. **Frontend CI**
+   - トリガー: `frontend/**` の変更がプッシュまたは PR
+   - チェック項目: TypeScript 型チェック、ESLint、Prettier、Vite ビルド
 
-2. **Lambda CI** (`.github/workflows/lambda-ci.yml`)
-   - トリガー: `infra/lambda/**` の変更がプッシュまたはPR
-   - チェック項目:
-     - ESLint
-     - Prettier
-     - TypeScript型チェック
-     - ビルド
+2. **Backend CI**
+   - トリガー: `backend/**` の変更がプッシュまたは PR
+   - チェック項目: ESLint、Prettier、TypeScript 型チェック、テスト
 
-3. **Docs CI** (`.github/workflows/docs-ci.yml`)
-   - トリガー: `docs/**` の変更がプッシュまたはPR
-   - チェック項目:
-     - Prettier フォーマットチェック
-     - Docusaurus ビルド
+3. **Docs CI**
+   - トリガー: `docs/**` の変更がプッシュまたは PR
+   - チェック項目: Prettier フォーマットチェック、Docusaurus ビルド
 
-### ローカルフックとCIの一貫性
+### ローカルフックと CI の一貫性
 
-lefthookの設定は、CIで実行されるチェックと可能な限り一致するように設計されています。
-これにより、関連ファイルの変更でローカルフックをパスすればCIでも成功する可能性が高くなります。
+lefthook の設定は、CI で実行されるチェックと可能な限り一致するように設計されています。関連ファイルの変更でローカルフックを通してから push してください。
 
 ## トラブルシューティング
 
 ### フックが実行されない
 
 ```bash
-# フックが正しくインストールされているか確認
-ls -la .git/hooks/ | grep -E "(pre-commit|pre-push)"
-
-# フックを再インストール
-npm run prepare
-
-# lefthookの設定を確認
-npx lefthook dump
+Get-ChildItem .git/hooks | Where-Object { $_.Name -match "pre-commit|pre-push" }
+bun run prepare
+bunx lefthook dump
 ```
 
 ### フォーマットエラーが出る場合
 
 ```bash
-# 自動修正を適用
-npm run frontend:format
-
-# 特定のファイルのみ修正
-cd frontend
-npx prettier --write "path/to/file.tsx"
+bun run frontend:format
+bun run backend:format
+bun run docs:format
 ```
 
-Lambda 側の場合：
+### Lint エラーが出る場合
 
 ```bash
-npm run lambda:format
-```
-
-### Lintエラーが出る場合
-
-```bash
-# Lint実行
-npm run frontend:lint
-
-# 自動修正可能なものを修正
-cd frontend
-npx eslint . --fix
-```
-
-Lambda 側の場合：
-
-```bash
-npm run lambda:lint
+bun run frontend:lint
+bun run backend:lint
 ```
 
 ### ビルドエラーが出る場合
 
 ```bash
-# 依存関係を再インストール
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-cd ..
-
-cd infra/lambda
-rm -rf node_modules package-lock.json
-npm install
-cd ../..
+cd frontend && bun install --frozen-lockfile && cd ..
+cd backend && bun install --frozen-lockfile && cd ..
+bun run build:all
 ```
 
 ## 貢献のガイドライン
@@ -325,90 +198,79 @@ cd ../..
 ### プルリクエスト
 
 1. 適切なブランチから新しいブランチを作成
-2. コードを変更
-3. ローカルでテスト（フックが自動実行されます）
-4. コミット＆プッシュ（フックが自動実行されます）
-5. PRを作成
-6. CIのチェックが完了するのを待つ
+2. コードまたはドキュメントを変更
+3. ローカルで検証
+4. コミット＆プッシュ
+5. PR を作成
+6. CI のチェック完了を待つ
 7. レビューを受けてマージ
 
 ### コミットメッセージ
 
-- 日本語または英語で記述
+- 日本語で記述
 - 変更の内容を簡潔に説明
-- 必要に応じてissue番号を参照
+- 必要に応じて issue 番号を参照
 
-例：
+例:
 
-```
-レシピ一覧ページのレイアウトを修正
+```text
+docs: 開発手順をバックエンド構成に更新
 
-- グリッドレイアウトを2カラムから3カラムに変更
-- レスポンシブ対応を追加
-
-Refs: #123
+- backend ディレクトリのセットアップ手順を追加
+- 古い実行コマンドを現行スクリプトに置換
 ```
 
 ## ドキュメント
 
-詳細な仕様とアーキテクチャについては、`docs/` ディレクトリを参照してください：
+詳細な仕様とアーキテクチャについては、`docs/` ディレクトリを参照してください。
 
 - `docs/01-vision-and-scope.md` - ビジョンとスコープ
 - `docs/02-features-and-screens.md` - 機能と画面
 - `docs/03-domain-and-data-model.md` - ドメインモデルとデータモデル
-- `docs/04-api-design.md` - API設計
+- `docs/04-api-design.md` - API 設計
 - `docs/05-architecture-notes.md` - アーキテクチャノート
 
 ## ドキュメント変更ガイドライン
 
 ### どの文書をどこに書くか
 
-| 変更内容 | 追記先ファイル |
-|---|---|
-| アプリのビジョン・スコープ | `docs/01-vision-and-scope.md` |
-| 機能定義・画面仕様 | `docs/02-features-and-screens.md` |
-| ドメインモデル・データモデル | `docs/03-domain-and-data-model.md` |
-| API設計（エンドポイント・スキーマ） | `docs/04-api-design.md` |
-| アーキテクチャ・インフラ構成 | `docs/05-architecture-notes.md` |
-| 開発環境・コーディング規約 | `CONTRIBUTING.md` |
-| Docusaurus サイト向けコンテンツ | `docs/docs/` 配下の対応ディレクトリ |
+| 変更内容                         | 追記先ファイル                  |
+| -------------------------------- | ------------------------------- |
+| アプリのビジョン・スコープ       | `docs/01-vision-and-scope.md`   |
+| 機能定義・画面仕様               | `docs/02-features-and-screens.md` |
+| ドメインモデル・データモデル     | `docs/03-domain-and-data-model.md` |
+| API 設計（エンドポイント・スキーマ） | `docs/04-api-design.md`          |
+| アーキテクチャ・インフラ構成     | `docs/05-architecture-notes.md` |
+| 開発環境・コーディング規約       | `CONTRIBUTING.md`               |
+| Docusaurus サイト向けコンテンツ  | `docs/docs/` 配下の対応ディレクトリ |
 
-Docusaurus サイト（`docs/docs/`）は以下のカテゴリに分かれています：
+Docusaurus サイト（`docs/docs/`）は以下のカテゴリに分かれています。
 
 - `getting-started/` - 開発環境セットアップ手順
-- `features/` - 機能・画面仕様・API設計
+- `features/` - 機能・画面仕様・API 設計
 - `architecture/` - アーキテクチャ・データモデル・インフラ
 - `development/` - コーディング規約・テスト・GitHub ワークフロー
 
 ### ドキュメント変更時のレビュー観点
 
-docs の PR をレビューする際は、以下の点を確認してください：
-
 1. **整合性**: 変更内容がコードや他の仕様書と矛盾していないか
 2. **記載先**: 変更対象のドキュメントが上記の「どこに書くか」ルールに沿っているか
-3. **フォーマット**: Prettier の規則に従っているか（CI の Docs CI ジョブで自動チェック）
-4. **ビルド**: Docusaurus でビルドエラーが発生していないか（CI の Docs CI ジョブで自動チェック）
+3. **フォーマット**: Prettier の規則に従っているか
+4. **ビルド**: Docusaurus でビルドエラーが発生していないか
 5. **Mermaid 図**: 図を追加・変更した場合、レンダリング結果が意図通りか
 6. **リンク**: 内部リンクが正しく機能するか
 
 ### ドキュメントのローカル確認
 
 ```bash
-# Docusaurus 開発サーバーを起動してプレビュー
 cd docs
-bun install   # 初回のみ
+bun install --frozen-lockfile
 bun run start
-
-# フォーマットチェック（CI と同じチェック）
 bun run format:check
-
-# フォーマット自動修正
 bun run format
-
-# ビルド確認（CI と同じチェック）
 bun run build
 ```
 
 ## 質問やサポート
 
-質問や問題がある場合は、GitHubのIssueを作成してください。
+質問や問題がある場合は、GitHub の Issue を作成してください。

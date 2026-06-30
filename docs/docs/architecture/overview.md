@@ -6,60 +6,53 @@ sidebar_position: 1
 
 ## システム構成
 
-### コンポーネント
+Cooking Planner は、ローカル PC 上で動く Hono server を Cloudflare Tunnel で公開する個人用 Web アプリです。
 
-- **フロントエンド**
-  - Vite + React + TypeScript による SPA
-  - S3 バケットに静的ホスティング
-  - CloudFront を介して配信（HTTPS / キャッシュ / ドメイン）
-
-- **バックエンド**
-  - AWS Lambda (Node.js + TypeScript)
-    - 1つの Lambda で複数のパスを処理する小さめモノリス構成
-  - API Gateway (HTTP API)
-    - Lambda プロキシ統合
-    - Cognito User Pool による JWT 認証
-
-- **データストア**
-  - DynamoDB
-    - `Recipes`, `RecipeIngredients`, `Menus` など
-
-- **認証**
-  - Amazon Cognito User Pool
-    - SPA 用の App Client
-    - Hosted UI or SDK によるログインフロー
-
-- **インフラ管理**
-  - AWS CDK（TypeScript）
-
-### コンポーネント図
+- フロントエンド: Vite + React + TypeScript
+- バックエンド: Bun + Hono
+- データベース: PostgreSQL
+- 認証: Cloudflare Access
+- 公開: Cloudflare Tunnel
 
 ```mermaid
 flowchart LR
-  subgraph Browser
-    UI["React SPA"]
-  end
-
-  subgraph AWS
-    CF["CloudFront"]
-    S3["S3 Static Hosting"]
-    APIGW["API Gateway HTTP API"]
-    LAMBDA["Lambda (Node.js)"]
-    DDB[("DynamoDB")]
-    COG["Cognito User Pool"]
-  end
-
-  UI -->|"HTTPS (HTML/JS/CSS)"| CF --> S3
-  UI -->|"HTTPS /api/* + Authorization: Bearer JWT"| APIGW --> LAMBDA --> DDB
-  UI -->|"OIDC/OAuth"| COG
-  APIGW -->|"JWT Authorizer"| COG
+  Browser["Browser / React SPA"] --> Access["Cloudflare Access"]
+  Access --> Tunnel["Cloudflare Tunnel"]
+  Tunnel --> Hono["Local Hono Server"]
+  Hono --> Postgres[("PostgreSQL")]
 ```
+
+## コンポーネント
+
+### フロントエンド
+
+- Vite + React + TypeScript による SPA
+- 開発時は Vite dev server で起動
+- 本番相当では build 済みファイルを Hono server が静的配信
+
+### バックエンド
+
+- Bun ランタイム上の Hono server
+- API ルーティングと静的ファイル配信を同一プロセスで担当
+- ローカル PC 上で起動し、Cloudflare Tunnel から転送されるリクエストを受ける
+
+### データストア
+
+- PostgreSQL
+- `recipes`, `recipe_ingredients`, `menus` などのテーブルで管理
+- 買い物リストはテーブルに保存せず、サーバー側で集計して返す
+
+### 認証と公開
+
+- Cloudflare Access で許可ユーザーを制限
+- Cloudflare Tunnel で Hono server の port を外部公開
+- Hono server は原則 `127.0.0.1` にバインドする
 
 ## セクション一覧
 
-| ドキュメント                           | 内容                                       |
-| -------------------------------------- | ------------------------------------------ |
-| [フロントエンド](frontend)             | React SPA・静的ホスティング設計            |
-| [バックエンド](backend)                | Lambda・API Gateway・Cognito・セキュリティ |
-| [データモデル](data-model)             | DynamoDB テーブル設計・型定義              |
-| [インフラストラクチャ](infrastructure) | CDK・環境変数・デプロイ・監視              |
+| ドキュメント                           | 内容                                |
+| -------------------------------------- | ----------------------------------- |
+| [フロントエンド](frontend)             | React SPA と静的ファイル配信        |
+| [バックエンド](backend)                | Hono routing・認証・環境変数        |
+| [データモデル](data-model)             | PostgreSQL テーブル設計・型定義     |
+| [インフラストラクチャ](infrastructure) | ローカル起動・Cloudflare 設定・運用 |

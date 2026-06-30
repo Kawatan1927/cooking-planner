@@ -6,74 +6,47 @@ sidebar_position: 3
 
 ## 技術スタック
 
-- AWS Lambda (Node.js + TypeScript)
-  - 1つの Lambda 関数で複数パスをさばく小規模モノリス構成
-- API Gateway HTTP API
-  - Cognito User Pool を用いた JWT 認証（Authorizer）
-- DynamoDB
-  - `Recipes`, `RecipeIngredients`, `Menus` などのテーブル
-  - 当面はユーザーは 1人前提だが、`userId` 属性は持たせておく
-- Amazon Cognito User Pool
-  - SPA 向けの App Client
-  - Hosted UI or フロントから直接トークン取得
+- Bun + Hono
+- PostgreSQL
+- Cloudflare Access
+- Cloudflare Tunnel
 
 ## 設計方針
 
-### Serverless（Lambda + API Gateway）
+### Hono server
 
-- 常時稼働のサーバー（EC2 / App Runner）を持たないため、**個人利用に適した料金体系**になる。
-- トラフィックが少ない前提であれば、Lambda のコールドスタートも許容範囲。
-- Spring Boot などの重量級フレームワークを使わず、シンプルな TypeScript/Node.js コードで実装できる。
+- 1つの Hono server が API と静的ファイル配信を担当します。
+- API は `/api` 配下に集約し、Hono routing でドメインごとのルートへ分割します。
+- 本番相当では `bun run start` が frontend build 後に Hono server を起動します。
+- 開発時は `bun run dev` で frontend/backend を起動します。
 
-### DynamoDB 選定理由
+### PostgreSQL
 
-- データ量は少なく、スキーマも比較的単純。
-- 「レシピ」「献立」「材料」などのエンティティが明確なキー構造を持っており、NoSQL で問題ない。
-- フルマネージドで、オートスケーリング・運用負荷が低い。
-- RDS よりもコストと運用を抑えられる。
+- レシピ・材料・献立はリレーショナルな関係を持つため PostgreSQL を使います。
+- `recipes` と `menus` は `user_id` でスコープします。
+- `recipe_ingredients` は `recipe_id` 外部キー経由でユーザーコンテキストを継承します。
+- 買い物リストは保存せず、指定期間の献立と材料から動的に生成します。
 
-### Cognito 認証
+### Cloudflare Access 認証
 
-- 一般公開はせず、**自分専用のアプリにログインをかけたい**。
-- Amazon Cognito User Pool を利用することで、
-  - ID/パスワード管理
-  - Hosted UI（ログイン画面）
-  - JWT 発行
-    をマネージドで利用できる。
-- API Gateway の JWT Authorizer と相性が良い。
-- **Hosted UI Domain**: `cooking-planner-{stage}.auth.{region}.amazoncognito.com`
-- **App Client**: Authorization Code Grant + SRP 認証フローの両方をサポート
+- Cloudflare Access が外部公開 URL へのアクセス制御を担当します。
+- Hono middleware は `Cf-Access-Jwt-Assertion` を検証し、JWT の `email` または `sub` を `userId` として扱います。
+- ローカル開発では `DEV_USER_ID` を設定すると Cloudflare Access JWT なしで動作します。
 
 ## セキュリティ・アクセス制御
 
-### 認証
+- 外部公開は Cloudflare Tunnel 経由に限定します。
+- Hono server は `127.0.0.1` にバインドし、LAN から直接アクセスできないようにします。
+- 業務データへのクエリは必ず `user_id` で絞り込みます。
+- 機微情報をログに出さないようにします。
 
-- Cognito User Pool にユーザーを 1人（自分）登録。
-- SPA から Cognito Hosted UI でログインし、トークンを取得。
-- API 呼び出し時は `Authorization: Bearer <JWT>` ヘッダを付与。
+## 環境変数
 
-### 認可（Lambda 側）
-
-- Lambda 内で `userId` を決定するためのルール：
-  - JWT の `sub` or `email` を `userId` として扱う
-- DynamoDB 操作時に必ず `userId` をキー条件に含めることで、他ユーザーのデータを誤って読むことを防ぐ。
-
-（現時点ではユーザーは 1人だが、実装パターンとしては多ユーザーを前提とした書き方にしておく。）
-
-### 通信の保護
-
-- すべてのフロントアクセスは HTTPS（CloudFront + ACM 証明書）
-- API Gateway エンドポイントも HTTPS のみ
-
-## 環境変数（Lambda 側）
-
-Lambda の環境変数として設定：
-
-| 変数名                          | 説明                           |
-| ------------------------------- | ------------------------------ |
-| `RECIPES_TABLE_NAME`            | Recipes テーブル名             |
-| `RECIPE_INGREDIENTS_TABLE_NAME` | RecipeIngredients テーブル名   |
-| `MENUS_TABLE_NAME`              | Menus テーブル名               |
-| `PANTRY_ITEMS_TABLE_NAME`       | PantryItems テーブル名（将来） |
-
-CDK スタック内で DynamoDB テーブル生成時に名前を決め、その名前を Lambda の環境変数として渡す。
+| 変数名                        | 説明                                                                 |
+| ----------------------------- | -------------------------------------------------------------------- |
+| `PORT`                        | Hono server のリッスンポート                                         |
+| `FRONTEND_ORIGIN`             | ローカル開発時に CORS で許可するフロントエンド origin                |
+| `DATABASE_URL`                | PostgreSQL 接続文字列                                                |
+| `DEV_USER_ID`                 | ローカル開発用 userId。設定時は Cloudflare Access JWT 検証をスキップ |
+| `CLOUDFLARE_ACCESS_TEAM_NAME` | Cloudflare Access チーム名                                           |
+| `CLOUDFLARE_ACCESS_AUD`       | Cloudflare Access Application Audience                               |

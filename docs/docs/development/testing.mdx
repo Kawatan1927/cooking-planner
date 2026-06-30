@@ -6,55 +6,34 @@ sidebar_position: 2
 
 ## 現状
 
-現時点では、フロントエンド・Lambda ともにテストは**未設定**です。
-`npm run test` を実行すると `No tests configured yet` と表示して正常終了します。
-
-:::note
-テストフレームワークの導入は今後のタスクとして管理されています。
-テストを追加する際は、本ページを更新してください。
-:::
+バックエンドにはテストがあり、リポジトリルートの `bun run test` から実行します。フロントエンドのテストは必要に応じて今後追加します。
 
 ## テスト実行コマンド
 
 ```bash
-# リポジトリ全体のテスト実行
-npm run test
-```
+# リポジトリ全体
+bun run test
 
-将来的にフロントエンド・Lambda それぞれに個別テストコマンドを追加する場合は、たとえば以下のような script 名を採用します。
-現時点ではまだ未追加のため、以下は「追加予定の例」です。
-
-```bash
-# フロントエンドのテスト（追加予定の例）
-npm run frontend:test
-
-# Lambda のテスト（追加予定の例）
-npm run lambda:test
+# バックエンドのみ
+bun run backend:test
 ```
 
 ## 今後の方針
 
 ### フロントエンド
 
-- フレームワーク候補: [Vitest](https://vitest.dev/)（Vite との親和性が高い）
-- テスト対象の優先度:
+- フレームワーク候補: Vitest
+- 優先度:
   1. ユーティリティ関数・ビジネスロジック
-  2. カスタムフック（React Query フックなど）
-  3. コンポーネント（必要に応じて）
+  2. カスタムフック
+  3. 重要なコンポーネント
 
-### Lambda
+### バックエンド
 
-- フレームワーク候補: [Jest](https://jestjs.io/) または [Vitest](https://vitest.dev/)
-- テスト対象の優先度:
-  1. DynamoDB 操作を含むハンドラーのユニットテスト（AWS SDK をモック）
-  2. バリデーションロジック
+- Hono handler のユニットテストを優先する。
+- repository 層は PostgreSQL との境界を明確にし、必要に応じて DB を分離して検証する。
+- 認証まわりは `DEV_USER_ID` と Cloudflare Access JWT 検証の両方を確認する。
 
 ## CI との連携
 
-テストが追加されたら、以下の CI ワークフローにステップを追加します。
-
-- `.github/workflows/frontend-ci.yml` — フロントエンドのテストステップ
-- `.github/workflows/lambda-ci.yml` — Lambda のテストステップ
-
-また、lefthook の `pre-push` フック（`tests` コマンド）もあわせて更新してください。
-詳細は [GitHub ワークフロー](github-workflow) を参照してください。
+テストを追加した場合は、関連する CI ワークフローと lefthook の `pre-push` フックも更新してください。

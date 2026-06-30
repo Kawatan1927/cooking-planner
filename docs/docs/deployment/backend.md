@@ -1,138 +1,62 @@
 ---
-id: deployment-backend
-title: バックエンドデプロイ
-sidebar_position: 3
+id: backend-deployment
+title: バックエンド起動
+sidebar_position: 2
 ---
 
 ## 概要
 
-バックエンド（Lambda + API Gateway）およびインフラ（DynamoDB、Cognito、S3+CloudFront 等）は AWS CDK で管理する。
-変更は `bunx cdk deploy` コマンドでデプロイする運用を想定している。
+バックエンドは Bun + Hono の server としてローカル PC 上で起動します。API routing と frontend build 済みファイルの静的配信を同一プロセスで担当します。
 
-`infra/lib/cooking-planner-stack.ts` に CDK スタックが実装されており、以下のリソースが定義されている：
+## 開発時
 
-- DynamoDB テーブル（Recipes / RecipeIngredients / Menus）
-- Lambda 関数（API ハンドラ）
-- API Gateway HTTP API（Cognito JWT Authorizer 付き）
-- Cognito User Pool / App Client / Hosted UI ドメイン
-- S3 バケット（フロントエンド静的ファイル用）
-- CloudFront ディストリビューション（SPA 配信 + `/api/*` → API Gateway ルーティング）
-
----
-
-## 手動デプロイ手順
-
-### 1. 差分確認
+1. PostgreSQL を起動する。
+2. `backend/.env` または実行環境に以下を設定する。
 
 ```bash
-cd infra
-bunx cdk diff
+DATABASE_URL=postgresql://user:password@localhost:5432/cooking_planner
+PORT=3000
+DEV_USER_ID=local-dev-user
 ```
 
-- 意図しないリソースの変更・削除が含まれていないことを必ず確認する
-- DynamoDB テーブルの削除（`DESTROY` ポリシー）には特に注意する
-
-### 2. デプロイ実行
+3. リポジトリルートで起動する。
 
 ```bash
-cd infra
-# dev 環境
-bunx cdk deploy --context stage=dev
-
-# prod 環境（allowedOrigins / callbackUrls / logoutUrls が必須）
-bunx cdk deploy \
-  --context stage=prod \
-  --context allowedOrigins=https://xxx.cloudfront.net \
-  --context callbackUrls=https://xxx.cloudfront.net/callback \
-  --context logoutUrls=https://xxx.cloudfront.net
+bun run dev
 ```
 
-- Lambda コードのバンドルと API Gateway・DynamoDB・S3・CloudFront 等のリソース更新が一括で行われる
-- デプロイ完了後、出力（Outputs）に以下の値が表示される
+## 本番相当
 
-| CDK Output キー            | 説明                                                        |
-| -------------------------- | ----------------------------------------------------------- |
-| `HttpApiUrl`               | API Gateway HTTP API エンドポイント URL                     |
-| `CloudFrontUrl`            | CloudFront URL（`VITE_API_BASE_URL` と Cognito URL に使用） |
-| `CloudFrontDistributionId` | CloudFront Distribution ID（キャッシュ無効化に使用）        |
-| `FrontendBucketName`       | フロントエンド用 S3 バケット名（`aws s3 sync` に使用）      |
-| `UserPoolId`               | Cognito User Pool ID                                        |
-| `UserPoolClientId`         | Cognito App Client ID                                       |
-| `UserPoolDomainName`       | Cognito Hosted UI ドメイン名                                |
-
-### 3. Lambda のみ更新する場合
-
-インフラ変更なしで Lambda コードだけ更新する場合も `bunx cdk deploy` を使用する。
-CDK が差分を検出して Lambda 関数のみ更新する。
-
----
-
-## 環境変数（Lambda）
-
-Lambda の環境変数は CDK スタック内で定義し、DynamoDB テーブル名等を自動的に渡す。
-手動で変更する必要は基本的にない。
-
-| 変数名                          | 説明                           |
-| ------------------------------- | ------------------------------ |
-| `RECIPES_TABLE_NAME`            | Recipes テーブル名             |
-| `RECIPE_INGREDIENTS_TABLE_NAME` | RecipeIngredients テーブル名   |
-| `MENUS_TABLE_NAME`              | Menus テーブル名               |
-| `PANTRY_ITEMS_TABLE_NAME`       | PantryItems テーブル名（将来） |
-
----
-
-## CORS の設定
-
-API Gateway の CORS 設定は CDK デプロイ時に `allowedOrigins` context で指定する。
+1. PostgreSQL を起動する。
+2. `.env` に `DATABASE_URL` と `PORT` を設定する。
+3. `DEV_USER_ID` を外す。
+4. Cloudflare Access の検証用環境変数を設定する。
 
 ```bash
-# dev 環境：省略可（デフォルト: http://localhost:5173）
-bunx cdk deploy --context stage=dev
-
-# prod 環境：必須。'*' は使用不可
-bunx cdk deploy --context stage=prod --context allowedOrigins=https://xxx.cloudfront.net
+DATABASE_URL=postgresql://user:password@localhost:5432/cooking_planner
+PORT=3000
+CLOUDFLARE_ACCESS_TEAM_NAME=<team-name>
+CLOUDFLARE_ACCESS_AUD=<application-aud>
 ```
 
-> **注意**: prod 環境で `allowedOrigins` を省略・空・`*` に設定した場合、`bunx cdk synth` / `bunx cdk deploy` 時にエラーとなる（fail-closed 設計）。
-
----
-
-## CDK Bootstrap（初回のみ）
-
-AWS アカウント・リージョンで CDK を初めて使う場合は以下を実行する。
+5. frontend build 後に Hono server を起動する。
 
 ```bash
-bunx cdk bootstrap aws://<アカウント ID>/<リージョン>
-# 例
-bunx cdk bootstrap aws://123456789012/ap-northeast-1
+bun run start
 ```
 
----
+6. Cloudflare Tunnel を Hono server の port に向ける。
+7. Cloudflare Access で許可ユーザーを制限する。
+
+## 確認
+
+```bash
+bun run backend:type-check
+bun run backend:test
+```
+
+起動後は `/health` で疎通を確認し、業務 API は Cloudflare Access を通過したリクエストのみ許可されることを確認します。
 
 ## ロールバック
 
-CDK のデプロイは CloudFormation 経由で行われるため、デプロイ失敗時には CloudFormation の自動ロールバック機能が既定で有効になっている。
-ただし、過去の正常な状態へ明示的に戻すための簡易なロールバックコマンドは用意されていないため、前のバージョンに戻すには対象コミットをチェックアウトして再度 `cdk deploy` を実行する。
-
-```bash
-git checkout <前のコミット SHA>
-cd infra
-bunx cdk deploy
-```
-
----
-
-## API エンドポイント一覧（現行実装）
-
-| メソッド | パス                  | 認証     | 説明                      |
-| -------- | --------------------- | -------- | ------------------------- |
-| GET      | `/health`             | 不要     | 疎通確認（status / time） |
-| GET      | `/recipes`            | JWT 必須 | レシピ一覧取得            |
-| POST     | `/recipes`            | JWT 必須 | レシピ作成                |
-| GET      | `/recipes/{recipeId}` | JWT 必須 | レシピ詳細取得            |
-| PUT      | `/recipes/{recipeId}` | JWT 必須 | レシピ更新                |
-| GET      | `/menus`              | JWT 必須 | 献立一覧取得              |
-| POST     | `/menus`              | JWT 必須 | 献立作成                  |
-| PUT      | `/menus/{menuId}`     | JWT 必須 | 献立更新                  |
-| DELETE   | `/menus/{menuId}`     | JWT 必須 | 献立削除                  |
-| GET      | `/shopping-list`      | JWT 必須 | 買い物リスト取得          |
+コードを前のコミットへ戻してから、依存関係と build を確認し、Hono server を再起動します。データ変更を伴う場合は PostgreSQL のバックアップや migration 状態を先に確認してください。
