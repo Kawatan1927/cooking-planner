@@ -193,7 +193,9 @@ bun run build:all
 
 - `main`: プロダクション用ブランチ
 - `develop`: 開発用ブランチ
-- フィーチャーブランチ: `feature/xxx` または `claude/xxx`
+- 作業ブランチ: `<type>/<Issue番号>-<kebab-case-説明>` 形式
+  - 例: `feature/42-add-shopping-list-filter`
+  - `type` は `feature` / `fix` / `docs` / `chore` / `refactor` など、変更内容に応じて選択
 
 ### プルリクエスト
 

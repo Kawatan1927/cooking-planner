@@ -39,6 +39,7 @@
 ## Task 1: Remove CDK-Owned Files
 
 **Files:**
+
 - Delete: `infra/`
 - Delete: `.github/workflows/cdk-ci.yml`
 
@@ -99,6 +100,7 @@ Expected: commit succeeds and does not include `.serena/project.yml`.
 ## Task 2: Update Root Scripts, Env Examples, and Hooks
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `lefthook.yml`
 - Modify: `backend/.env.example`
@@ -150,15 +152,15 @@ If `bun run --filter './frontend' dev` fails locally, create `scripts/dev.ts`:
 
 ```ts
 const processes = [
-  Bun.spawn(['bun', 'run', 'frontend:dev'], {
-    stdout: 'inherit',
-    stderr: 'inherit',
-    stdin: 'inherit',
+  Bun.spawn(["bun", "run", "frontend:dev"], {
+    stdout: "inherit",
+    stderr: "inherit",
+    stdin: "inherit",
   }),
-  Bun.spawn(['bun', 'run', 'backend:dev'], {
-    stdout: 'inherit',
-    stderr: 'inherit',
-    stdin: 'inherit',
+  Bun.spawn(["bun", "run", "backend:dev"], {
+    stdout: "inherit",
+    stderr: "inherit",
+    stdin: "inherit",
   }),
 ];
 
@@ -168,10 +170,10 @@ const shutdown = () => {
   }
 };
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
 
-const exitCode = await Promise.race(processes.map(process => process.exited));
+const exitCode = await Promise.race(processes.map((process) => process.exited));
 shutdown();
 process.exit(exitCode);
 ```
@@ -261,6 +263,7 @@ If `scripts/dev.ts` was not created, omit it from `git add`.
 ## Task 3: Update Operational Documentation
 
 **Files:**
+
 - Modify: `AGENTS.md`
 - Modify: `README.md`
 - Modify: `CONTRIBUTING.md`
@@ -312,11 +315,11 @@ Remove the CDK synth section. Change area-specific rule to:
 Rewrite the repository layout section to include:
 
 ```markdown
-├── frontend/      # Vite + React フロントエンド
-├── backend/       # Bun + Hono API / 静的ファイル配信サーバー
-├── docs/          # 仕様書とDocusaurusドキュメント
-├── scripts/       # 補助スクリプト
-└── .github/       # GitHub Actions / PRテンプレート
+├── frontend/ # Vite + React フロントエンド
+├── backend/ # Bun + Hono API / 静的ファイル配信サーバー
+├── docs/ # 仕様書とDocusaurusドキュメント
+├── scripts/ # 補助スクリプト
+└── .github/ # GitHub Actions / PRテンプレート
 ```
 
 Ensure setup commands include:
@@ -440,6 +443,7 @@ git commit -m "docs: ローカルHono構成の運用文書に更新" -m "- AWS/C
 ## Task 4: Full Verification and Runtime Smoke Tests
 
 **Files:**
+
 - No source edits expected unless verification reveals a real defect.
 
 - [ ] **Step 1: Run lint**
@@ -547,6 +551,7 @@ If no fixes were needed, do not create an empty commit.
 ## Task 5: Push and Create Pull Request
 
 **Files:**
+
 - No file edits.
 
 - [ ] **Step 1: Review commits**
