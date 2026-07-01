@@ -33,7 +33,7 @@ DEV_USER_ID=local-dev-user
 FRONTEND_ORIGIN=http://localhost:5173
 ```
 
-必要に応じて `frontend/.env` に API ベース URL を設定します。
+必要に応じて `frontend/.env.local` に API ベース URL を設定します。
 
 ```bash
 VITE_API_BASE_URL=http://localhost:3000/api

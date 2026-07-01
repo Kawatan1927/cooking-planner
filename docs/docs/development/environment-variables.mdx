@@ -26,9 +26,13 @@ Vite の環境変数機能を使用します。ブラウザに公開されるた
 フロントエンドは Cloudflare Access の JWT を保持せず、認証サービスの秘密情報も使用しません。
 
 ```bash
-# frontend/.env（例）
+# frontend/.env.local（Vite dev server から backend を直接呼ぶ例）
 VITE_API_BASE_URL=http://localhost:3000/api
 ```
+
+root `.env` を `bun run start` で使う場合は、frontend build 時に値が SPA へ埋め込まれます。
+Cloudflare Tunnel 経由の本番相当では、外部ブラウザが利用者自身の localhost を見に行かないよう
+`VITE_API_BASE_URL=/api` を指定します。
 
 ---
 
@@ -60,10 +64,10 @@ JWT の `email`（なければ `sub`）を `userId` として扱います。
 
 ## 環境別の運用方針
 
-| 環境         | 説明                                                                                       |
-| ------------ | ------------------------------------------------------------------------------------------ |
-| ローカル開発 | `frontend/.env` と `backend/.env` にローカル用の値を設定し、`DEV_USER_ID` で認証をバイパス |
-| 本番相当     | Hono サーバーを 127.0.0.1 にバインドし、Cloudflare Tunnel + Cloudflare Access 経由で公開   |
+| 環境         | 説明                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| ローカル開発 | `frontend/.env.local` と `backend/.env` にローカル用の値を設定し、`DEV_USER_ID` で認証をバイパス |
+| 本番相当     | Hono サーバーを 127.0.0.1 にバインドし、Cloudflare Tunnel + Cloudflare Access 経由で公開         |
 
 :::tip
 環境変数を追加・変更した際は、このページと `docs/05-architecture-notes.md` もあわせて更新してください。

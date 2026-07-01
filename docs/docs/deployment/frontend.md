@@ -45,7 +45,12 @@ bun run start
 | ------------------- | ---------------- | ----------------------------------------- |
 | `VITE_API_BASE_URL` | API のベース URL | `http://localhost:3000/api` または `/api` |
 
-同一 Hono server から配信する場合は `/api` の相対パスを使えます。
+`bun run start` では frontend build 後に同じ Hono server から SPA と API を配信するため、
+root `.env` では `/api` を指定します。Cloudflare Tunnel 経由の外部ブラウザでも、
+同一オリジンの Hono server にリクエストできます。
+
+Vite dev server から backend を直接呼ぶローカル開発では、`frontend/.env.local` など
+frontend 側の環境変数ファイルで `http://localhost:3000/api` を指定します。
 
 ## 確認
 
