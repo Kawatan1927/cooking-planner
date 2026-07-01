@@ -28,11 +28,6 @@ yarn-error.log*
 /backend/node_modules
 /backend/.env
 
-# CDK の作業ディレクトリと依存
-/infra/cdk.out/
-/infra/node_modules/
-/infra/dist/
-
 # Serena のローカル状態
 /.serena/cache/
 /.serena/project.local.yml

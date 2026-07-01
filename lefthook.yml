@@ -49,7 +49,7 @@ pre-push:
         echo "🏗️ バックエンドの型チェックを実行中..."
         bun run backend:type-check
 
-    # テスト実行（将来的にテストが追加された場合）
+    # テスト実行
     tests:
       glob:
         - "frontend/**"
