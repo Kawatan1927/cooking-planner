@@ -71,7 +71,7 @@ cloudflared tunnel list
 
 ## 4. 設定ファイルを作成する
 
-テンプレートを cloudflared の設定場所へコピーする。
+テンプレートを cloudflared の設定場所へコピーする。以下のコマンドはリポジトリ root で実行する。
 
 ```bash
 # Windows PowerShell
@@ -141,7 +141,7 @@ Cloudflare Access Application は既定で deny になり、Allow policy に一�
 
 ## 7. Tunnel を起動する
 
-先にアプリを起動する。
+先にアプリを起動する。以下のコマンドはリポジトリ root で実行する。
 
 ```bash
 bun run build:all

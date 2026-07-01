@@ -1,5 +1,7 @@
 # Copy this file to your cloudflared config location, then replace every
-# placeholder with values from `cloudflared tunnel create <NAME>`.
+# placeholder: TUNNEL_UUID and the credentials JSON path come from the
+# output of `cloudflared tunnel create <NAME>`; APP_HOSTNAME is the domain
+# you want to expose (e.g. cooking.example.com).
 #
 # Default config locations:
 # - Windows: %USERPROFILE%\.cloudflared\config.yml
