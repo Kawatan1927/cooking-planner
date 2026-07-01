@@ -27,7 +27,7 @@ beforeAll(async () => {
 
 const MENU_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 
-const putMenu = (body: unknown): Promise<Response> =>
+const putMenu = (body: unknown) =>
   app.request(`/api/menus/${MENU_UUID}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
