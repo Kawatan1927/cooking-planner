@@ -6,36 +6,32 @@ sidebar_position: 1
 
 ## ブランチ戦略
 
-| ブランチ             | 役割                                                                                                                   |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `main`               | プロダクションブランチ。直接 push 禁止                                                                                 |
-| `develop`            | 将来的に導入する場合の開発統合ブランチ。現時点では通常運用していない                                                   |
-| フィーチャーブランチ | `feature/<説明>`（人が作業する場合）または `claude/<説明>`（AI エージェントが割り当てられた Issue の場合）の形式で作成 |
+| ブランチ             | 役割                                    |
+| -------------------- | --------------------------------------- |
+| `main`               | プロダクションブランチ。直接 push 禁止  |
+| `develop`            | 将来的に導入する場合の開発統合ブランチ  |
+| フィーチャーブランチ | `feature/<Issue番号>-<説明>` 形式で作成 |
 
-現時点の通常運用では、フィーチャーブランチは `main` をベースに対応する Issue から以下のコマンドで作成します。
+Issue から作業ブランチを作成する場合:
 
 ```bash
-gh issue develop <Issue番号> --name <Issue番号>-<説明> --base main --checkout
+gh issue develop <Issue番号> --name feature/<Issue番号>-<kebab-case-説明> --base main --checkout
 ```
 
 ## Issue / PR の作成ルール
 
-- **Issue タイトル**: 日本語で簡潔に記述（Conventional Commits の prefix は不要）
-- **ラベル**: `enhancement`・`bug`・`documentation` など適切なものを付与
-- **PR タイトル**: 対応する Issue と同じタイトルにする
-- **PR 本文**: `.github/PULL_REQUEST_TEMPLATE.md` に従い、`closes #N` を含める
+- Issue タイトルは日本語で簡潔に記述する。
+- `enhancement`、`bug`、`documentation` など適切なラベルを付ける。
+- PR タイトルは対応する Issue と同じにする。
+- PR 本文は `.github/PULL_REQUEST_TEMPLATE.md` に従い、`closes #N` を含める。
 
 ## コミットメッセージ
 
-日本語または英語で変更内容を簡潔に記述します。必要に応じて Issue 番号を参照してください。
-
 ```text
-レシピ一覧ページのレイアウトを修正
+docs: 開発手順をバックエンド構成に更新
 
-- グリッドレイアウトを2カラムから3カラムに変更
-- レスポンシブ対応を追加
-
-Refs: #123
+- backend ディレクトリのセットアップ手順を追加
+- 古い実行コマンドを現行スクリプトに置換
 ```
 
 ## CI ワークフロー
@@ -44,125 +40,78 @@ GitHub Actions で以下のワークフローが自動実行されます。
 
 ### Frontend CI
 
-ファイル: `.github/workflows/frontend-ci.yml`
-
-**トリガー**: `frontend/**` に変更を含む push または PR（対象ブランチ: `main`, `develop`）
+**トリガー**: `frontend/**` に変更を含む push または PR
 
 | ステップ   | コマンド               |
 | ---------- | ---------------------- |
-| 型チェック | `npx tsc -b`           |
-| ESLint     | `npm run lint`         |
-| Prettier   | `npm run format:check` |
-| ビルド     | `npm run build`        |
+| 型チェック | `bunx tsc -b`          |
+| ESLint     | `bun run lint`         |
+| Prettier   | `bun run format:check` |
+| ビルド     | `bun run build`        |
 
-### Lambda CI
+### Backend CI
 
-ファイル: `.github/workflows/lambda-ci.yml`
-
-**トリガー**: `infra/lambda/**` に変更を含む push または PR（対象ブランチ: `main`, `develop`）
+**トリガー**: `backend/**` に変更を含む push または PR
 
 | ステップ   | コマンド               |
 | ---------- | ---------------------- |
-| 型チェック | `npx tsc --noEmit`     |
-| ESLint     | `npm run lint`         |
-| Prettier   | `npm run format:check` |
-| ビルド     | `npm run build`        |
-
-### CDK CI
-
-ファイル: `.github/workflows/cdk-ci.yml`
-
-**トリガー**: `infra/**`（ただし `infra/lambda/**` を除く）に変更を含む push または PR（対象ブランチ: `main`, `develop`）
-
-| ステップ               | コマンド                                          |
-| ---------------------- | ------------------------------------------------- |
-| 型チェック             | `npx tsc --noEmit`                                |
-| Prettier               | `npm run format:check`                            |
-| ESLint                 | `npm run lint`                                    |
-| ビルド                 | `npm run build`                                   |
-| CDK Synth（dev 環境）  | `npx cdk synth --context stage=dev --no-staging`  |
-| CDK Synth（prod 環境） | `npx cdk synth --context stage=prod --no-staging` |
-
-ビルド成果物（CloudFormation テンプレート）は `cdk-out` アーティファクトとして 7 日間保存されます。
+| 型チェック | `bun run type-check`   |
+| ESLint     | `bun run lint`         |
+| Prettier   | `bun run format:check` |
+| テスト     | `bun run test`         |
 
 ### Docs CI
 
-ファイル: `.github/workflows/docs-ci.yml`
-
-**トリガー**: `docs/**` に変更を含む push または PR（対象ブランチ: `main`, `develop`）
+**トリガー**: `docs/**` に変更を含む push または PR
 
 | ステップ             | コマンド               |
 | -------------------- | ---------------------- |
 | フォーマットチェック | `bun run format:check` |
 | Docusaurus ビルド    | `bun run build`        |
 
-ドキュメントサイトのビルドには [Bun](https://bun.sh/) を使用します（Node.js / npm ではありません）。
-
 ### Docs Deploy
 
-ファイル: `.github/workflows/docs-deploy.yml`
+`main` ブランチへの `docs/**` 変更時、Docusaurus ドキュメントサイトを GitHub Pages へデプロイします。手動実行も可能です。
 
-**トリガー**: `docs/**` に変更を含む `main` ブランチへの push（または手動実行 `workflow_dispatch`）
+### Update Docs
 
-`main` ブランチへのマージ後、Docusaurus ドキュメントサイトを自動的に **GitHub Pages** へデプロイします。
-CI（Docs CI）とは別ワークフローで、`main` push 時のみデプロイが走ります。
-
-### Update Docs（エージェントワークフロー）
-
-ファイル: `.github/workflows/update-docs.lock.yml`
-
-**トリガー**: `main` ブランチへの push（または手動実行 `workflow_dispatch`）
-
-AI エージェントがコードの差分を分析し、必要なドキュメント更新を検出して**ドラフト PR** を自動生成します。
-設定ファイル: `.github/workflows/update-docs.md`
-
-:::note
-Update Docs ワークフローはコード変更がドキュメントに反映されているかを継続的にチェックします。
-ドキュメント更新が必要な場合は、自動的にドラフト PR が作成されます。
-:::
+AI エージェントがコード差分を分析し、必要なドキュメント更新を検出してドラフト PR を自動生成します。
 
 ## ローカル Git フック（lefthook）
 
-[lefthook](https://github.com/evilmartians/lefthook) を使い、CI と同等のチェックをローカルで事前実行します。
-`npm install` 時に自動インストールされます。手動インストールは `npm run prepare` で実行できます。
+`bun install` 時に自動インストールされます。手動インストールは以下です。
 
-### pre-commit（コミット前）
+```bash
+bun run prepare
+```
 
-`frontend/` と `infra/lambda/` 配下の staged ファイルに対して並列実行します。
+### pre-commit
+
+`frontend/` と `backend/` 配下の staged ファイルに対して並列実行します。
 
 | コマンド名        | 対象                            | 内容              |
 | ----------------- | ------------------------------- | ----------------- |
-| `frontend-format` | `frontend/**/*.{ts,tsx,…}`      | Prettier チェック |
+| `frontend-format` | `frontend/**/*.{ts,tsx,...}`    | Prettier チェック |
 | `frontend-lint`   | `frontend/**/*.{ts,tsx,js,jsx}` | ESLint            |
-| `lambda-format`   | `infra/lambda/**/*.{ts,js,…}`   | Prettier チェック |
-| `lambda-lint`     | `infra/lambda/**/*.ts`          | ESLint            |
+| `backend-format`  | `backend/**/*.{ts,js,...}`      | Prettier チェック |
+| `backend-lint`    | `backend/**/*.ts`               | ESLint            |
 
-### pre-push（プッシュ前）
+### pre-push
 
-push 対象に `frontend/**` または `infra/lambda/**` の変更が含まれる場合のみ実行します。
+push 対象に `frontend/**` または `backend/**` の変更が含まれる場合のみ実行します。
 
-| コマンド名       | 内容                                     |
-| ---------------- | ---------------------------------------- |
-| `frontend-build` | Vite ビルド（`tsc -b` を含む）           |
-| `lambda-build`   | TypeScript コンパイル                    |
-| `tests`          | `npm run test`（現在はプレースホルダー） |
-
-### フックをスキップする場合
-
-:::warning
-フックをスキップした場合も、CI は実行されます。CI 失敗のリスクがあるため、スキップは極力避けてください。
-:::
-
-```bash
-git commit --no-verify   # pre-commit をスキップ
-git push --no-verify     # pre-push をスキップ
-```
+| コマンド名          | 内容                           |
+| ------------------- | ------------------------------ |
+| `frontend-build`    | Vite ビルド（`tsc -b` を含む） |
+| `backend-typecheck` | 型チェック                     |
+| `tests`             | `bun run test`                 |
 
 ## プルリクエストのフロー
 
-1. `gh issue develop` でフィーチャーブランチを作成・チェックアウト
-2. コードを変更し、コミット（pre-commit フックが自動実行）
-3. push（pre-push フックが自動実行）
-4. PR を作成（タイトル・ラベル・`closes #N` を記載）
-5. CI のチェック完了を確認
-6. レビューを受けてマージ
+1. Issue からフィーチャーブランチを作成・チェックアウトする。
+2. コードまたはドキュメントを変更する。
+3. ローカルで必要な検証を実行する。
+4. コミットして push する。
+5. PR を作成し、タイトル・ラベル・`closes #N` を記載する。
+6. CI のチェック完了を確認する。
+7. レビューを受けてマージする。

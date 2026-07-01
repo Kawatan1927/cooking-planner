@@ -8,11 +8,11 @@ sidebar_position: 3
 
 ### 共通方針
 
-- TypeScript の厳格モード（`strict: true`）を有効化する
-- フォーマッターは **Prettier**、リンターは **ESLint** を使用する
-- 自動チェックは lefthook の Git フックと CI で担保する
+- TypeScript の厳格モード（`strict: true`）を有効化する。
+- フォーマッターは Prettier、リンターは ESLint を使用する。
+- 自動チェックは lefthook の Git フックと CI で担保する。
 
-### Prettier 設定（フロントエンド・Lambda 共通）
+### Prettier 設定
 
 | オプション      | 値                         |
 | --------------- | -------------------------- |
@@ -23,28 +23,29 @@ sidebar_position: 3
 | `printWidth`    | `100`                      |
 | `arrowParens`   | `"avoid"`                  |
 
-設定ファイル: `frontend/.prettierrc` / `infra/lambda/.prettierrc`
+設定ファイル: `frontend/.prettierrc` / `backend/.prettierrc`
 
 ### ESLint 設定
 
-| 領域           | 設定ファイル                     | 主なルールセット                                |
-| -------------- | -------------------------------- | ----------------------------------------------- |
-| フロントエンド | `frontend/eslint.config.js`      | TypeScript ESLint + React Hooks + React Refresh |
-| Lambda         | `infra/lambda/eslint.config.mjs` | TypeScript ESLint + Prettier 競合ルール無効化   |
+| 領域           | 設定ファイル                | 主なルールセット                                |
+| -------------- | --------------------------- | ----------------------------------------------- |
+| フロントエンド | `frontend/eslint.config.js` | TypeScript ESLint + React Hooks + React Refresh |
+| バックエンド   | `backend/eslint.config.mjs` | TypeScript ESLint + Prettier 競合ルール無効化   |
 
 ### フロントエンド固有のルール
 
-- API 呼び出しは `src/lib/apiClient.ts` 経由で行う
-- エンドポイント単位の API ラッパーは `src/features/<domain>/api/` に置く
-- サーバー状態は React Query のカスタムフックで管理する
-- 機能追加は `src/features/<domain>/` に配置する
+- API 呼び出しは `src/lib/apiClient.ts` 経由で行う。
+- エンドポイント単位の API ラッパーは `src/features/<domain>/api/` に置く。
+- サーバー状態は React Query のカスタムフックで管理する。
+- 機能追加は `src/features/<domain>/` に配置する。
 
-### Lambda 固有のルール
+### バックエンド固有のルール
 
-- DynamoDB との通信は AWS SDK v3 を使用する
-- `userId` は Cognito の JWT claims から取得する
-- DynamoDB 操作には必ず `userId` を条件に含める
-- エラーレスポンスは `docs/04-api-design.md` の形式に従う
+- ルーティングは Hono の宣言的ルーターで定義する。
+- `userId` は Cloudflare Access JWT または `DEV_USER_ID` から取得する。
+- PostgreSQL 操作は repository 層に集約する。
+- `recipes` / `menus` のクエリは必ず `user_id` でスコープする。
+- エラーレスポンスは `docs/04-api-design.md` の形式に従う。
 
 ---
 
@@ -64,29 +65,11 @@ sidebar_position: <カテゴリ内の並び順（数値）>
 ---
 ```
 
-| フィールド         | 必須 | 説明                                             |
-| ------------------ | ---- | ------------------------------------------------ |
-| `id`               | ✅   | ファイル名と一致させる（kebab-case）             |
-| `title`            | ✅   | サイドバー・ページ見出しに使われる日本語タイトル |
-| `sidebar_position` | ✅   | カテゴリ内での表示順（`1` が先頭）               |
-| `slug`             | 任意 | URL パスを変更したい場合のみ指定                 |
-
 ### 見出し規約
 
-- `# H1` はページタイトルとして Frontmatter の `title` が担うため、本文中では使わない
-- 最上位見出しは `## H2` から始める
-- 見出しは意味的な階層に従い、レベルを飛ばさない（`##` の次は `###`）
-  - 飛ばすとドキュメントの論理構造が崩れ、スクリーンリーダーなど支援技術での読み取りにも影響します
-
-```mdx
-## セクション名 ✅
-
-### サブセクション名 ✅
-
-## セクション名 ❌ （##→#### のようにレベルを飛ばすのは NG）
-
-#### 細かい項目
-```
+- `# H1` はページタイトルとして Frontmatter の `title` が担うため、本文中では使わない。
+- 最上位見出しは `## H2` から始める。
+- 見出しは意味的な階層に従い、レベルを飛ばさない。
 
 ### コードブロック規約
 
@@ -94,7 +77,7 @@ sidebar_position: <カテゴリ内の並び順（数値）>
 
 ````mdx
 ```bash
-npm install
+bun install
 ```
 
 ```ts
@@ -106,41 +89,17 @@ key: value
 ```
 ````
 
-よく使う言語識別子:
+### Admonition 利用方針
 
-| 識別子       | 用途               |
-| ------------ | ------------------ |
-| `bash`       | シェルコマンド     |
-| `ts` / `tsx` | TypeScript / React |
-| `js`         | JavaScript         |
-| `json`       | JSON               |
-| `yaml`       | YAML               |
-| `mdx`        | MDX サンプル       |
-| `mermaid`    | Mermaid 図         |
+| 種別         | 用途                         |
+| ------------ | ---------------------------- |
+| `:::note`    | 補足情報・背景説明           |
+| `:::tip`     | 推奨の操作・ショートカット   |
+| `:::info`    | 参照先・関連情報の案内       |
+| `:::warning` | 注意が必要な操作             |
+| `:::danger`  | データ損失・破壊的変更の警告 |
 
-### Admonition（callout）利用方針
-
-Docusaurus の [Admonitions](https://docusaurus.io/docs/markdown-features/admonitions) を以下の基準で使い分けます。
-
-| 種別         | 用途                         | 例                             |
-| ------------ | ---------------------------- | ------------------------------ |
-| `:::note`    | 補足情報・背景説明           | 将来実装予定の補足など         |
-| `:::tip`     | 推奨の操作・ショートカット   | 便利なコマンドのヒント         |
-| `:::info`    | 参照先・関連情報の案内       | 関連ドキュメントへのリンクなど |
-| `:::warning` | 注意が必要な操作             | フックのスキップ時のリスクなど |
-| `:::danger`  | データ損失・破壊的変更の警告 | 本番データへの操作など         |
-
-```mdx
-:::tip
-`npm run frontend:format` を実行すると自動修正されます。
-:::
-
-:::warning
-フックをスキップすると CI が失敗するリスクがあります。
-:::
-```
-
-### カテゴリ（`_category_.json`）
+### カテゴリ
 
 新しいカテゴリディレクトリを作成する際は `_category_.json` を配置します。
 
@@ -153,5 +112,3 @@ Docusaurus の [Admonitions](https://docusaurus.io/docs/markdown-features/admoni
   }
 }
 ```
-
-`position` は既存カテゴリとの並び順が重複しないよう確認してください。

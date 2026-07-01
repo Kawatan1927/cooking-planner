@@ -1,15 +1,16 @@
 # Cooking Planner
 
-個人利用の料理レシピ／献立／買い物リスト管理アプリケーション
+個人利用の料理レシピ／献立／買い物リスト管理アプリケーションです。フロントエンドは Vite + React、バックエンドは Bun + Hono、データストアは PostgreSQL で構成します。
 
 ## プロジェクト構成
 
-```
+```text
 cooking-planner/
-├── frontend/          # React + TypeScript フロントエンド
-├── infra/
-│   └── lambda/       # AWS Lambda バックエンド
-└── docs/             # ドキュメント
+├── frontend/      # Vite + React フロントエンド
+├── backend/       # Bun + Hono API / 静的ファイル配信サーバー
+├── docs/          # 仕様書とDocusaurusドキュメント
+├── scripts/       # 補助スクリプト
+└── .github/       # GitHub Actions / PRテンプレート
 ```
 
 ## セットアップ
@@ -18,6 +19,8 @@ cooking-planner/
 
 - [Bun](https://bun.sh/) 1.x 以上
 - Node.js 20.x 以上
+- PostgreSQL
+- Cloudflare Tunnel を使う場合は `cloudflared`
 
 ### 初回セットアップ
 
@@ -31,174 +34,125 @@ cd cooking-planner
 2. 依存関係のインストール
 
 ```bash
-# ルートの依存関係をインストール（lefthookを含む）
 bun install --frozen-lockfile
-
-# フロントエンドの依存関係をインストール
 cd frontend && bun install --frozen-lockfile && cd ..
-
-# Lambdaの依存関係をインストール
-cd infra/lambda && bun install --frozen-lockfile && cd ../..
-
-# CDK の依存関係をインストール
-cd infra && bun install --frozen-lockfile && cd ..
+cd backend && bun install --frozen-lockfile && cd ..
+cd docs && bun install --frozen-lockfile && cd ..
 ```
 
-3. Gitフックのセットアップ
+3. Git フックのセットアップ
 
 ```bash
-# lefthookフックを手動でインストール（bun installで自動実行されますが、念のため）
 bun run prepare
 ```
 
-これにより、以下のGitフックが自動的に設定されます：
-
-- **pre-commit**: コミットに含める `frontend/` と `infra/lambda/` 配下の staged ファイルに対してフォーマットチェックと lint を実行
-- **pre-push**: `frontend/**` または `infra/lambda/**` の変更があるときだけ、ビルドとテストを実行します（ビルド時に TypeScript の型エラーも検出）
-
-### Gitフックについて
-
-[lefthook](https://github.com/evilmartians/lefthook)を使用してローカルでCI相当のチェックを自動実行します。これにより、CIで失敗するケースを事前に防ぎます。
-
-#### 自動実行されるチェック
-
-- **pre-commit**: コミットに含める `frontend/` と `infra/lambda/` 配下の staged ファイルに対して、Prettier と ESLint を実行
-- **pre-push**: `frontend/**` または `infra/lambda/**` の変更が push に含まれる場合だけ、対応するビルドを実行します（ビルド時に TypeScript の型エラーも検出）
-- **test**: 現在の `bun run test` は Lambda のユニットテストを実行します
-
-詳細は [CONTRIBUTING.md](./CONTRIBUTING.md) を参照してください。
-
-#### フックをスキップする場合
-
-```bash
-git commit --no-verify  # pre-commitをスキップ
-git push --no-verify    # pre-pushをスキップ
-```
-
-**⚠️ 注意**: フックをスキップすると、`frontend/**` や `infra/lambda/**` の変更を含む push では CI 失敗のリスクがあります。
-
 ## 開発
 
-開発のガイドラインと詳細については [CONTRIBUTING.md](./CONTRIBUTING.md) を参照してください。
+### 環境変数
 
-### フロントエンド
+ルートまたはバックエンド実行時の `.env` に最低限以下を設定します。
 
 ```bash
-# 開発サーバーの起動
-bun run frontend:dev
-
-# ビルド
-bun run frontend:build
-
-# Lint
-bun run frontend:lint
-
-# フォーマット
-bun run frontend:format
-
-# フォーマットチェック
-bun run frontend:format:check
+DATABASE_URL=postgresql://user:password@localhost:5432/cooking_planner
+PORT=3000
+DEV_USER_ID=local-dev-user
 ```
 
-### Lambda
+Cloudflare Access 経由で動かす場合は、`DEV_USER_ID` の代わりに Cloudflare Access の検証用設定を使用します。詳細は `docs/docs/development/environment-variables.mdx` を参照してください。
+
+### よく使うコマンド
 
 ```bash
-# Lint
-bun run lambda:lint
-
-# フォーマット
-bun run lambda:format
-
-# フォーマットチェック
-bun run lambda:format:check
-
-# ビルド
-bun run lambda:build
-
-# ウォッチモード
-bun run lambda:watch
-
-# クリーン
-bun run lambda:clean
-
-# リビルド
-bun run lambda:rebuild
-```
-
-### リポジトリ全体
-
-```bash
-# すべてのlint実行
+bun run dev
+bun run start
 bun run lint
-
-# すべてのフォーマットチェック
 bun run format:check
-
-# フロントエンドとLambdaの型チェック
 bun run type-check
-
-# フロントエンドとLambdaのビルド
 bun run build:all
-
-# テスト実行
 bun run test
 ```
 
+### 個別コマンド
+
+```bash
+# フロントエンド
+bun run frontend:dev
+bun run frontend:build
+bun run frontend:lint
+bun run frontend:format
+bun run frontend:format:check
+
+# バックエンド
+bun run backend:dev
+bun run backend:start
+bun run backend:lint
+bun run backend:format
+bun run backend:format:check
+bun run backend:type-check
+bun run backend:test
+
+# ドキュメント
+bun run docs:dev
+bun run docs:build
+bun run docs:format
+bun run docs:format:check
+```
+
+## Git フック
+
+[lefthook](https://github.com/evilmartians/lefthook) を使用してローカルで CI 相当のチェックを自動実行します。
+
+- **pre-commit**: コミットに含める `frontend/` と `backend/` 配下の staged ファイルに対してフォーマットチェックと lint を実行
+- **pre-push**: `frontend/**` または `backend/**` の変更があるときだけ、ビルドとテストを実行
+- **test**: `bun run backend:test` を実行
+
+フックをスキップする場合:
+
+```bash
+git commit --no-verify
+git push --no-verify
+```
+
+フックをスキップすると CI 失敗のリスクが上がります。詳細は [CONTRIBUTING.md](./CONTRIBUTING.md) を参照してください。
+
 ## CI/CD
 
-GitHub Actionsを使用してCI/CDを実行しています：
+GitHub Actions では以下を確認します。
 
-- **Frontend CI**: フロントエンドのlint、フォーマットチェック、型チェック、ビルド
-- **Lambda CI**: Lambdaのlint、フォーマットチェック、型チェック、ビルド
-- **Docs CI**: ドキュメントのフォーマットチェック、Docusaurus ビルド
+- フロントエンドの lint、フォーマットチェック、型チェック、ビルド
+- バックエンドの lint、フォーマットチェック、型チェック、テスト
+- ドキュメントのフォーマットチェック、Docusaurus ビルド
 
-詳細は `.github/workflows/` を参照してください。
+## 起動と公開
 
-## デプロイ
+開発時:
 
-**初回セットアップ**（新しい環境でのデプロイ）については、[本番環境の初回セットアップ手順](https://kawatan1927.github.io/cooking-planner/getting-started/production-setup) を参照してください。インフラ・認証・フロント配信の手順がまとまっています。
+1. PostgreSQL を起動する
+2. `.env` に `DATABASE_URL`、`PORT`、`DEV_USER_ID` を設定する
+3. `bun run dev` で frontend/backend を起動する
 
-以下は簡易リファレンスです。詳細は `docs/docs/deployment/` 配下の各ページを参照してください。
+本番相当:
 
-### インフラ（CDK）のデプロイ
+1. PostgreSQL を起動する
+2. `.env` に `DATABASE_URL` と `PORT` を設定する
+3. Cloudflare Access の設定値を `.env` に設定する
+4. `bun run start` で frontend build 後に Hono server を起動する
+5. Cloudflare Tunnel を Hono server の port に向ける
+6. Cloudflare Access で許可ユーザーを制限する
 
-```bash
-cd infra
-# dev 環境
-bunx cdk deploy --context stage=dev
-
-# prod 環境（CloudFront URL を context で指定）
-bunx cdk deploy \
-  --context stage=prod \
-  --context allowedOrigins=https://xxx.cloudfront.net \
-  --context callbackUrls=https://xxx.cloudfront.net/callback \
-  --context logoutUrls=https://xxx.cloudfront.net
-```
-
-デプロイ後の Outputs から `CloudFrontUrl`・`FrontendBucketName`・`CloudFrontDistributionId` を取得して環境変数の設定に使う。
-
-### フロントエンドのデプロイ
-
-1. `frontend/.env.production` を作成し、CDK Outputs の値を設定する（`frontend/.env.example` を参照）
-2. デプロイスクリプトを実行する
-
-```bash
-# prod 環境へデプロイ
-./scripts/deploy-frontend.sh prod
-```
-
-スクリプトはビルド・S3 アップロード・CloudFront キャッシュ無効化を一括で実行する。
-詳細は `docs/docs/deployment/` を参照してください。
+詳細は `docs/docs/deployment/` と `docs/docs/getting-started/` を参照してください。
 
 ## ドキュメント
 
-詳細な仕様とアーキテクチャについては、`docs/` ディレクトリを参照してください：
+詳細な仕様とアーキテクチャについては、`docs/` ディレクトリを参照してください。
 
 - `docs/01-vision-and-scope.md` - ビジョンとスコープ
 - `docs/02-features-and-screens.md` - 機能と画面
 - `docs/03-domain-and-data-model.md` - ドメインモデルとデータモデル
 - `docs/04-api-design.md` - API設計
 - `docs/05-architecture-notes.md` - アーキテクチャノート
+
+Docusaurus サイト向けの文書は `docs/docs/` 配下にあります。
 
 ## ライセンス
 

@@ -24,13 +24,13 @@ gh pr create 時に --label フラグで適切なラベルを付ける
     - 追加/変更した画面・コンポーネント：
     - API 呼び出し（features/<domain>/api/*.ts）の追加/変更：
     - React Query フック（hooks/use*.ts）の追加/変更：
-- バックエンド（Lambda）：
+- バックエンド（Bun + Hono）：
     - エンドポイント（パス + メソッド）：
-    - DynamoDB 操作（テーブル・PK/SK・GSI 等）：
+    - PostgreSQL 操作（テーブル・トランザクション・クエリ等）：
     - レスポンス形式（docs/04 に準拠）：
-- インフラ（CDK）：
-    - 追加/変更したリソース：
-    - 環境変数・権限（IAM）：
+- 公開/認証：
+    - Cloudflare Access / Tunnel 設定への影響：
+    - 環境変数：
 
 ## 仕様との整合性（必須）
 - どの仕様に基づいているか：
@@ -39,9 +39,9 @@ gh pr create 時に --label フラグで適切なラベルを付ける
 ## 影響範囲（必須）
 - フロントエンド：ルーティング/状態管理/ビルド設定 等への影響
 - バックエンド：既存APIとの互換性、エラーコード、スループット/レイテンシ影響
-- データ：DynamoDB スキーマ・GSI・移行の必要性
-- 認証/認可：未ログイン時の挙動、Cognito トークン取扱い
-- インフラ/コスト：CDK 差分、AWS 料金影響
+- データ：PostgreSQL スキーマ・マイグレーション・バックフィルの必要性
+- 認証/認可：未ログイン時の挙動、Cloudflare Access JWT 取扱い
+- 公開/運用コスト：Cloudflare Tunnel 設定、ローカル常時起動への影響
 
 ## 移行・リリース・ロールバック（必要な場合）
 - データ移行/バックフィル：
@@ -78,16 +78,15 @@ gh pr create 時に --label フラグで適切なラベルを付ける
 - [ ] React Query のカスタムフック（hooks/use*.ts）を用意/更新
 - [ ] 未ログイン時の挙動が既存方針（例：/login リダイレクト）に反しない
 
-### バックエンド（Lambda）
-- [ ] API Gateway イベントを直接ハンドリングし、軽量な自前ルーティングを使用（Express等は未導入）
-- [ ] DynamoDB のキー条件にユーザー識別子を含める（原則：Cognito sub）
+### バックエンド（Bun + Hono）
+- [ ] Hono のルーティング・ミドルウェア構成に沿って実装
+- [ ] PostgreSQL のクエリ条件にユーザー識別子を含める（Cloudflare Access JWT の email / sub または DEV_USER_ID）
 - [ ] レスポンスは docs/04-api-design.md のエラー形式（statusCode, error.code, error.message）に準拠
-- [ ] @aws-sdk v3 を使用
 
-### データ/インフラ
-- [ ] DynamoDB テーブル/インデックス変更は docs/03 と整合
-- [ ] CDK のリソース名・環境変数命名は docs/05 に準拠
-- [ ] IAM 権限は最小権限
+### データ/公開
+- [ ] PostgreSQL テーブル/インデックス変更は docs/03 と整合
+- [ ] Cloudflare Access / Tunnel や環境変数の変更は docs/05 と整合
+- [ ] Hono サーバーの公開範囲と認証境界を確認
 
 ### 品質
 - [ ] ESLint / 型チェックを通過

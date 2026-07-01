@@ -1,125 +1,67 @@
 ---
 id: local-dev
-title: ローカル開発環境のセットアップ
+title: ローカル開発
 sidebar_position: 1
 ---
 
 ## 前提条件
 
-- [Bun](https://bun.sh/) 1.x 以上
+- Bun 1.x 以上
 - Node.js 20.x 以上
+- PostgreSQL
 
 ## 初回セットアップ
-
-### 1. リポジトリをクローン
 
 ```bash
 git clone https://github.com/Kawatan1927/cooking-planner.git
 cd cooking-planner
-```
 
-### 2. 依存関係のインストール
-
-```bash
-# ルートの依存関係をインストール（lefthook を含む）
 bun install --frozen-lockfile
-
-# フロントエンドの依存関係をインストール
 cd frontend && bun install --frozen-lockfile && cd ..
-
-# Lambda の依存関係をインストール
-cd infra/lambda && bun install --frozen-lockfile && cd ../..
-
-# CDK の依存関係をインストール
-cd infra && bun install --frozen-lockfile && cd ..
+cd backend && bun install --frozen-lockfile && cd ..
+cd docs && bun install --frozen-lockfile && cd ..
 ```
 
-### 3. Git フックのセットアップ
+## 環境変数
+
+ローカル開発では `DEV_USER_ID` を設定すると Cloudflare Access JWT 検証をスキップできます。
 
 ```bash
-# lefthook フックを手動でインストール（bun install で自動実行されますが、念のため）
-bun run prepare
+DATABASE_URL=postgresql://user:password@localhost:5432/cooking_planner
+PORT=3000
+DEV_USER_ID=local-dev-user
+FRONTEND_ORIGIN=http://localhost:5173
 ```
 
-これにより、以下の Git フックが自動的に設定されます：
-
-- **pre-commit**: コミットに含める `frontend/` と `infra/lambda/` 配下の staged ファイルに対してフォーマットチェックと lint を実行
-- **pre-push**: `frontend/**` または `infra/lambda/**` の変更があるときだけ、ビルドとテストを実行
-
-## フロントエンド開発
+必要に応じて `frontend/.env.local` に API ベース URL を設定します。
 
 ```bash
-# 開発サーバーの起動
-bun run frontend:dev
-
-# ビルド
-bun run frontend:build
-
-# Lint
-bun run frontend:lint
-
-# フォーマット
-bun run frontend:format
+VITE_API_BASE_URL=http://localhost:3000/api
 ```
 
-フロントエンドの開発サーバー（Vite dev server）を起動後、API は一旦モック、または実際の API Gateway を叩く運用になります（CORS 設定が必要）。
+## 起動手順
 
-## Lambda / バックエンド開発
+1. PostgreSQL を起動する。
+2. `.env` に `DATABASE_URL` と `PORT` を設定する。
+3. 開発時は `DEV_USER_ID` を設定する。
+4. `bun run dev` で frontend/backend を起動する。
 
 ```bash
-# Lint
-bun run lambda:lint
-
-# フォーマット
-bun run lambda:format
-
-# ビルド
-bun run lambda:build
-
-# ウォッチモード
-bun run lambda:watch
+bun run dev
 ```
 
-Lambda はローカルで直接実行して単体テストするか、`sam local` / `lambda-local` などのツールを使う方法があります。
-基本的には「型・ユニットテスト＋実環境の dev ステージで動作確認」という運用でも対応可能です。
-
-## リポジトリ全体のコマンド
+## よく使うコマンド
 
 ```bash
-# すべての lint 実行
 bun run lint
-
-# すべてのフォーマットチェック
 bun run format:check
-
-# フロントエンドと Lambda の型チェック
 bun run type-check
-
-# フロントエンドと Lambda のビルド
 bun run build:all
-
-# Lambda の単体テスト実行
 bun run test
 ```
 
-## インフラ変更時
+## トラブルシューティング
 
-DynamoDB のテーブル構造や Lambda 環境変数を変更した場合：
-
-1. `docs/03-domain-and-data-model.md`（または [アーキテクチャ › データモデル](../architecture/data-model)）を更新
-2. `cdk diff` で変更差分を確認
-3. 問題なければ `cdk deploy` を実行
-
-## Git フックについて
-
-[lefthook](https://github.com/evilmartians/lefthook) を使用してローカルで CI 相当のチェックを自動実行します。
-これにより、CI で失敗するケースを事前に防げます。
-
-### フックをスキップする場合
-
-```bash
-git commit --no-verify  # pre-commit をスキップ
-git push --no-verify    # pre-push をスキップ
-```
-
-> ⚠️ **注意**: フックをスキップすると、`frontend/**` や `infra/lambda/**` の変更を含む push では CI 失敗のリスクがあります。
+- DB 接続に失敗する場合は、PostgreSQL の起動状態と `DATABASE_URL` を確認する。
+- API が 401 を返す場合は、ローカル開発用に `DEV_USER_ID` が設定されているか確認する。
+- フロントエンドから API に接続できない場合は、`FRONTEND_ORIGIN` と `VITE_API_BASE_URL` を確認する。

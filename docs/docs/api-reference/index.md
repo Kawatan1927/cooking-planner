@@ -18,32 +18,26 @@ Cooking Planner バックエンドが提供する REST API の概要をまとめ
 
 ### ベース URL
 
-```
-https://<cloudfront-domain>/api
+```text
+https://<cloudflare-tunnel-domain>/api
 ```
 
-CloudFront → API Gateway へのパスベースルーティングで `/api` をバックエンドに転送します。  
-フロントエンドからは `VITE_API_BASE_URL` 環境変数で指定します。
+Cloudflare Tunnel がローカル PC 上の Hono server へリクエストを転送します。フロントエンドと API は同じ Hono server から配信するため、本番相当では `/api` の相対パスを使用できます。
 
 ### HTTP ヘッダ
 
-| ヘッダ                           | 説明                             |
-| -------------------------------- | -------------------------------- |
-| `Content-Type: application/json` | リクエストボディがある場合に必須 |
-| `Authorization: Bearer <JWT>`    | 全業務エンドポイントで必須       |
+| ヘッダ                           | 説明                                             |
+| -------------------------------- | ------------------------------------------------ |
+| `Content-Type: application/json` | リクエストボディがある場合に必須                 |
+| `Cf-Access-Jwt-Assertion`        | Cloudflare Access がオリジン転送時に付与する JWT |
 
 ---
 
 ## 認証
 
-**方式**: Bearer Token（JWT）
+方式は Cloudflare Access です。Cloudflare Access がアクセス制御の境界となり、認証済みリクエストのみ Hono server に到達します。
 
-Amazon Cognito User Pool で発行した ID トークンまたはアクセストークンを使用します。  
-API Gateway の JWT Authorizer が検証し、Lambda 側では `event.requestContext.authorizer.jwt.claims` から `sub` などを取得して `userId` として使用します。
-
-```http
-Authorization: Bearer <Cognito JWT>
-```
+Hono 側では `Cf-Access-Jwt-Assertion` を検証し、JWT の `email` または `sub` を `userId` として扱います。ローカル開発では `DEV_USER_ID` を設定すると JWT 検証をスキップできます。
 
 `/health` を除くすべての業務エンドポイントは認証が必須です。
 
@@ -66,7 +60,7 @@ Authorization: Bearer <Cognito JWT>
 | ステータスコード            | 説明                                                 |
 | --------------------------- | ---------------------------------------------------- |
 | `400 Bad Request`           | バリデーションエラー等                               |
-| `401 Unauthorized`          | JWT 不正・欠如（API Gateway 側で弾かれる場合もある） |
+| `401 Unauthorized`          | 認証情報の欠如・検証失敗                             |
 | `403 Forbidden`             | 認証は通っているが対象リソースの `userId` が異なる等 |
 | `404 Not Found`             | 該当リソースが存在しない                             |
 | `500 Internal Server Error` | 予期せぬ例外                                         |
@@ -107,15 +101,3 @@ Authorization: Bearer <Cognito JWT>
 | メソッド | パス      | 概要                             |
 | -------- | --------- | -------------------------------- |
 | `GET`    | `/health` | デバッグ・疎通確認用（認証不要） |
-
----
-
-## `docs/04-api-design.md` との対応
-
-| docs/04-api-design.md セクション | OpenAPI パス                                         |
-| -------------------------------- | ---------------------------------------------------- |
-| 1. 共通仕様（認証・エラー）      | `components/securitySchemes`, `components/responses` |
-| 2. Recipes API                   | `/recipes`, `/recipes/{recipeId}`                    |
-| 3. Menus API                     | `/menus`, `/menus/{menuId}`                          |
-| 4. Shopping List API             | `/shopping-list`                                     |
-| 5. Health Check API              | `/health`                                            |

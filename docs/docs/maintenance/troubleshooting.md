@@ -6,116 +6,82 @@ sidebar_position: 2
 
 ## 概要
 
-本番環境で問題が発生した場合の対処方法をまとめる。
+ローカル PC 上の Hono server、PostgreSQL、Cloudflare Tunnel / Access で問題が発生した場合の確認ポイントをまとめます。
 
----
+## フロントエンドが表示されない
 
-## よくある問題と対処法
+### 確認手順
 
-### フロントエンドが表示されない
+1. Hono server が起動しているか確認する。
+2. `bun run start` 実行時に frontend build が成功しているか確認する。
+3. Cloudflare Tunnel の転送先が Hono server の port と一致しているか確認する。
+4. ブラウザのコンソールにエラーがないか確認する。
 
-**確認手順**
+### よくある原因
 
-1. CloudFront ディストリビューションのステータスを確認する（AWS コンソール → CloudFront）
-2. S3 バケットにファイルが正しくアップロードされているか確認する
-3. ブラウザのコンソールにエラーがないか確認する
+- `frontend/dist/` が生成されていない。
+- Hono server が停止している。
+- Tunnel の転送先 port が `.env` の `PORT` と一致していない。
+- `VITE_API_BASE_URL` が意図しない URL を指している。
 
-**よくある原因**
+## API が 401 / 403 エラーを返す
 
-- S3 sync でファイルが正しくアップロードされていない → 再度 `aws s3 sync` を実行する
-- CloudFront のキャッシュが古い → `create-invalidation` でキャッシュを無効化する
-- 環境変数（`VITE_API_BASE_URL` 等）が正しく設定されていない → `frontend/.env.production` を確認する
+### 確認手順
 
----
+1. 開発時は `DEV_USER_ID` が設定されているか確認する。
+2. 本番相当では Cloudflare Access のセッションが有効か確認する。
+3. `CLOUDFLARE_ACCESS_TEAM_NAME` と `CLOUDFLARE_ACCESS_AUD` が正しいか確認する。
+4. Hono server のログに JWT 検証エラーが出ていないか確認する。
 
-### API が 401 / 403 エラーを返す
+### よくある原因
 
-**確認手順**
+- ローカル開発で `DEV_USER_ID` が未設定。
+- Cloudflare Access の許可ポリシーにユーザーが含まれていない。
+- Access Application Audience と環境変数が一致していない。
+- Cloudflare Access を通らずに直接 Hono server へアクセスしている。
 
-1. Cognito の JWT トークンが有効期限切れでないか確認する
-2. CloudWatch Logs で Lambda のログを確認する
-3. API Gateway の設定（認証設定）を確認する
+## API が 500 エラーを返す
 
-**よくある原因**
+### 確認手順
 
-- `VITE_AUTH_TOKEN` が未設定、または localStorage に認証トークンが保存されていない → トークンを設定して再読み込みする
-- 認証トークンが無効・期限切れになっている → 新しいトークンを取得して設定し直す
+1. Hono server の標準出力に出ている stack trace を確認する。
+2. PostgreSQL が起動しているか確認する。
+3. `DATABASE_URL` が正しいか確認する。
+4. migration が適用済みか確認する。
 
----
+### よくある原因
 
-### API が 500 エラーを返す
+- PostgreSQL が停止している。
+- database、ユーザー、パスワード、port のいずれかが誤っている。
+- 必要なテーブルが作成されていない。
+- アプリケーションコードのバリデーションや DB 操作にバグがある。
 
-**確認手順**
+## Cloudflare Tunnel から接続できない
 
-```bash
-# Lambda のログを確認
-aws logs tail /aws/lambda/<関数名> --follow
-```
+### 確認手順
 
-1. CloudWatch Logs でエラーメッセージと stack trace を確認する
-2. DynamoDB テーブルが存在するか確認する（AWS コンソール → DynamoDB）
-3. Lambda の環境変数（テーブル名等）が正しいか確認する
+1. `cloudflared` のプロセスが起動しているか確認する。
+2. Tunnel の転送先が `http://127.0.0.1:<PORT>` になっているか確認する。
+3. Hono server が同じ port で起動しているか確認する。
+4. Cloudflare のダッシュボードで Tunnel の状態を確認する。
 
-**よくある原因**
+## ドキュメントサイトが更新されない
 
-- DynamoDB テーブルが存在しない・テーブル名が間違っている → `cdk deploy` でインフラを再デプロイする
-- Lambda のコードにバグがある → ログを確認して修正する
+### 確認手順
 
----
+1. GitHub Actions の docs ワークフローが正常に完了しているか確認する。
+2. `docs/**` 配下のファイルが変更に含まれているか確認する。
+3. Docusaurus の build エラーがないか確認する。
 
-### CDK デプロイが失敗する
-
-**確認手順**
-
-```bash
-# CloudFormation スタックのイベントを確認
-aws cloudformation describe-stack-events \
-  --stack-name <スタック名> \
-  --query 'StackEvents[?ResourceStatus==`CREATE_FAILED` || ResourceStatus==`UPDATE_FAILED`]'
-```
-
-**よくある原因**
-
-- IAM 権限が不足している → 使用している AWS 認証情報のポリシーを確認する
-- CDK Bootstrap が未実行 → `cdk bootstrap` を実行する
-- スタックが `ROLLBACK_COMPLETE` 状態になっている → スタックを削除してから再デプロイする
+## ログ確認
 
 ```bash
-# スタックを削除（注意: DynamoDB テーブルが削除される可能性がある）
-cd infra
-cdk destroy
-```
+# Hono server を起動して標準出力を確認
+bun run backend:start
 
-> **TODO**: DynamoDB テーブルの削除保護（`RemovalPolicy.RETAIN`）設定の確認。
+# 開発時は frontend/backend をまとめて起動
+bun run dev
 
----
-
-### ドキュメントサイトが更新されない
-
-**確認手順**
-
-1. GitHub Actions の `docs-deploy.yml` ワークフローが正常に完了しているか確認する（GitHub → Actions タブ）
-2. `docs/**` 配下のファイルが変更に含まれているか確認する
-
-**よくある原因**
-
-- `docs/**` 以外のファイルのみ変更した場合はトリガーされない → `workflow_dispatch` で手動実行する
-- Docusaurus のビルドエラーがある → Actions のログを確認する
-
----
-
-## ログ確認コマンド集
-
-```bash
-# Lambda ログをリアルタイムで確認
-aws logs tail /aws/lambda/<関数名> --follow
-
-# 特定時間帯のログを確認（エポックミリ秒）
-aws logs filter-log-events \
-  --log-group-name /aws/lambda/<関数名> \
-  --start-time 1700000000000 \
-  --filter-pattern "ERROR"
-
-# API Gateway のアクセスログ（設定している場合）
-aws logs tail /aws/apigateway/<ステージ名> --follow
+# PostgreSQL 接続情報を確認
+echo $DATABASE_URL
 ```
