@@ -1,0 +1,17 @@
+# Copy this file to your cloudflared config location, then replace every
+# placeholder: TUNNEL_UUID and the credentials JSON path come from the
+# output of `cloudflared tunnel create <NAME>`; APP_HOSTNAME is the domain
+# you want to expose (e.g. cooking.example.com).
+#
+# Default config locations:
+# - Windows: %USERPROFILE%\.cloudflared\config.yml
+# - macOS/Linux: ~/.cloudflared/config.yml
+
+tunnel: <TUNNEL_UUID>
+credentials-file: <ABSOLUTE_PATH_TO_TUNNEL_CREDENTIALS_JSON>
+
+ingress:
+  - hostname: <APP_HOSTNAME>
+    service: http://127.0.0.1:3000
+
+  - service: http_status:404

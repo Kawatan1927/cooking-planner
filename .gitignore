@@ -39,3 +39,9 @@ docs/build
 docs/node_modules
 docs/package-lock.json
 backend/package-lock.json
+
+# Cloudflare Tunnel local credentials and copied runtime config
+/cloudflare/config.yml
+/cloudflare/*.json
+/cloudflare/cert.pem
+/.cloudflared/
