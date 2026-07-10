@@ -8,6 +8,8 @@ import { installBunStaticShim } from './bun-static-shim';
 // テストファイルの読み込み前（setupFiles 実行時）に準備する。
 installBunStaticShim();
 
+const originalFrontendDistDir = process.env.FRONTEND_DIST_DIR;
+
 const frontendDistDir = await mkdtemp(join(tmpdir(), 'cooking-planner-frontend-dist-'));
 const assetsDir = join(frontendDistDir, 'assets');
 
@@ -21,5 +23,11 @@ await writeFile(join(assetsDir, 'app.js'), 'console.log("cooking planner");');
 process.env.FRONTEND_DIST_DIR = frontendDistDir;
 
 afterAll(async () => {
+  if (originalFrontendDistDir === undefined) {
+    delete process.env.FRONTEND_DIST_DIR;
+  } else {
+    process.env.FRONTEND_DIST_DIR = originalFrontendDistDir;
+  }
+
   await rm(frontendDistDir, { recursive: true, force: true });
 });
