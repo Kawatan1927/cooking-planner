@@ -1,5 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { installBunStaticShim } from '../test-utils/bun-static-shim';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { findRecipeWithIngredientsMock } = vi.hoisted(() => ({
   findRecipeWithIngredientsMock: vi.fn(),
@@ -17,12 +16,7 @@ vi.mock('../shared/auth', () => ({
   getUserId: () => 'user-123',
 }));
 
-let app: (typeof import('../app'))['default'];
-
-beforeAll(async () => {
-  installBunStaticShim();
-  ({ default: app } = await import('../app'));
-});
+import app from '../app';
 
 describe('GET /api/recipes/:recipeId', () => {
   beforeEach(() => {

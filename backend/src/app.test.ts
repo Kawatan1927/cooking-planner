@@ -1,42 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { installBunStaticShim } from './test-utils/bun-static-shim';
-
-const originalFrontendDistDir = process.env.FRONTEND_DIST_DIR;
-
-let frontendDistDir: string;
-let app: (typeof import('./app'))['default'];
-
-beforeAll(async () => {
-  installBunStaticShim();
-
-  frontendDistDir = await mkdtemp(join(tmpdir(), 'cooking-planner-frontend-dist-'));
-  const assetsDir = join(frontendDistDir, 'assets');
-
-  await mkdir(assetsDir, { recursive: true });
-  await writeFile(
-    join(frontendDistDir, 'index.html'),
-    '<!doctype html><html><body><div id="root">Cooking Planner</div></body></html>'
-  );
-  await writeFile(join(assetsDir, 'app.js'), 'console.log("cooking planner");');
-
-  process.env.FRONTEND_DIST_DIR = frontendDistDir;
-  ({ default: app } = await import('./app'));
-});
-
-afterAll(async () => {
-  if (originalFrontendDistDir === undefined) {
-    delete process.env.FRONTEND_DIST_DIR;
-  } else {
-    process.env.FRONTEND_DIST_DIR = originalFrontendDistDir;
-  }
-
-  if (frontendDistDir) {
-    await rm(frontendDistDir, { recursive: true, force: true });
-  }
-});
+import { describe, expect, it } from 'vitest';
+// Bun シムと FRONTEND_DIST_DIR は test-utils/vitest.setup.ts で準備済み
+import app from './app';
 
 describe('app route prefixes', () => {
   it('/api prefix でも health endpoint を公開する', async () => {
