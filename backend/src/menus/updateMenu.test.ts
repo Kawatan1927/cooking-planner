@@ -1,5 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { installBunStaticShim } from '../test-utils/bun-static-shim';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { updateMenuForUserMock } = vi.hoisted(() => ({
   updateMenuForUserMock: vi.fn(),
@@ -18,12 +17,7 @@ vi.mock('../shared/auth', () => ({
   getUserId: () => 'user-123',
 }));
 
-let app: (typeof import('../app'))['default'];
-
-beforeAll(async () => {
-  installBunStaticShim();
-  ({ default: app } = await import('../app'));
-});
+import app from '../app';
 
 const MENU_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 
