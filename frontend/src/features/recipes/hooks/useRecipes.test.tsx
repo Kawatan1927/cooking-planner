@@ -7,7 +7,7 @@ import { createQueryWrapper, createTestQueryClient } from '@/test/queryClient';
 vi.mock('../api/recipes', () => ({ getRecipes: vi.fn() }));
 
 describe('useRecipes', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it('有効時に一覧を取得する', async () => {
     vi.mocked(getRecipes).mockResolvedValue([]);

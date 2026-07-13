@@ -7,7 +7,7 @@ import { createQueryWrapper, createTestQueryClient } from '@/test/queryClient';
 vi.mock('../api/recipes', () => ({ getRecipe: vi.fn() }));
 
 describe('useRecipe', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it.each([
     { recipeId: '', enabled: true },
