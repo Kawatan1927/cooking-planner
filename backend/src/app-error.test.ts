@@ -2,10 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('./routes/health', async () => {
   const { Hono } = await import('hono');
+  const { adapt } = await import('./shared/adapt');
   const route = new Hono();
-  route.get('/', () => {
-    throw new Error('test handler error');
-  });
+  route.get(
+    '/',
+    adapt(() => {
+      throw new Error('test handler error');
+    })
+  );
   return { default: route };
 });
 
