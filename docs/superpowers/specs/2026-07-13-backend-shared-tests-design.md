@@ -61,7 +61,7 @@ helperの戻り値を直接比較し、`HandlerResult` の契約を検証する�
 
 `adapt` は同期handlerと非同期handlerの両方について、結果を `Response` へ変換することを確認する。例外を500へ変換する責務は `adapt` に持たせない。
 
-handler例外の既存挙動は `app-error.test.ts` でHonoのリクエスト経路を通して検証する。health routeをテスト内で例外を送出するrouteへモックし、`app.onError` によりstatus 500と既定のエラー形式へ変換されることを確認する。通常のhealth routeを使う既存 `app.test.ts` とモジュールmockを分離するため、専用ファイルに配置する。`console.error` はテスト中だけモックし、呼び出しを確認したうえで必ず復元する。
+handler例外の既存挙動は `app-error.test.ts` でHonoのリクエスト経路を通して検証する。health routeをテスト内で例外を送出するrouteへモックし、実際の `app.onError` によりstatus 500、JSONのContent-Type、既定のエラーbodyへ変換され、`console.error` が出力されることを外部から観測する。route mockは例外を発生させるためだけに使い、mock自体の呼び出しは検証しない。通常のhealth routeを使う既存 `app.test.ts` とモジュールmockを分離するため、専用ファイルに配置する。`console.error` はテスト中だけモックし、呼び出しを確認したうえで必ず復元する。
 
 ## テスト分離と既存テストへの影響
 
