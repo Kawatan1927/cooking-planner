@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -13,6 +14,22 @@ const mutation = (overrides: object = {}) =>
   ({ mutateAsync, isPending: false, error: null, ...overrides }) as unknown as ReturnType<
     typeof useCreateRecipe
   >;
+
+function useCreateRecipeFailureMock() {
+  const [error, setError] = useState<Error | null>(null);
+
+  return mutation({
+    error,
+    mutateAsync: async (input: Parameters<typeof mutateAsync>[0]) => {
+      try {
+        return await mutateAsync(input);
+      } catch (mutationError) {
+        setError(mutationError as Error);
+        throw mutationError;
+      }
+    },
+  });
+}
 
 const renderPage = () =>
   render(
@@ -45,6 +62,8 @@ describe('RecipeNewPage', () => {
     expect(screen.getByText('レシピ名を入力してください。')).toBeInTheDocument();
     expect(screen.getByText('基本人数を入力してください。')).toBeInTheDocument();
     expect(screen.getByText('材料名を入力してください。')).toBeInTheDocument();
+    expect(screen.getByText('分量を入力してください。')).toBeInTheDocument();
+    expect(screen.getByText('単位を入力してください。')).toBeInTheDocument();
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
@@ -98,16 +117,20 @@ describe('RecipeNewPage', () => {
     expect(await screen.findByText('作成した詳細')).toBeInTheDocument();
   });
 
-  it('APIエラーを表示して遷移しない', () => {
-    vi.mocked(useCreateRecipe).mockReturnValue(
-      mutation({
-        error: new ApiError(400, 'VALIDATION_ERROR', '登録できません'),
-      })
-    );
-
+  it('有効な入力の送信に失敗した場合はAPIエラーを表示して遷移しない', async () => {
+    const user = userEvent.setup();
+    mutateAsync.mockRejectedValue(new ApiError(400, 'VALIDATION_ERROR', '登録できません'));
+    vi.mocked(useCreateRecipe).mockImplementation(useCreateRecipeFailureMock);
     renderPage();
 
-    expect(screen.getByText('保存に失敗しました。登録できません')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('レシピ名 *'), 'カレー');
+    await user.type(screen.getByLabelText('材料名 *'), '肉');
+    await user.type(screen.getByLabelText('分量 *'), '200');
+    await user.type(screen.getByLabelText('単位 *'), 'g');
+    await user.click(screen.getByRole('button', { name: '保存' }));
+
+    expect(await screen.findByText('保存に失敗しました。登録できません')).toBeInTheDocument();
+    expect(mutateAsync).toHaveBeenCalledOnce();
     expect(screen.queryByText('作成した詳細')).not.toBeInTheDocument();
   });
 });

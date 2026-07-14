@@ -36,4 +36,20 @@ describe('useCreateRecipe', () => {
       })
     );
   });
+
+  it('登録失敗時はエラーを返して一覧cacheをinvalidateしない', async () => {
+    vi.mocked(createRecipe).mockRejectedValue(new Error('登録失敗'));
+    const client = createTestQueryClient();
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    const { result } = renderHook(() => useCreateRecipe({ userCacheKey: 'user-a' }), {
+      wrapper: createQueryWrapper(client),
+    });
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(input)).rejects.toThrow('登録失敗');
+    });
+
+    expect(createRecipe).toHaveBeenCalledWith(input);
+    expect(invalidate).not.toHaveBeenCalled();
+  });
 });

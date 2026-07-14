@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRecipes } from '../hooks';
 import { RecipeListPage } from './RecipeListPage';
@@ -9,13 +9,18 @@ vi.mock('../hooks', () => ({ useRecipes: vi.fn() }));
 
 const state = (value: object) => value as ReturnType<typeof useRecipes>;
 
+function RecipeDetailRoute() {
+  const { recipeId } = useParams();
+  return <h2>詳細画面 {recipeId}</h2>;
+}
+
 const renderPage = () =>
   render(
     <MemoryRouter initialEntries={['/recipes']}>
       <Routes>
         <Route path="/recipes" element={<RecipeListPage />} />
         <Route path="/recipes/new" element={<h2>登録画面</h2>} />
-        <Route path="/recipes/:recipeId" element={<h2>詳細画面</h2>} />
+        <Route path="/recipes/:recipeId" element={<RecipeDetailRoute />} />
       </Routes>
     </MemoryRouter>
   );
@@ -24,6 +29,14 @@ const recipe = {
   recipeId: 'recipe-1',
   name: 'カレー',
   baseServings: 2,
+  createdAt: '',
+  updatedAt: '',
+};
+
+const secondRecipe = {
+  recipeId: 'recipe-2',
+  name: 'シチュー',
+  baseServings: 4,
   createdAt: '',
   updatedAt: '',
 };
@@ -66,12 +79,14 @@ describe('RecipeListPage', () => {
 
   it('詳細へ遷移する', async () => {
     const user = userEvent.setup();
-    vi.mocked(useRecipes).mockReturnValue(state({ isLoading: false, error: null, data: [recipe] }));
+    vi.mocked(useRecipes).mockReturnValue(
+      state({ isLoading: false, error: null, data: [recipe, secondRecipe] })
+    );
 
     renderPage();
 
-    await user.click(screen.getByRole('button', { name: '詳細を見る' }));
+    await user.click(screen.getAllByRole('button', { name: '詳細を見る' })[1]);
 
-    expect(screen.getByRole('heading', { name: '詳細画面' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '詳細画面 recipe-2' })).toBeInTheDocument();
   });
 });

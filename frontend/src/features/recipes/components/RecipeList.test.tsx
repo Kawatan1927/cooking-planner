@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Recipe } from '../types';
@@ -14,6 +14,14 @@ const recipe: Recipe = {
   updatedAt: '2026-01-02T00:00:00Z',
 };
 
+const secondRecipe: Recipe = {
+  recipeId: 'recipe-2',
+  name: 'シチュー',
+  baseServings: 4,
+  createdAt: '2026-01-03T00:00:00Z',
+  updatedAt: '2026-01-04T00:00:00Z',
+};
+
 describe('RecipeList', () => {
   it('空の場合に案内を表示する', () => {
     render(<RecipeList recipes={[]} />);
@@ -24,15 +32,17 @@ describe('RecipeList', () => {
   it('一覧を表示して詳細選択を通知する', async () => {
     const user = userEvent.setup();
     const onRecipeClick = vi.fn();
-    render(<RecipeList recipes={[recipe]} onRecipeClick={onRecipeClick} />);
+    render(<RecipeList recipes={[recipe, secondRecipe]} onRecipeClick={onRecipeClick} />);
 
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getByText('カレー')).toBeInTheDocument();
     expect(screen.getByText('料理本 (p.10)')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '詳細を見る' }));
+    const secondRow = screen.getByRole('cell', { name: 'シチュー' }).closest('tr');
+    expect(secondRow).not.toBeNull();
+    await user.click(within(secondRow!).getByRole('button', { name: '詳細を見る' }));
 
     expect(onRecipeClick).toHaveBeenCalledOnce();
-    expect(onRecipeClick).toHaveBeenCalledWith('recipe-1');
+    expect(onRecipeClick).toHaveBeenCalledWith('recipe-2');
   });
 });

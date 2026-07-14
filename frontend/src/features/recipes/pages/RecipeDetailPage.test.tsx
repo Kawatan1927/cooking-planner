@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -39,6 +40,22 @@ const updateState = (overrides: object = {}) =>
   ({ mutateAsync, isPending: false, error: null, ...overrides }) as unknown as ReturnType<
     typeof useUpdateRecipe
   >;
+
+function useUpdateRecipeFailureMock() {
+  const [error, setError] = useState<Error | null>(null);
+
+  return updateState({
+    error,
+    mutateAsync: async (input: Parameters<typeof mutateAsync>[0]) => {
+      try {
+        return await mutateAsync(input);
+      } catch (mutationError) {
+        setError(mutationError as Error);
+        throw mutationError;
+      }
+    },
+  });
+}
 
 const renderPage = () =>
   render(
@@ -157,26 +174,33 @@ describe('RecipeDetailPage', () => {
     expect(await screen.findByText('レシピを保存しました。')).toBeInTheDocument();
   });
 
-  it('validationエラーでは更新しない', async () => {
+  it('必須項目のvalidationエラーでは更新しない', async () => {
     const user = userEvent.setup();
     renderPage();
 
     await user.clear(screen.getByLabelText('レシピ名 *'));
+    await user.clear(screen.getByLabelText('材料名 *'));
+    await user.clear(screen.getByLabelText('分量 *'));
+    await user.clear(screen.getByLabelText('単位 *'));
     await user.click(screen.getByRole('button', { name: '編集して保存' }));
 
     expect(screen.getByText('レシピ名を入力してください。')).toBeInTheDocument();
+    expect(screen.getByText('材料名を入力してください。')).toBeInTheDocument();
+    expect(screen.getByText('分量を入力してください。')).toBeInTheDocument();
+    expect(screen.getByText('単位を入力してください。')).toBeInTheDocument();
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
-  it('更新APIエラーを表示する', () => {
-    vi.mocked(useUpdateRecipe).mockReturnValue(
-      updateState({
-        error: new ApiError(400, 'VALIDATION_ERROR', '更新できません'),
-      })
-    );
-
+  it('有効な入力の更新に失敗した場合はAPIエラーを表示する', async () => {
+    const user = userEvent.setup();
+    mutateAsync.mockRejectedValue(new ApiError(400, 'VALIDATION_ERROR', '更新できません'));
+    vi.mocked(useUpdateRecipe).mockImplementation(useUpdateRecipeFailureMock);
     renderPage();
 
-    expect(screen.getByText('保存に失敗しました。更新できません')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '編集して保存' }));
+
+    expect(await screen.findByText('保存に失敗しました。更新できません')).toBeInTheDocument();
+    expect(mutateAsync).toHaveBeenCalledOnce();
+    expect(screen.queryByText('レシピを保存しました。')).not.toBeInTheDocument();
   });
 });
