@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/apiClient';
 import { useCreateRecipe } from '../hooks';
@@ -31,12 +31,17 @@ function useCreateRecipeFailureMock() {
   });
 }
 
+function CreatedRecipeRoute() {
+  const { recipeId } = useParams();
+  return <p>作成した詳細: {recipeId}</p>;
+}
+
 const renderPage = () =>
   render(
     <MemoryRouter initialEntries={['/recipes/new']}>
       <Routes>
         <Route path="/recipes/new" element={<RecipeNewPage />} />
-        <Route path="/recipes/:recipeId" element={<p>作成した詳細</p>} />
+        <Route path="/recipes/:recipeId" element={<CreatedRecipeRoute />} />
       </Routes>
     </MemoryRouter>
   );
@@ -114,7 +119,7 @@ describe('RecipeNewPage', () => {
         },
       ],
     });
-    expect(await screen.findByText('作成した詳細')).toBeInTheDocument();
+    expect(await screen.findByText('作成した詳細: recipe-1')).toBeInTheDocument();
   });
 
   it('有効な入力の送信に失敗した場合はAPIエラーを表示して遷移しない', async () => {

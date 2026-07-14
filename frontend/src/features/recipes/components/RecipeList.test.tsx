@@ -38,8 +38,13 @@ describe('RecipeList', () => {
     expect(screen.getByText('カレー')).toBeInTheDocument();
     expect(screen.getByText('料理本 (p.10)')).toBeInTheDocument();
 
+    const firstRow = screen.getByRole('cell', { name: 'カレー' }).closest('tr');
+    expect(firstRow).not.toBeNull();
+    expect(within(firstRow!).getByRole('cell', { name: '2人分' })).toBeInTheDocument();
+
     const secondRow = screen.getByRole('cell', { name: 'シチュー' }).closest('tr');
     expect(secondRow).not.toBeNull();
+    expect(within(secondRow!).getByRole('cell', { name: '4人分' })).toBeInTheDocument();
     await user.click(within(secondRow!).getByRole('button', { name: '詳細を見る' }));
 
     expect(onRecipeClick).toHaveBeenCalledOnce();
