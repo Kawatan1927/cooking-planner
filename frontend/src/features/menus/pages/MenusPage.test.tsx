@@ -41,7 +41,7 @@ const mutation = (mutateAsync: typeof createMutateAsync, overrides: object = {})
 describe('MenusPage', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date('2026-07-17T09:00:00+09:00'));
+    vi.setSystemTime(new Date(2026, 6, 17, 9, 0, 0));
     vi.mocked(useMenus).mockReturnValue(query());
     vi.mocked(useRecipes).mockReturnValue({
       data: [],
