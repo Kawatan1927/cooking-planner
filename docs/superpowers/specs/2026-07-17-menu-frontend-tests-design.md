@@ -10,7 +10,7 @@
 - `frontend/src/features/menus/hooks/` の一覧queryと登録・更新・削除mutation
 - `frontend/src/features/menus/pages/MenusPage.tsx` の表示条件、表示状態、追加・編集・削除操作
 
-仕様書 `docs/01-vision-and-scope.md` から `docs/05-architecture-notes.md` に定義された献立画面、献立データ、Menus APIのGET、POST、PUT、DELETE契約に従う。仕様変更は行わず、これらの仕様書とプロダクションコードは変更しない。受け入れ条件の挙動が現行実装に不足している場合は、テスト追加とは分離して変更案を提示する。
+仕様書 `docs/01-vision-and-scope.md` から `docs/05-architecture-notes.md` に定義された献立画面、献立データ、Menus APIのGET、POST、PUT、DELETE契約に従う。人間のみが編集するこれらの仕様書は変更しない。プロダクションコードの変更は、Issue #149が要求する削除確認UIを追加する最小限の変更に限定する。
 
 ## 対象外
 
@@ -84,7 +84,7 @@ API関数のみをモックし、各テストで新しい `QueryClient` と `Que
 
 ### 削除
 
-- 削除ボタン押下時に確認UIを表示する。
+- 削除ボタン押下時に、対象の献立を削除するか確認する `window.confirm` を表示する。
 - 確認をキャンセルした場合は削除mutationを呼ばない。
 - 確認を承認した場合は対象menuIdを削除mutationへ渡す。
 - 削除失敗時はAPIエラーを表示し、対象の献立を画面から不適切に失わない。
@@ -97,7 +97,7 @@ API関数のみをモックし、各テストで新しい `QueryClient` と `Que
 
 ## 検証方法
 
-テストファイル単位で対象テストを実行し、失敗内容が仕様と現行実装の不一致を示す場合はプロダクションコードを変更せず報告する。すべてのテスト追加後は以下を実行する。
+テストファイル単位で対象テストを実行する。削除確認UIは、先に確認なしで削除mutationが呼ばれることを示す失敗テストを追加し、その後に最小限の実装を行って成功を確認する。それ以外の失敗内容が仕様と現行実装の不一致を示す場合は、追加のプロダクションコードを変更せず報告する。すべてのテスト追加後は以下を実行する。
 
 ```bash
 cd frontend && bun run test
