@@ -248,4 +248,41 @@ describe('MenusPage', () => {
     expect(screen.getByLabelText('レシピID')).toHaveValue('recipe-2');
     expect(servings).toHaveValue(4);
   });
+
+  it('削除確認をキャンセルした場合は削除しない', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    vi.mocked(useMenus).mockReturnValue(query({ data: { from: '', to: '', items: [menu] } }));
+    render(<MenusPage />);
+
+    await user.click(screen.getByRole('button', { name: '削除' }));
+
+    expect(window.confirm).toHaveBeenCalledWith('この献立を削除しますか？');
+    expect(deleteMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('削除確認を承認した場合は対象menuIdを削除する', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    deleteMutateAsync.mockResolvedValue(undefined);
+    vi.mocked(useMenus).mockReturnValue(query({ data: { from: '', to: '', items: [menu] } }));
+    render(<MenusPage />);
+
+    await user.click(screen.getByRole('button', { name: '削除' }));
+
+    expect(deleteMutateAsync).toHaveBeenCalledWith('menu-1');
+  });
+
+  it('削除失敗時にエラーと対象献立を表示し続ける', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    deleteMutateAsync.mockRejectedValue(new Error('削除できません'));
+    vi.mocked(useMenus).mockReturnValue(query({ data: { from: '', to: '', items: [menu] } }));
+    render(<MenusPage />);
+
+    await user.click(screen.getByRole('button', { name: '削除' }));
+
+    expect(await screen.findByText('削除できません')).toBeInTheDocument();
+    expect(screen.getByText('レシピ名: 未登録レシピ (recipe-1)')).toBeInTheDocument();
+  });
 });
