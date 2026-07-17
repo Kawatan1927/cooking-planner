@@ -40,6 +40,7 @@ const mutation = (mutateAsync: typeof createMutateAsync, overrides: object = {})
 
 describe('MenusPage', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date(2026, 6, 17, 9, 0, 0));
     vi.mocked(useMenus).mockReturnValue(query());
@@ -133,5 +134,118 @@ describe('MenusPage', () => {
 
     expect(displayDays).toHaveValue(Number(normalized));
     expect(screen.getByText(`API 取得期間: 2026-07-17 〜 ${endDate}`)).toBeInTheDocument();
+  });
+
+  it('追加入力を正規化して登録する', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    createMutateAsync.mockResolvedValue({ menuId: 'menu-2' });
+    render(<MenusPage />);
+
+    await user.clear(screen.getByLabelText('日付'));
+    await user.type(screen.getByLabelText('日付'), '2026-07-20');
+    await user.selectOptions(screen.getByLabelText('食事区分'), 'LUNCH');
+    await user.type(screen.getByPlaceholderText('recipeId'), '  recipe-2  ');
+    await user.clear(screen.getByLabelText('人数'));
+    await user.type(screen.getByLabelText('人数'), '3');
+    await user.click(screen.getByRole('button', { name: '追加' }));
+
+    expect(createMutateAsync).toHaveBeenCalledWith({
+      date: '2026-07-20',
+      mealType: 'LUNCH',
+      recipeId: 'recipe-2',
+      servings: 3,
+    });
+    expect(screen.getByPlaceholderText('recipeId')).toHaveValue('');
+    expect(screen.getByLabelText('人数')).toHaveValue(1);
+  });
+
+  it('recipeIdが空の場合はブラウザーvalidationで登録しない', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<MenusPage />);
+    const recipeId = screen.getByPlaceholderText('recipeId');
+
+    await user.click(screen.getByRole('button', { name: '追加' }));
+
+    expect(recipeId).toBeInvalid();
+    expect(createMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('追加の不正な人数を表示して登録しない', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<MenusPage />);
+
+    await user.type(screen.getByPlaceholderText('recipeId'), 'recipe-2');
+    await user.clear(screen.getByLabelText('人数'));
+    await user.type(screen.getByLabelText('人数'), '0');
+    fireEvent.submit(screen.getByRole('button', { name: '追加' }).closest('form')!);
+
+    expect(screen.getByText('人数は0より大きい値で入力してください。')).toBeInTheDocument();
+    expect(createMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('登録失敗時にエラーと入力値を保持する', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    createMutateAsync.mockRejectedValue(new Error('登録できません'));
+    render(<MenusPage />);
+
+    await user.type(screen.getByPlaceholderText('recipeId'), 'recipe-2');
+    await user.clear(screen.getByLabelText('人数'));
+    await user.type(screen.getByLabelText('人数'), '3');
+    await user.click(screen.getByRole('button', { name: '追加' }));
+
+    expect(await screen.findByText('登録できません')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('recipeId')).toHaveValue('recipe-2');
+    expect(screen.getByLabelText('人数')).toHaveValue(3);
+  });
+
+  it('登録済み献立を編集して更新する', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    updateMutateAsync.mockResolvedValue({ menuId: 'menu-1' });
+    vi.mocked(useMenus).mockReturnValue(query({ data: { from: '', to: '', items: [menu] } }));
+    render(<MenusPage />);
+
+    await user.clear(screen.getByLabelText('レシピID'));
+    await user.type(screen.getByLabelText('レシピID'), ' recipe-2 ');
+    const servings = screen.getAllByLabelText('人数')[1];
+    await user.clear(servings);
+    await user.type(servings, '4');
+    await user.click(screen.getByRole('button', { name: '更新' }));
+
+    expect(updateMutateAsync).toHaveBeenCalledWith({
+      date: '2026-07-17',
+      mealType: 'DINNER',
+      recipeId: 'recipe-2',
+      servings: 4,
+    });
+  });
+
+  it('編集時にrecipeIdが空なら更新しない', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.mocked(useMenus).mockReturnValue(query({ data: { from: '', to: '', items: [menu] } }));
+    render(<MenusPage />);
+
+    await user.clear(screen.getByLabelText('レシピID'));
+    await user.click(screen.getByRole('button', { name: '更新' }));
+
+    expect(screen.getByText('レシピIDを入力してください。')).toBeInTheDocument();
+    expect(updateMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('更新失敗時にエラーと編集中の値を保持する', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    updateMutateAsync.mockRejectedValue(new Error('更新できません'));
+    vi.mocked(useMenus).mockReturnValue(query({ data: { from: '', to: '', items: [menu] } }));
+    render(<MenusPage />);
+
+    await user.clear(screen.getByLabelText('レシピID'));
+    await user.type(screen.getByLabelText('レシピID'), 'recipe-2');
+    const servings = screen.getAllByLabelText('人数')[1];
+    await user.clear(servings);
+    await user.type(servings, '4');
+    await user.click(screen.getByRole('button', { name: '更新' }));
+
+    expect(await screen.findByText('更新できません')).toBeInTheDocument();
+    expect(screen.getByLabelText('レシピID')).toHaveValue('recipe-2');
+    expect(servings).toHaveValue(4);
   });
 });
