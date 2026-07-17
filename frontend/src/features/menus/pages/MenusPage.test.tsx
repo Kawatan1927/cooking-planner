@@ -79,21 +79,67 @@ describe('MenusPage', () => {
   });
 
   it('日付と食事区分ごとに献立を表示する', () => {
+    const breakfastMenu: MenuItem = {
+      menuId: 'menu-breakfast',
+      date: '2026-07-17',
+      mealType: 'BREAKFAST',
+      recipeId: 'recipe-breakfast',
+      servings: 1,
+    };
+    const dinnerMenu: MenuItem = {
+      menuId: 'menu-dinner',
+      date: '2026-07-17',
+      mealType: 'DINNER',
+      recipeId: 'recipe-dinner',
+      servings: 2,
+    };
+    const lunchMenu: MenuItem = {
+      menuId: 'menu-lunch',
+      date: '2026-07-18',
+      mealType: 'LUNCH',
+      recipeId: 'recipe-lunch',
+      servings: 3,
+    };
     vi.mocked(useMenus).mockReturnValue(
-      query({ data: { from: '2026-07-17', to: '2026-07-23', items: [menu] } })
+      query({
+        data: {
+          from: '2026-07-17',
+          to: '2026-07-23',
+          items: [breakfastMenu, dinnerMenu, lunchMenu],
+        },
+      })
     );
     vi.mocked(useRecipes).mockReturnValue({
-      data: [{ recipeId: 'recipe-1', name: 'カレー' }],
+      data: [
+        { recipeId: 'recipe-breakfast', name: 'トースト' },
+        { recipeId: 'recipe-dinner', name: 'カレー' },
+        { recipeId: 'recipe-lunch', name: 'パスタ' },
+      ],
     } as unknown as ReturnType<typeof useRecipes>);
 
     render(<MenusPage />);
 
-    const dateHeading = screen.getByRole('heading', { name: '2026-07-17' });
-    expect(dateHeading).toBeInTheDocument();
-    expect(
-      within(dateHeading.parentElement!).getByRole('heading', { name: '夜' })
-    ).toBeInTheDocument();
-    expect(screen.getByText('レシピ名: カレー')).toBeInTheDocument();
+    const july17Section = screen.getByRole('heading', { name: '2026-07-17' }).closest('section')!;
+    const july17View = within(july17Section);
+    const breakfastBlock = july17View.getByRole('heading', { name: '朝' }).parentElement!;
+    const dinnerBlock = july17View.getByRole('heading', { name: '夜' }).parentElement!;
+
+    expect(within(breakfastBlock).getByText('レシピ名: トースト')).toBeInTheDocument();
+    expect(within(breakfastBlock).getByLabelText('人数')).toHaveValue(1);
+    expect(within(breakfastBlock).queryByText('レシピ名: カレー')).not.toBeInTheDocument();
+    expect(within(dinnerBlock).getByText('レシピ名: カレー')).toBeInTheDocument();
+    expect(within(dinnerBlock).getByLabelText('人数')).toHaveValue(2);
+    expect(within(dinnerBlock).queryByText('レシピ名: トースト')).not.toBeInTheDocument();
+    expect(july17View.queryByText('レシピ名: パスタ')).not.toBeInTheDocument();
+
+    const july18Section = screen.getByRole('heading', { name: '2026-07-18' }).closest('section')!;
+    const july18View = within(july18Section);
+    const lunchBlock = july18View.getByRole('heading', { name: '昼' }).parentElement!;
+
+    expect(within(lunchBlock).getByText('レシピ名: パスタ')).toBeInTheDocument();
+    expect(within(lunchBlock).getByLabelText('人数')).toHaveValue(3);
+    expect(july18View.queryByText('レシピ名: トースト')).not.toBeInTheDocument();
+    expect(july18View.queryByText('レシピ名: カレー')).not.toBeInTheDocument();
   });
 
   it('未登録recipeIdを代替表示する', () => {
@@ -144,7 +190,7 @@ describe('MenusPage', () => {
     await user.clear(screen.getByLabelText('日付'));
     await user.type(screen.getByLabelText('日付'), '2026-07-20');
     await user.selectOptions(screen.getByLabelText('食事区分'), 'LUNCH');
-    await user.type(screen.getByPlaceholderText('recipeId'), '  recipe-2  ');
+    await user.type(screen.getByLabelText('レシピ'), '  recipe-2  ');
     await user.clear(screen.getByLabelText('人数'));
     await user.type(screen.getByLabelText('人数'), '3');
     await user.click(screen.getByRole('button', { name: '追加' }));
@@ -155,14 +201,14 @@ describe('MenusPage', () => {
       recipeId: 'recipe-2',
       servings: 3,
     });
-    expect(screen.getByPlaceholderText('recipeId')).toHaveValue('');
+    expect(screen.getByLabelText('レシピ')).toHaveValue('');
     expect(screen.getByLabelText('人数')).toHaveValue(1);
   });
 
   it('recipeIdが空の場合はブラウザーvalidationで登録しない', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<MenusPage />);
-    const recipeId = screen.getByPlaceholderText('recipeId');
+    const recipeId = screen.getByLabelText('レシピ');
 
     await user.click(screen.getByRole('button', { name: '追加' }));
 
@@ -170,16 +216,17 @@ describe('MenusPage', () => {
     expect(createMutateAsync).not.toHaveBeenCalled();
   });
 
-  it('追加の不正な人数を表示して登録しない', async () => {
+  it('追加の不正な人数はブラウザーvalidationで登録しない', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<MenusPage />);
+    const servings = screen.getByLabelText('人数');
 
-    await user.type(screen.getByPlaceholderText('recipeId'), 'recipe-2');
-    await user.clear(screen.getByLabelText('人数'));
-    await user.type(screen.getByLabelText('人数'), '0');
-    fireEvent.submit(screen.getByRole('button', { name: '追加' }).closest('form')!);
+    await user.type(screen.getByLabelText('レシピ'), 'recipe-2');
+    await user.clear(servings);
+    await user.type(servings, '0');
+    await user.click(screen.getByRole('button', { name: '追加' }));
 
-    expect(screen.getByText('人数は0より大きい値で入力してください。')).toBeInTheDocument();
+    expect(servings).toBeInvalid();
     expect(createMutateAsync).not.toHaveBeenCalled();
   });
 
@@ -188,13 +235,13 @@ describe('MenusPage', () => {
     createMutateAsync.mockRejectedValue(new Error('登録できません'));
     render(<MenusPage />);
 
-    await user.type(screen.getByPlaceholderText('recipeId'), 'recipe-2');
+    await user.type(screen.getByLabelText('レシピ'), 'recipe-2');
     await user.clear(screen.getByLabelText('人数'));
     await user.type(screen.getByLabelText('人数'), '3');
     await user.click(screen.getByRole('button', { name: '追加' }));
 
     expect(await screen.findByText('登録できません')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('recipeId')).toHaveValue('recipe-2');
+    expect(screen.getByLabelText('レシピ')).toHaveValue('recipe-2');
     expect(screen.getByLabelText('人数')).toHaveValue(3);
   });
 
@@ -203,13 +250,14 @@ describe('MenusPage', () => {
     updateMutateAsync.mockResolvedValue({ menuId: 'menu-1' });
     vi.mocked(useMenus).mockReturnValue(query({ data: { from: '', to: '', items: [menu] } }));
     render(<MenusPage />);
+    const menuItemView = within(screen.getByRole('listitem'));
 
-    await user.clear(screen.getByLabelText('レシピID'));
-    await user.type(screen.getByLabelText('レシピID'), ' recipe-2 ');
-    const servings = screen.getAllByLabelText('人数')[1];
+    await user.clear(menuItemView.getByLabelText('レシピID'));
+    await user.type(menuItemView.getByLabelText('レシピID'), ' recipe-2 ');
+    const servings = menuItemView.getByLabelText('人数');
     await user.clear(servings);
     await user.type(servings, '4');
-    await user.click(screen.getByRole('button', { name: '更新' }));
+    await user.click(menuItemView.getByRole('button', { name: '更新' }));
 
     expect(updateMutateAsync).toHaveBeenCalledWith({
       date: '2026-07-17',
@@ -223,11 +271,28 @@ describe('MenusPage', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     vi.mocked(useMenus).mockReturnValue(query({ data: { from: '', to: '', items: [menu] } }));
     render(<MenusPage />);
+    const menuItemView = within(screen.getByRole('listitem'));
 
-    await user.clear(screen.getByLabelText('レシピID'));
-    await user.click(screen.getByRole('button', { name: '更新' }));
+    await user.clear(menuItemView.getByLabelText('レシピID'));
+    await user.click(menuItemView.getByRole('button', { name: '更新' }));
 
-    expect(screen.getByText('レシピIDを入力してください。')).toBeInTheDocument();
+    expect(menuItemView.getByText('レシピIDを入力してください。')).toBeInTheDocument();
+    expect(updateMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('編集時の人数が0なら更新しない', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.mocked(useMenus).mockReturnValue(query({ data: { from: '', to: '', items: [menu] } }));
+    render(<MenusPage />);
+    const menuItemView = within(screen.getByRole('listitem'));
+    const servings = menuItemView.getByLabelText('人数');
+
+    await user.clear(servings);
+    await user.type(servings, '0');
+    await user.click(menuItemView.getByRole('button', { name: '更新' }));
+
+    expect(servings).toBeInvalid();
+    expect(menuItemView.getByText('人数は0より大きい値で入力してください。')).toBeInTheDocument();
     expect(updateMutateAsync).not.toHaveBeenCalled();
   });
 
@@ -236,16 +301,17 @@ describe('MenusPage', () => {
     updateMutateAsync.mockRejectedValue(new Error('更新できません'));
     vi.mocked(useMenus).mockReturnValue(query({ data: { from: '', to: '', items: [menu] } }));
     render(<MenusPage />);
+    const menuItemView = within(screen.getByRole('listitem'));
 
-    await user.clear(screen.getByLabelText('レシピID'));
-    await user.type(screen.getByLabelText('レシピID'), 'recipe-2');
-    const servings = screen.getAllByLabelText('人数')[1];
+    await user.clear(menuItemView.getByLabelText('レシピID'));
+    await user.type(menuItemView.getByLabelText('レシピID'), 'recipe-2');
+    const servings = menuItemView.getByLabelText('人数');
     await user.clear(servings);
     await user.type(servings, '4');
-    await user.click(screen.getByRole('button', { name: '更新' }));
+    await user.click(menuItemView.getByRole('button', { name: '更新' }));
 
-    expect(await screen.findByText('更新できません')).toBeInTheDocument();
-    expect(screen.getByLabelText('レシピID')).toHaveValue('recipe-2');
+    expect(await menuItemView.findByText('更新できません')).toBeInTheDocument();
+    expect(menuItemView.getByLabelText('レシピID')).toHaveValue('recipe-2');
     expect(servings).toHaveValue(4);
   });
 
