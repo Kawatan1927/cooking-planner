@@ -150,15 +150,16 @@ describe('ShoppingListPage', () => {
 
   it('対象項目だけをチェックし期間変更後に状態をリセットする', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    vi.mocked(useShoppingList).mockImplementation(({ from }) =>
-      query({
+    vi.mocked(useShoppingList).mockImplementation(options => {
+      const from = options?.from;
+      return query({
         data: {
           from: from ?? '',
           to: from === '2026-07-24' ? '2026-07-26' : '2026-07-23',
           items: from === '2026-07-24' ? [onion, milk] : [onion, salt],
         },
-      })
-    );
+      });
+    });
     renderPage('/shopping-list?from=2026-07-21&to=2026-07-23');
     const onionCheckbox = screen.getByRole('checkbox', { name: /玉ねぎ/ });
     const saltCheckbox = screen.getByRole('checkbox', { name: /塩/ });
