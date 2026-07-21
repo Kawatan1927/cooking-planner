@@ -105,6 +105,10 @@ function MenuItemEditor({
   };
 
   const handleDelete = async () => {
+    if (!window.confirm('この献立を削除しますか？')) {
+      return;
+    }
+
     try {
       await onDelete(item.menuId);
       setErrorMessage(null);
