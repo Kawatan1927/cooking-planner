@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { findRecipeWithIngredientsMock } = vi.hoisted(() => ({
   findRecipeWithIngredientsMock: vi.fn(),
@@ -21,6 +21,10 @@ import app from '../app';
 describe('GET /api/recipes/:recipeId', () => {
   beforeEach(() => {
     findRecipeWithIngredientsMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('レシピ本体と材料一覧を返す', async () => {
@@ -83,5 +87,23 @@ describe('GET /api/recipes/:recipeId', () => {
       error: { code: 'RECIPE_NOT_FOUND', message: 'Recipe not found', details: null },
     });
     expect(findRecipeWithIngredientsMock).not.toHaveBeenCalled();
+  });
+
+  it('repository例外時は500を返す', async () => {
+    const recipeId = '33333333-3333-3333-3333-333333333333';
+    findRecipeWithIngredientsMock.mockRejectedValue(new Error('database error'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const response = await app.request(`/api/recipes/${recipeId}`);
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to fetch recipe',
+        details: null,
+      },
+    });
+    expect(consoleError).toHaveBeenCalled();
   });
 });
