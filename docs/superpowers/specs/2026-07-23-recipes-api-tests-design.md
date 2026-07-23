@@ -12,8 +12,9 @@ Recipes APIの一覧・詳細・登録・更新について、入力検証、認
 - `PUT /api/recipes/:recipeId`
 - `backend/src/recipes/validation.ts` が担う主要な入力検証
 - Recipes handlerとrepository間の引数変換
+- JSON bodyのトップレベルが非null・非配列のオブジェクトであることを確認する最小限の入力検証
 
-実PostgreSQL、Drizzle SQL、DELETE APIの新規実装、APIレスポンス仕様、本番コードの責務は変更・検証対象外とする。仕様書 `docs/01-vision-and-scope.md` から `docs/05-architecture-notes.md` も変更しない。
+実PostgreSQL、Drizzle SQL、DELETE APIの新規実装、APIレスポンス仕様、上記のトップレベルbody検証以外の本番コードの責務は変更・検証対象外とする。仕様書 `docs/01-vision-and-scope.md` から `docs/05-architecture-notes.md` も変更しない。
 
 ## テスト境界
 
@@ -21,7 +22,7 @@ Recipes APIの一覧・詳細・登録・更新について、入力検証、認
 
 入力検証は公開APIから観測し、`validation.ts` の内部関数を直接テストしない。これにより、HTTP status、エラーbody、不正入力時にrepositoryを呼ばないことを一つのテスト境界で確認する。
 
-テスト追加を理由に共通helperや本番コードを追加しない。既存のAPI動作に仕様との差異が見つかった場合は、テストの期待値を実装へ安易に合わせず、仕様書とIssueの受け入れ条件を再確認する。
+テスト追加を理由に共通helperを追加しない。本番コードの変更は、トップレベルbodyを非null・非配列のオブジェクトに限定する判定だけとする。既存のAPI動作に仕様との差異が見つかった場合は、テストの期待値を実装へ安易に合わせず、仕様書とIssueの受け入れ条件を再確認する。
 
 ## テスト配置
 
@@ -64,6 +65,7 @@ Recipes APIの一覧・詳細・登録・更新について、入力検証、認
 不正入力はテーブル駆動テストで次の分岐を検証する。
 
 - JSONとして解析できないbody
+- トップレベルが `null`、配列、プリミティブのJSON body
 - 空または文字列以外の `name`
 - 0以下または数値以外の `baseServings`
 - 配列ではない `ingredients`
@@ -83,9 +85,10 @@ Recipes APIの一覧・詳細・登録・更新について、入力検証、認
 
 - UUID形式でない `recipeId`
 - JSONとして解析できないbody
+- トップレベルが `null`、配列、プリミティブのJSON body
 - `validateRecipeBody` が拒否する入力
 
-UUID不正は既存契約どおり404、body不正は400を返す。repositoryが `false` を返す場合は、別ユーザーのレシピまたは対象なしとして `RECIPE_NOT_FOUND` を返す。repository例外時はstatus 500と既存エラーbodyを返す。
+UUID不正は既存契約どおり404、body不正は400を返す。トップレベルがオブジェクトでないbodyはPOST/PUT共通で `Request body must be an object` を返す。repositoryが `false` を返す場合は、別ユーザーのレシピまたは対象なしとして `RECIPE_NOT_FOUND` を返す。repository例外時はstatus 500と既存エラーbodyを返す。
 
 POSTで全バリデーション分岐を検証し、PUTでは同じvalidationを利用することとrepository非呼び出しを代表ケースで確認する。これにより、同一の入力規則を重複して列挙するテストを避ける。
 
@@ -94,6 +97,8 @@ POSTで全バリデーション分岐を検証し、PUTでは同じvalidationを
 各テストファイルでは `vi.hoisted` で対象repository関数のmockを定義し、既存テストと同じ認証mockで `user-123` を返す。`beforeEach` でmockの呼び出し履歴と実装をリセットし、テスト間や並列実行時に状態を共有しない。
 
 repository mockはAPI境界の外側にあるDBアクセスを置き換えるためだけに使用する。mock自身の内部挙動は検証せず、handlerから渡された引数と外部から観測できるHTTPレスポンスを検証する。
+
+対象repository関数はtype-only importと `vi.fn<typeof repositoryFunction>()` で実関数シグネチャへ追従させ、引数・戻り値の契約変更をテストコードの型検査で検出する。
 
 ## エラー応答
 
@@ -118,8 +123,15 @@ repository mockはAPI境界の外側にあるDBアクセスを置き換えるた
 完了時は次を実行する。
 
 ```bash
-cd backend && bun run test
-cd .. && bun run lint && bun run format:check && bun run type-check && bun run build:all
+cd backend
+bun run test -- src/recipes/getRecipes.test.ts src/recipes/createRecipe.test.ts src/recipes/getRecipeById.test.ts src/recipes/updateRecipe.test.ts
+bun run test
+cd ..
+bun run lint
+bun run format:check
+bun run type-check
+bun run build:all
+git diff --check
 ```
 
 これによりIssue #152の受け入れ条件とリポジトリのPR作成前チェックを満たす。

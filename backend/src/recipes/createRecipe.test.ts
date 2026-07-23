@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { createRecipeWithIngredients } from './repository';
 
 const { createRecipeWithIngredientsMock } = vi.hoisted(() => ({
-  createRecipeWithIngredientsMock: vi.fn(),
+  createRecipeWithIngredientsMock: vi.fn<typeof createRecipeWithIngredients>(),
 }));
 
 vi.mock('./repository', () => ({
@@ -106,6 +107,26 @@ describe('POST /api/recipes', () => {
   });
 
   it.each([
+    { caseName: 'null', body: null },
+    { caseName: '配列', body: [] },
+    { caseName: '文字列', body: 'recipe' },
+    { caseName: '数値', body: 1 },
+    { caseName: '真偽値', body: true },
+  ])('トップレベルbodyが$caseNameの場合は400を返す', async ({ body }) => {
+    const response = await postRecipe(body);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'BAD_REQUEST',
+        message: 'Request body must be an object',
+        details: null,
+      },
+    });
+    expect(createRecipeWithIngredientsMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
     {
       caseName: 'nameが空',
       body: { ...validBody, name: ' ' },
@@ -145,6 +166,24 @@ describe('POST /api/recipes', () => {
       message: 'Each ingredient must have a valid ingredientName',
     },
     {
+      caseName: 'ingredientNameが文字列ではない',
+      body: {
+        ...validBody,
+        ingredients: [{ ingredientName: 123, quantity: 1, unit: '個' }],
+      },
+      message: 'Each ingredient must have a valid ingredientName',
+    },
+    {
+      caseName: '材料が配列',
+      body: { ...validBody, ingredients: [[]] },
+      message: 'Each ingredient must be an object',
+    },
+    {
+      caseName: '材料がプリミティブ',
+      body: { ...validBody, ingredients: ['塩'] },
+      message: 'Each ingredient must be an object',
+    },
+    {
       caseName: 'ingredientNameが重複',
       body: {
         ...validBody,
@@ -154,6 +193,17 @@ describe('POST /api/recipes', () => {
         ],
       },
       message: 'Duplicate ingredient name:   塩  ',
+    },
+    {
+      caseName: '大文字小文字だけが異なるingredientNameが重複',
+      body: {
+        ...validBody,
+        ingredients: [
+          { ingredientName: 'Salt', quantity: 1, unit: 'g' },
+          { ingredientName: 'salt', quantity: 2, unit: 'g' },
+        ],
+      },
+      message: 'Duplicate ingredient name: salt',
     },
     {
       caseName: '数値quantityが0',
@@ -184,6 +234,14 @@ describe('POST /api/recipes', () => {
       body: {
         ...validBody,
         ingredients: [{ ingredientName: '塩', quantity: 1, unit: ' ' }],
+      },
+      message: 'Each ingredient must have a unit',
+    },
+    {
+      caseName: 'unitが文字列ではない',
+      body: {
+        ...validBody,
+        ingredients: [{ ingredientName: '塩', quantity: 1, unit: 123 }],
       },
       message: 'Each ingredient must have a unit',
     },

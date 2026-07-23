@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { findRecipeWithIngredients } from './repository';
 
 const { findRecipeWithIngredientsMock } = vi.hoisted(() => ({
-  findRecipeWithIngredientsMock: vi.fn(),
+  findRecipeWithIngredientsMock: vi.fn<typeof findRecipeWithIngredients>(),
 }));
 
 vi.mock('./repository', () => ({

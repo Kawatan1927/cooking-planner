@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Recipes APIのGET一覧・GET詳細・POST・PUTについて、入力検証、ユーザー境界、repository連携、例外応答を `app.request` 経由の単体テストで保護する。
+**Goal:** Recipes APIのGET一覧・GET詳細・POST・PUTについて、入力検証、ユーザー境界、repository連携、例外応答を `app.request` 経由の単体テストで保護し、トップレベルがオブジェクトでないJSON bodyを400にする。
 
 **Architecture:** エンドポイントごとにテストファイルを分け、Honoのルーティング・handler・response変換は実コードを使用する。認証は固定ユーザー、repositoryはDB境界としてmockし、HTTPレスポンスとhandlerから渡される引数を検証する。
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- APIレスポンス仕様と本番コードの動作は変更しない。
+- 本番コードの動作変更は、トップレベルbodyが非null・非配列のオブジェクトであることを確認する判定だけに限定する。
 - 実PostgreSQL、Drizzle SQL、DELETE Recipes APIは対象外とする。
 - 入力検証は `validation.ts` を直接呼ばず、`app.request` 経由で検証する。
 - repository mockはDBアクセスを隔離するためだけに使い、mock自身の動作をテストしない。
@@ -30,6 +30,8 @@
   - 既存の詳細取得テストへrepository例外を追加する。
 - Create: `backend/src/recipes/updateRecipe.test.ts`
   - PUTの正常系、UUID・body検証、対象なし、repository例外を検証する。
+- Modify: `backend/src/recipes/validation.ts`
+  - POST/PUT共通でトップレベルbodyがオブジェクトであることを検証する。
 
 ### Task 1: GET一覧のAPI契約
 
@@ -738,7 +740,7 @@ cd backend
 bun run test -- src/recipes/getRecipes.test.ts src/recipes/createRecipe.test.ts src/recipes/getRecipeById.test.ts src/recipes/updateRecipe.test.ts
 ```
 
-Expected: 4ファイル・28テストがPASSする。
+Expected: 4ファイル・43テストがPASSする。
 
 - [ ] **Step 2: backend全テストを実行する**
 
@@ -805,3 +807,65 @@ PR bodyの `関連Issue/タスク`:
 ```text
 closes #152
 ```
+
+### Task 6: 最終レビュー修正
+
+**Files:**
+
+- Modify: `backend/src/recipes/validation.ts`
+- Modify: `backend/src/recipes/getRecipes.test.ts`
+- Modify: `backend/src/recipes/createRecipe.test.ts`
+- Modify: `backend/src/recipes/getRecipeById.test.ts`
+- Modify: `backend/src/recipes/updateRecipe.test.ts`
+- Modify: `docs/superpowers/specs/2026-07-23-recipes-api-tests-design.md`
+- Modify: `docs/superpowers/plans/2026-07-23-recipes-api-tests.md`
+
+**Interfaces:**
+
+- Consumes: POST/PUTのJSON body、4つのRecipes repository関数シグネチャ
+- Produces: 非オブジェクトbodyの共通400応答、入力検証の不足ケース、型追従するrepository mock
+
+- [x] **Step 1: POST/PUTへトップレベルbodyの失敗テストを先行追加する**
+
+`null`、配列、文字列、数値、真偽値について、status 400、共通の `BAD_REQUEST` body、repository非呼び出しを検証する。
+
+- [x] **Step 2: REDを確認する**
+
+Run:
+
+```bash
+cd backend
+bun run test -- src/recipes/createRecipe.test.ts src/recipes/updateRecipe.test.ts
+```
+
+Result: exit code 1。2 files / 31 testsのうち10件が失敗し、`null` はPOST/PUTとも期待400に対して実際500となることを確認する。配列とプリミティブは既存の `Recipe name is required` となり、共通messageの期待に失敗する。
+
+- [x] **Step 3: 最小の本番修正を追加する**
+
+`validateRecipeBody` の先頭で、bodyが非null・非配列のオブジェクトでなければ `Request body must be an object` の400を返す。handler、repository、DB、ルーティングは変更しない。
+
+- [x] **Step 4: GREENを確認する**
+
+Step 2と同一コマンドを実行し、2 files / 31 testsがすべてPASSすることを確認する。
+
+- [x] **Step 5: 残りのレビュー指摘を反映する**
+
+- POSTへ `ingredientName` と `unit` の非文字列、材料の配列とプリミティブ、大文字小文字だけが異なる材料名重複を追加する。
+- PUT正常系でoptional値と材料noteがrepository引数の `null` になり、文字列quantityが保持されることを確認する。
+- 4テストファイルの対象repository mockをtype-only importと `vi.fn<typeof repositoryFunction>()` で型付けする。
+
+- [x] **Step 6: 最終検証を実行する**
+
+```bash
+cd backend
+bun run test -- src/recipes/getRecipes.test.ts src/recipes/createRecipe.test.ts src/recipes/getRecipeById.test.ts src/recipes/updateRecipe.test.ts
+bun run test
+cd ..
+bun run lint
+bun run format:check
+bun run type-check
+bun run build:all
+git diff --check
+```
+
+4対象ファイルの実測件数、backend全体の実測件数、各コマンドのexit codeを `.superpowers/sdd/task-5-report.md` に記録する。

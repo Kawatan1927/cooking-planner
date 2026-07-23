@@ -20,6 +20,9 @@ export interface RecipeBody {
  * 問題があれば HandlerResult（400）を、なければ null を返す。
  */
 export const validateRecipeBody = (body: RecipeBody): HandlerResult | null => {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return badRequest('Request body must be an object');
+  }
   if (!isNonEmptyString(body.name)) {
     return badRequest('Recipe name is required');
   }

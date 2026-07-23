@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { replaceRecipeWithIngredients } from './repository';
 
 const { replaceRecipeWithIngredientsMock } = vi.hoisted(() => ({
-  replaceRecipeWithIngredientsMock: vi.fn(),
+  replaceRecipeWithIngredientsMock: vi.fn<typeof replaceRecipeWithIngredients>(),
 }));
 
 vi.mock('./repository', () => ({
@@ -21,16 +22,12 @@ import app from '../app';
 const recipeId = '11111111-1111-1111-1111-111111111111';
 const validBody = {
   name: '親子丼（更新）',
-  sourceBook: '和食本',
-  sourcePage: 12,
   baseServings: 3,
-  memo: '薄味にする',
   ingredients: [
     {
       ingredientName: '鶏もも肉',
-      quantity: 320,
+      quantity: '320',
       unit: 'g',
-      note: '一口大',
     },
   ],
 };
@@ -63,17 +60,17 @@ describe('PUT /api/recipes/:recipeId', () => {
       recipeId,
       {
         name: '親子丼（更新）',
-        sourceBook: '和食本',
-        sourcePage: 12,
+        sourceBook: null,
+        sourcePage: null,
         baseServings: 3,
-        memo: '薄味にする',
+        memo: null,
       },
       [
         {
           ingredientName: '鶏もも肉',
-          quantity: 320,
+          quantity: '320',
           unit: 'g',
-          note: '一口大',
+          note: null,
         },
       ]
     );
@@ -105,6 +102,26 @@ describe('PUT /api/recipes/:recipeId', () => {
       error: {
         code: 'BAD_REQUEST',
         message: 'Invalid JSON in request body',
+        details: null,
+      },
+    });
+    expect(replaceRecipeWithIngredientsMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { caseName: 'null', body: null },
+    { caseName: '配列', body: [] },
+    { caseName: '文字列', body: 'recipe' },
+    { caseName: '数値', body: 1 },
+    { caseName: '真偽値', body: true },
+  ])('トップレベルbodyが$caseNameの場合は400を返しrepositoryを呼ばない', async ({ body }) => {
+    const response = await putRecipe(recipeId, body);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'BAD_REQUEST',
+        message: 'Request body must be an object',
         details: null,
       },
     });

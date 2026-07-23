@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { listRecipesByUser } from './repository';
 
 const { listRecipesByUserMock } = vi.hoisted(() => ({
-  listRecipesByUserMock: vi.fn(),
+  listRecipesByUserMock: vi.fn<typeof listRecipesByUser>(),
 }));
 
 vi.mock('./repository', () => ({
@@ -44,10 +45,7 @@ describe('GET /api/recipes', () => {
         recipeId: '22222222-2222-2222-2222-222222222222',
         userId: 'user-123',
         name: 'みそ汁',
-        sourceBook: null,
-        sourcePage: null,
         baseServings: 1,
-        memo: null,
         createdAt: '2026-05-22T00:00:00.000Z',
         updatedAt: '2026-05-22T00:00:00.000Z',
       },
