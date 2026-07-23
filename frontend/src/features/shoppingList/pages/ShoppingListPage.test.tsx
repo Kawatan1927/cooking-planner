@@ -145,7 +145,11 @@ describe('ShoppingListPage', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'リストを生成' }).closest('form')!);
 
     expect(screen.getByRole('alert')).toHaveTextContent(errorMessage);
-    expect(useShoppingList).not.toHaveBeenCalledWith({ from, to, enabled: true });
+    expect(useShoppingList).toHaveBeenLastCalledWith({
+      from: '2026-07-21',
+      to: '2026-07-23',
+      enabled: true,
+    });
   });
 
   it('対象項目だけをチェックし期間変更後に状態をリセットする', async () => {
