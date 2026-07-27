@@ -208,6 +208,18 @@ describe('GET /api/shopping-list', () => {
               quantity: '適量',
               unit: 'g',
             },
+            {
+              recipeId: 'recipe-2',
+              ingredientName: 'Salt',
+              quantity: '少々',
+              unit: 'g',
+            },
+            {
+              recipeId: 'recipe-2',
+              ingredientName: 'Salt',
+              quantity: '適量',
+              unit: 'g',
+            },
           ],
         };
       }
@@ -223,12 +235,12 @@ describe('GET /api/shopping-list', () => {
       items: [
         { ingredientName: 'Flour', totalQuantity: 4, unit: 'g' },
         { ingredientName: 'Flour', totalQuantity: 0.25, unit: 'kg' },
-        { ingredientName: 'Salt', totalQuantity: '3 + 適量', unit: 'g' },
+        { ingredientName: 'Salt', totalQuantity: '3 + 少々 + 適量', unit: 'g' },
       ],
     });
     expect(findRecipeWithIngredientsMock).toHaveBeenCalledTimes(2);
-    expect(findRecipeWithIngredientsMock).toHaveBeenNthCalledWith(1, 'user-123', 'recipe-1');
-    expect(findRecipeWithIngredientsMock).toHaveBeenNthCalledWith(2, 'user-123', 'recipe-2');
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-1');
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-2');
   });
 
   it.each([
