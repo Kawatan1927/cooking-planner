@@ -19,17 +19,23 @@ const isValidMealType = (mealType: string): mealType is MealType =>
  * POST/PUT /menus のリクエストボディを検証する。
  * 問題があれば HandlerResult（400）を、なければ null を返す。
  */
-export const validateMenuBody = (body: MenuBody): HandlerResult | null => {
-  if (!isNonEmptyString(body.date) || !isValidDate(body.date)) {
+export const validateMenuBody = (body: unknown): HandlerResult | null => {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return badRequest('Request body must be an object');
+  }
+
+  const menu = body as Record<string, unknown>;
+
+  if (!isNonEmptyString(menu.date) || !isValidDate(menu.date)) {
     return badRequest('Invalid "date" format. Use YYYY-MM-DD');
   }
-  if (!isNonEmptyString(body.mealType) || !isValidMealType(body.mealType)) {
+  if (!isNonEmptyString(menu.mealType) || !isValidMealType(menu.mealType)) {
     return badRequest('Invalid "mealType". Must be one of: BREAKFAST, LUNCH, DINNER, OTHER');
   }
-  if (!isNonEmptyString(body.recipeId)) {
+  if (!isNonEmptyString(menu.recipeId)) {
     return badRequest('"recipeId" is required');
   }
-  if (!isPositiveNumber(body.servings)) {
+  if (!isPositiveNumber(menu.servings)) {
     return badRequest('"servings" must be a positive number');
   }
   return null;
