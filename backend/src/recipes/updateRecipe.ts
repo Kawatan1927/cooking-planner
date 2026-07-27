@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { replaceRecipeWithIngredients } from './repository';
-import { RecipeBody, validateRecipeBody } from './validation';
+import { validateRecipeBody } from './validation';
 import {
   HandlerResult,
   badRequest,
@@ -26,29 +26,30 @@ export const updateRecipe = async (c: Context): Promise<HandlerResult> => {
       return notFound('Recipe not found', 'RECIPE_NOT_FOUND');
     }
 
-    let requestBody: RecipeBody;
+    let requestBody: unknown;
     try {
       requestBody = await c.req.json();
     } catch {
       return badRequest('Invalid JSON in request body');
     }
 
-    const validationError = validateRecipeBody(requestBody);
-    if (validationError) {
-      return validationError;
+    const validationResult = validateRecipeBody(requestBody);
+    if (!validationResult.success) {
+      return validationResult.error;
     }
+    const recipeBody = validationResult.body;
 
     const updated = await replaceRecipeWithIngredients(
       userId,
       recipeId,
       {
-        name: requestBody.name,
-        sourceBook: requestBody.sourceBook ?? null,
-        sourcePage: requestBody.sourcePage ?? null,
-        baseServings: requestBody.baseServings,
-        memo: requestBody.memo ?? null,
+        name: recipeBody.name,
+        sourceBook: recipeBody.sourceBook ?? null,
+        sourcePage: recipeBody.sourcePage ?? null,
+        baseServings: recipeBody.baseServings,
+        memo: recipeBody.memo ?? null,
       },
-      requestBody.ingredients.map(ingredient => ({
+      recipeBody.ingredients.map(ingredient => ({
         ingredientName: ingredient.ingredientName,
         quantity: ingredient.quantity,
         unit: ingredient.unit,

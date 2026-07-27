@@ -148,6 +148,21 @@ describe('POST /api/recipes', () => {
       message: 'baseServings must be a positive number',
     },
     {
+      caseName: 'sourceBookが文字列またはnullではない',
+      body: { ...validBody, sourceBook: 123 },
+      message: 'sourceBook must be a string or null',
+    },
+    {
+      caseName: 'sourcePageが有限数またはnullではない',
+      body: { ...validBody, sourcePage: '34' },
+      message: 'sourcePage must be a finite number or null',
+    },
+    {
+      caseName: 'memoが文字列またはnullではない',
+      body: { ...validBody, memo: true },
+      message: 'memo must be a string or null',
+    },
+    {
       caseName: 'ingredientsが配列ではない',
       body: { ...validBody, ingredients: null },
       message: 'ingredients must be an array',
@@ -244,6 +259,14 @@ describe('POST /api/recipes', () => {
         ingredients: [{ ingredientName: '塩', quantity: 1, unit: 123 }],
       },
       message: 'Each ingredient must have a unit',
+    },
+    {
+      caseName: 'noteが文字列またはnullではない',
+      body: {
+        ...validBody,
+        ingredients: [{ ingredientName: '塩', quantity: 1, unit: 'g', note: 123 }],
+      },
+      message: 'Each ingredient note must be a string or null',
     },
   ])('$caseNameの場合は400を返す', async ({ body, message }) => {
     const response = await postRecipe(body);

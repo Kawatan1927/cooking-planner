@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { createRecipeWithIngredients } from './repository';
-import { RecipeBody, validateRecipeBody } from './validation';
+import { validateRecipeBody } from './validation';
 import { HandlerResult, badRequest, internalServerError, jsonResponse } from '../shared/http';
 import { getUserId } from '../shared/auth';
 
@@ -15,28 +15,29 @@ export const createRecipe = async (c: Context): Promise<HandlerResult> => {
     const userId = getUserId(c);
     console.log(`Creating recipe for userId: ${userId.substring(0, USER_ID_LOG_PREFIX_LENGTH)}...`);
 
-    let requestBody: RecipeBody;
+    let requestBody: unknown;
     try {
       requestBody = await c.req.json();
     } catch {
       return badRequest('Invalid JSON in request body');
     }
 
-    const validationError = validateRecipeBody(requestBody);
-    if (validationError) {
-      return validationError;
+    const validationResult = validateRecipeBody(requestBody);
+    if (!validationResult.success) {
+      return validationResult.error;
     }
+    const recipeBody = validationResult.body;
 
     const recipeId = await createRecipeWithIngredients(
       {
         userId,
-        name: requestBody.name,
-        sourceBook: requestBody.sourceBook ?? null,
-        sourcePage: requestBody.sourcePage ?? null,
-        baseServings: requestBody.baseServings,
-        memo: requestBody.memo ?? null,
+        name: recipeBody.name,
+        sourceBook: recipeBody.sourceBook ?? null,
+        sourcePage: recipeBody.sourcePage ?? null,
+        baseServings: recipeBody.baseServings,
+        memo: recipeBody.memo ?? null,
       },
-      requestBody.ingredients.map(ingredient => ({
+      recipeBody.ingredients.map(ingredient => ({
         ingredientName: ingredient.ingredientName,
         quantity: ingredient.quantity,
         unit: ingredient.unit,

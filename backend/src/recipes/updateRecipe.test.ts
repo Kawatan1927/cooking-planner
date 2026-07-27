@@ -142,6 +142,20 @@ describe('PUT /api/recipes/:recipeId', () => {
     expect(replaceRecipeWithIngredientsMock).not.toHaveBeenCalled();
   });
 
+  it('任意項目の型が不正な場合は400を返しrepositoryを呼ばない', async () => {
+    const response = await putRecipe(recipeId, { ...validBody, sourceBook: 123 });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'BAD_REQUEST',
+        message: 'sourceBook must be a string or null',
+        details: null,
+      },
+    });
+    expect(replaceRecipeWithIngredientsMock).not.toHaveBeenCalled();
+  });
+
   it('別ユーザーまたは対象なしは404を返す', async () => {
     replaceRecipeWithIngredientsMock.mockResolvedValue(false);
 
