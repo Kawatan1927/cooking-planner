@@ -145,6 +145,24 @@ describe('GET /api/shopping-list', () => {
     );
     expect(body.items).toHaveLength(3);
     expect(listMenusInRangeMock).toHaveBeenCalledWith('user-123', '2026-05-22', '2026-05-24');
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-1');
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-2');
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('献立が0件の場合は空の買い物リストを返す', async () => {
+    listMenusInRangeMock.mockResolvedValue([]);
+
+    const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      from: '2026-05-22',
+      to: '2026-05-24',
+      items: [],
+    });
+    expect(listMenusInRangeMock).toHaveBeenCalledWith('user-123', '2026-05-22', '2026-05-24');
+    expect(findRecipeWithIngredientsMock).not.toHaveBeenCalled();
   });
 
   it.each([
