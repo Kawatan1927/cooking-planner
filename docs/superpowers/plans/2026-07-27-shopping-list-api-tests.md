@@ -59,14 +59,16 @@ Expected: 既存3ケースがPASSする。件数とexit codeを記録し、以�
 `backend/src/shoppingList/getShoppingList.test.ts` のimportとhoisted mockを次の形へ変更する。
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { listMenusInRange } from '../menus/repository';
-import type { findRecipeWithIngredients } from '../recipes/repository';
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { listMenusInRange } from "../menus/repository";
+import type { findRecipeWithIngredients } from "../recipes/repository";
 
-const { listMenusInRangeMock, findRecipeWithIngredientsMock } = vi.hoisted(() => ({
-  listMenusInRangeMock: vi.fn<typeof listMenusInRange>(),
-  findRecipeWithIngredientsMock: vi.fn<typeof findRecipeWithIngredients>(),
-}));
+const { listMenusInRangeMock, findRecipeWithIngredientsMock } = vi.hoisted(
+  () => ({
+    listMenusInRangeMock: vi.fn<typeof listMenusInRange>(),
+    findRecipeWithIngredientsMock: vi.fn<typeof findRecipeWithIngredients>(),
+  }),
+);
 ```
 
 `describe` の後処理としてspyを確実に復元する。
@@ -84,50 +86,53 @@ afterEach(() => {
 ```typescript
 it.each([
   {
-    caseName: 'fromが未指定',
-    path: '/api/shopping-list?to=2026-05-24',
+    caseName: "fromが未指定",
+    path: "/api/shopping-list?to=2026-05-24",
     message: '"from" query parameter is required',
   },
   {
-    caseName: 'toが未指定',
-    path: '/api/shopping-list?from=2026-05-22',
+    caseName: "toが未指定",
+    path: "/api/shopping-list?from=2026-05-22",
     message: '"to" query parameter is required',
   },
   {
-    caseName: 'fromの形式が不正',
-    path: '/api/shopping-list?from=2026-5-22&to=2026-05-24',
+    caseName: "fromの形式が不正",
+    path: "/api/shopping-list?from=2026-5-22&to=2026-05-24",
     message: 'Invalid "from" date format. Use YYYY-MM-DD',
   },
   {
-    caseName: 'toの形式が不正',
-    path: '/api/shopping-list?from=2026-05-22&to=2026/05/24',
+    caseName: "toの形式が不正",
+    path: "/api/shopping-list?from=2026-05-22&to=2026/05/24",
     message: 'Invalid "to" date format. Use YYYY-MM-DD',
   },
   {
-    caseName: 'fromが実在しない日付',
-    path: '/api/shopping-list?from=2026-02-30&to=2026-03-01',
+    caseName: "fromが実在しない日付",
+    path: "/api/shopping-list?from=2026-02-30&to=2026-03-01",
     message: 'Invalid "from" date format. Use YYYY-MM-DD',
   },
   {
-    caseName: 'toが実在しない日付',
-    path: '/api/shopping-list?from=2026-02-01&to=2026-02-30',
+    caseName: "toが実在しない日付",
+    path: "/api/shopping-list?from=2026-02-01&to=2026-02-30",
     message: 'Invalid "to" date format. Use YYYY-MM-DD',
   },
   {
-    caseName: 'fromがtoより後',
-    path: '/api/shopping-list?from=2026-05-25&to=2026-05-24',
+    caseName: "fromがtoより後",
+    path: "/api/shopping-list?from=2026-05-25&to=2026-05-24",
     message: '"from" date must not be after "to" date',
   },
-])('$caseNameの場合は400を返しrepositoryを呼ばない', async ({ path, message }) => {
-  const response = await app.request(path);
+])(
+  "$caseNameの場合は400を返しrepositoryを呼ばない",
+  async ({ path, message }) => {
+    const response = await app.request(path);
 
-  expect(response.status).toBe(400);
-  expect(await response.json()).toEqual({
-    error: { code: 'BAD_REQUEST', message, details: null },
-  });
-  expect(listMenusInRangeMock).not.toHaveBeenCalled();
-  expect(findRecipeWithIngredientsMock).not.toHaveBeenCalled();
-});
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: { code: "BAD_REQUEST", message, details: null },
+    });
+    expect(listMenusInRangeMock).not.toHaveBeenCalled();
+    expect(findRecipeWithIngredientsMock).not.toHaveBeenCalled();
+  },
+);
 ```
 
 - [ ] **Step 4: query検証テストを実行する**
@@ -163,21 +168,21 @@ git commit -m "test: Shopping Listの期間検証を拡充" -m "- 必須queryと
 - [ ] **Step 1: 献立0件のテストを追加する**
 
 ```typescript
-it('献立が0件の場合は空の買い物リストを返す', async () => {
+it("献立が0件の場合は空の買い物リストを返す", async () => {
   listMenusInRangeMock.mockResolvedValue([]);
 
-  const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
+  const response = await getShoppingListRequest("2026-05-22", "2026-05-24");
 
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({
-    from: '2026-05-22',
-    to: '2026-05-24',
+    from: "2026-05-22",
+    to: "2026-05-24",
     items: [],
   });
   expect(listMenusInRangeMock).toHaveBeenCalledWith(
-    'user-123',
-    '2026-05-22',
-    '2026-05-24'
+    "user-123",
+    "2026-05-22",
+    "2026-05-24",
   );
   expect(findRecipeWithIngredientsMock).not.toHaveBeenCalled();
 });
@@ -188,8 +193,14 @@ it('献立が0件の場合は空の買い物リストを返す', async () => {
 既存の正常系テストの末尾へ次を追加する。
 
 ```typescript
-expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-1');
-expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-2');
+expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith(
+  "user-123",
+  "recipe-1",
+);
+expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith(
+  "user-123",
+  "recipe-2",
+);
 expect(findRecipeWithIngredientsMock).toHaveBeenCalledTimes(2);
 ```
 
@@ -229,65 +240,100 @@ git commit -m "test: Shopping Listのユーザー境界を検証" -m "- 献立0�
 - [ ] **Step 1: 複数献立・複数レシピの集計テストを追加する**
 
 ```typescript
-it('複数献立を小数倍率で集計し、単位と文字列quantityを区別する', async () => {
+it("複数献立を小数倍率で集計し、単位と文字列quantityを区別する", async () => {
   listMenusInRangeMock.mockResolvedValue([
-    menu('menu-1', '2026-05-22', 'recipe-1', 1),
-    menu('menu-2', '2026-05-23', 'recipe-1', 2),
-    menu('menu-3', '2026-05-24', 'recipe-2', 1),
+    menu("menu-1", "2026-05-22", "recipe-1", 1),
+    menu("menu-2", "2026-05-23", "recipe-1", 2),
+    menu("menu-3", "2026-05-24", "recipe-2", 1),
   ]);
 
-  findRecipeWithIngredientsMock.mockImplementation(async (_userId, recipeId) => {
-    if (recipeId === 'recipe-1') {
-      return {
-        recipe: {
-          recipeId: 'recipe-1',
-          userId: 'user-123',
-          name: 'Recipe 1',
-          baseServings: 2,
-          createdAt: '2026-05-20T00:00:00.000Z',
-          updatedAt: '2026-05-20T00:00:00.000Z',
-        },
-        ingredients: [
-          { recipeId: 'recipe-1', ingredientName: 'Flour', quantity: 2, unit: 'g' },
-          { recipeId: 'recipe-1', ingredientName: 'Salt', quantity: 2, unit: 'g' },
-        ],
-      };
-    }
-    if (recipeId === 'recipe-2') {
-      return {
-        recipe: {
-          recipeId: 'recipe-2',
-          userId: 'user-123',
-          name: 'Recipe 2',
-          baseServings: 4,
-          createdAt: '2026-05-20T00:00:00.000Z',
-          updatedAt: '2026-05-20T00:00:00.000Z',
-        },
-        ingredients: [
-          { recipeId: 'recipe-2', ingredientName: 'Flour', quantity: 4, unit: 'g' },
-          { recipeId: 'recipe-2', ingredientName: 'Flour', quantity: 1, unit: 'kg' },
-          { recipeId: 'recipe-2', ingredientName: 'Salt', quantity: '適量', unit: 'g' },
-        ],
-      };
-    }
-    return null;
-  });
+  findRecipeWithIngredientsMock.mockImplementation(
+    async (_userId, recipeId) => {
+      if (recipeId === "recipe-1") {
+        return {
+          recipe: {
+            recipeId: "recipe-1",
+            userId: "user-123",
+            name: "Recipe 1",
+            baseServings: 2,
+            createdAt: "2026-05-20T00:00:00.000Z",
+            updatedAt: "2026-05-20T00:00:00.000Z",
+          },
+          ingredients: [
+            {
+              recipeId: "recipe-1",
+              ingredientName: "Flour",
+              quantity: 2,
+              unit: "g",
+            },
+            {
+              recipeId: "recipe-1",
+              ingredientName: "Salt",
+              quantity: 2,
+              unit: "g",
+            },
+          ],
+        };
+      }
+      if (recipeId === "recipe-2") {
+        return {
+          recipe: {
+            recipeId: "recipe-2",
+            userId: "user-123",
+            name: "Recipe 2",
+            baseServings: 4,
+            createdAt: "2026-05-20T00:00:00.000Z",
+            updatedAt: "2026-05-20T00:00:00.000Z",
+          },
+          ingredients: [
+            {
+              recipeId: "recipe-2",
+              ingredientName: "Flour",
+              quantity: 4,
+              unit: "g",
+            },
+            {
+              recipeId: "recipe-2",
+              ingredientName: "Flour",
+              quantity: 1,
+              unit: "kg",
+            },
+            {
+              recipeId: "recipe-2",
+              ingredientName: "Salt",
+              quantity: "適量",
+              unit: "g",
+            },
+          ],
+        };
+      }
+      return null;
+    },
+  );
 
-  const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
+  const response = await getShoppingListRequest("2026-05-22", "2026-05-24");
 
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({
-    from: '2026-05-22',
-    to: '2026-05-24',
+    from: "2026-05-22",
+    to: "2026-05-24",
     items: [
-      { ingredientName: 'Flour', totalQuantity: 4, unit: 'g' },
-      { ingredientName: 'Flour', totalQuantity: 0.25, unit: 'kg' },
-      { ingredientName: 'Salt', totalQuantity: '3 + 適量', unit: 'g' },
+      { ingredientName: "Flour", totalQuantity: 4, unit: "g" },
+      { ingredientName: "Flour", totalQuantity: 0.25, unit: "kg" },
+      { ingredientName: "Salt", totalQuantity: "3 + 適量", unit: "g" },
     ],
   });
   expect(findRecipeWithIngredientsMock).toHaveBeenCalledTimes(2);
-  expect(findRecipeWithIngredientsMock).toHaveBeenNthCalledWith(1, 'user-123', 'recipe-1');
-  expect(findRecipeWithIngredientsMock).toHaveBeenNthCalledWith(2, 'user-123', 'recipe-2');
+  expect(findRecipeWithIngredientsMock).toHaveBeenNthCalledWith(
+    1,
+    "user-123",
+    "recipe-1",
+  );
+  expect(findRecipeWithIngredientsMock).toHaveBeenNthCalledWith(
+    2,
+    "user-123",
+    "recipe-2",
+  );
 });
 ```
 
@@ -327,17 +373,19 @@ git commit -m "test: Shopping Listの材料集計を拡充" -m "- 小数倍率�
 - [ ] **Step 1: Menus repository例外のテストを追加する**
 
 ```typescript
-it('献立repository例外時は500を返す', async () => {
-  listMenusInRangeMock.mockRejectedValue(new Error('database error'));
-  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+it("献立repository例外時は500を返す", async () => {
+  listMenusInRangeMock.mockRejectedValue(new Error("database error"));
+  const consoleError = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => undefined);
 
-  const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
+  const response = await getShoppingListRequest("2026-05-22", "2026-05-24");
 
   expect(response.status).toBe(500);
   expect(await response.json()).toEqual({
     error: {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Failed to compute shopping list',
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to compute shopping list",
       details: null,
     },
   });
@@ -349,24 +397,29 @@ it('献立repository例外時は500を返す', async () => {
 - [ ] **Step 2: Recipes repository例外のテストを追加する**
 
 ```typescript
-it('レシピrepository例外時は500を返す', async () => {
+it("レシピrepository例外時は500を返す", async () => {
   listMenusInRangeMock.mockResolvedValue([
-    menu('menu-1', '2026-05-22', 'recipe-1', 2),
+    menu("menu-1", "2026-05-22", "recipe-1", 2),
   ]);
-  findRecipeWithIngredientsMock.mockRejectedValue(new Error('database error'));
-  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  findRecipeWithIngredientsMock.mockRejectedValue(new Error("database error"));
+  const consoleError = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => undefined);
 
-  const response = await getShoppingListRequest('2026-05-22', '2026-05-22');
+  const response = await getShoppingListRequest("2026-05-22", "2026-05-22");
 
   expect(response.status).toBe(500);
   expect(await response.json()).toEqual({
     error: {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Failed to compute shopping list',
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to compute shopping list",
       details: null,
     },
   });
-  expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-1');
+  expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith(
+    "user-123",
+    "recipe-1",
+  );
   expect(consoleError).toHaveBeenCalled();
 });
 ```
@@ -377,8 +430,8 @@ it('レシピrepository例外時は500を返す', async () => {
 
 ```typescript
 expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith(
-  'user-123',
-  'recipe-missing'
+  "user-123",
+  "recipe-missing",
 );
 ```
 
