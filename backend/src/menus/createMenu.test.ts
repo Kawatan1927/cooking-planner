@@ -62,6 +62,28 @@ describe('POST /api/menus', () => {
     });
   });
 
+  it('指定したmemoをrepositoryへ渡して201を返す', async () => {
+    createMenuMock.mockResolvedValue('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+
+    const response = await postMenu({
+      ...validBody,
+      memo: '友達が一人来る',
+    });
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({
+      menuId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+    });
+    expect(createMenuMock).toHaveBeenCalledWith({
+      userId: 'user-123',
+      date: '2026-05-21',
+      mealType: 'DINNER',
+      recipeId: '11111111-2222-3333-4444-555555555555',
+      servings: 2,
+      memo: '友達が一人来る',
+    });
+  });
+
   it('JSONとして解析できないbodyは400を返す', async () => {
     const response = await app.request('/api/menus', {
       method: 'POST',
@@ -112,8 +134,18 @@ describe('POST /api/menus', () => {
       message: 'Invalid "date" format. Use YYYY-MM-DD',
     },
     {
+      caseName: 'dateが文字列でない',
+      body: { ...validBody, date: 1 },
+      message: 'Invalid "date" format. Use YYYY-MM-DD',
+    },
+    {
       caseName: 'mealTypeが許可値でない',
       body: { ...validBody, mealType: 'SNACK' },
+      message: 'Invalid "mealType". Must be one of: BREAKFAST, LUNCH, DINNER, OTHER',
+    },
+    {
+      caseName: 'mealTypeが空',
+      body: { ...validBody, mealType: ' ' },
       message: 'Invalid "mealType". Must be one of: BREAKFAST, LUNCH, DINNER, OTHER',
     },
     {
@@ -137,6 +169,11 @@ describe('POST /api/menus', () => {
       message: '"servings" must be a positive number',
     },
     {
+      caseName: 'servingsが負数',
+      body: { ...validBody, servings: -1 },
+      message: '"servings" must be a positive number',
+    },
+    {
       caseName: 'servingsが数値でない',
       body: { ...validBody, servings: '2' },
       message: '"servings" must be a positive number',
@@ -147,6 +184,29 @@ describe('POST /api/menus', () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
       error: { code: 'BAD_REQUEST', message, details: null },
+    });
+    expect(createMenuMock).not.toHaveBeenCalled();
+  });
+
+  it('servingsが非有限の場合は400を返しrepositoryを呼ばない', async () => {
+    const response = await app.request('/api/menus', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: `{
+        "date": "2026-05-21",
+        "mealType": "DINNER",
+        "recipeId": "11111111-2222-3333-4444-555555555555",
+        "servings": 1e400
+      }`,
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'BAD_REQUEST',
+        message: '"servings" must be a positive number',
+        details: null,
+      },
     });
     expect(createMenuMock).not.toHaveBeenCalled();
   });
