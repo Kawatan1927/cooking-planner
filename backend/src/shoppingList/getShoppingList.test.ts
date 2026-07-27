@@ -165,6 +165,72 @@ describe('GET /api/shopping-list', () => {
     expect(findRecipeWithIngredientsMock).not.toHaveBeenCalled();
   });
 
+  it('複数献立を小数倍率で集計し、単位と文字列quantityを区別する', async () => {
+    listMenusInRangeMock.mockResolvedValue([
+      menu('menu-1', '2026-05-22', 'recipe-1', 1),
+      menu('menu-2', '2026-05-23', 'recipe-1', 2),
+      menu('menu-3', '2026-05-24', 'recipe-2', 1),
+    ]);
+
+    findRecipeWithIngredientsMock.mockImplementation(async (_userId, recipeId) => {
+      if (recipeId === 'recipe-1') {
+        return {
+          recipe: {
+            recipeId: 'recipe-1',
+            userId: 'user-123',
+            name: 'Recipe 1',
+            baseServings: 2,
+            createdAt: '2026-05-20T00:00:00.000Z',
+            updatedAt: '2026-05-20T00:00:00.000Z',
+          },
+          ingredients: [
+            { recipeId: 'recipe-1', ingredientName: 'Flour', quantity: 2, unit: 'g' },
+            { recipeId: 'recipe-1', ingredientName: 'Salt', quantity: 2, unit: 'g' },
+          ],
+        };
+      }
+      if (recipeId === 'recipe-2') {
+        return {
+          recipe: {
+            recipeId: 'recipe-2',
+            userId: 'user-123',
+            name: 'Recipe 2',
+            baseServings: 4,
+            createdAt: '2026-05-20T00:00:00.000Z',
+            updatedAt: '2026-05-20T00:00:00.000Z',
+          },
+          ingredients: [
+            { recipeId: 'recipe-2', ingredientName: 'Flour', quantity: 4, unit: 'g' },
+            { recipeId: 'recipe-2', ingredientName: 'Flour', quantity: 1, unit: 'kg' },
+            {
+              recipeId: 'recipe-2',
+              ingredientName: 'Salt',
+              quantity: '適量',
+              unit: 'g',
+            },
+          ],
+        };
+      }
+      return null;
+    });
+
+    const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      from: '2026-05-22',
+      to: '2026-05-24',
+      items: [
+        { ingredientName: 'Flour', totalQuantity: 4, unit: 'g' },
+        { ingredientName: 'Flour', totalQuantity: 0.25, unit: 'kg' },
+        { ingredientName: 'Salt', totalQuantity: '3 + 適量', unit: 'g' },
+      ],
+    });
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledTimes(2);
+    expect(findRecipeWithIngredientsMock).toHaveBeenNthCalledWith(1, 'user-123', 'recipe-1');
+    expect(findRecipeWithIngredientsMock).toHaveBeenNthCalledWith(2, 'user-123', 'recipe-2');
+  });
+
   it.each([
     {
       caseName: 'fromが未指定',
