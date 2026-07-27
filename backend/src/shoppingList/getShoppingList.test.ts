@@ -296,5 +296,43 @@ describe('GET /api/shopping-list', () => {
         details: null,
       },
     });
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-missing');
+  });
+
+  it('献立repository例外時は500を返す', async () => {
+    listMenusInRangeMock.mockRejectedValue(new Error('database error'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to compute shopping list',
+        details: null,
+      },
+    });
+    expect(findRecipeWithIngredientsMock).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalled();
+  });
+
+  it('レシピrepository例外時は500を返す', async () => {
+    listMenusInRangeMock.mockResolvedValue([menu('menu-1', '2026-05-22', 'recipe-1', 2)]);
+    findRecipeWithIngredientsMock.mockRejectedValue(new Error('database error'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const response = await getShoppingListRequest('2026-05-22', '2026-05-22');
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to compute shopping list',
+        details: null,
+      },
+    });
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-1');
+    expect(consoleError).toHaveBeenCalled();
   });
 });
