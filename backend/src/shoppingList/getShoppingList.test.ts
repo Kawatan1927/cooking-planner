@@ -1,8 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { listMenusInRange } from '../menus/repository';
+import type { findRecipeWithIngredients } from '../recipes/repository';
 
 const { listMenusInRangeMock, findRecipeWithIngredientsMock } = vi.hoisted(() => ({
-  listMenusInRangeMock: vi.fn(),
-  findRecipeWithIngredientsMock: vi.fn(),
+  listMenusInRangeMock: vi.fn<typeof listMenusInRange>(),
+  findRecipeWithIngredientsMock: vi.fn<typeof findRecipeWithIngredients>(),
 }));
 
 vi.mock('../menus/repository', () => ({
@@ -45,6 +47,10 @@ describe('GET /api/shopping-list', () => {
   beforeEach(() => {
     listMenusInRangeMock.mockReset();
     findRecipeWithIngredientsMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('人数換算しながら材料を集計し、文字列数量は重複排除する', async () => {
@@ -139,20 +145,153 @@ describe('GET /api/shopping-list', () => {
     );
     expect(body.items).toHaveLength(3);
     expect(listMenusInRangeMock).toHaveBeenCalledWith('user-123', '2026-05-22', '2026-05-24');
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-1');
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-2');
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledTimes(2);
   });
 
-  it('from が to より後なら 400 を返す', async () => {
-    const response = await getShoppingListRequest('2026-05-25', '2026-05-24');
+  it('献立が0件の場合は空の買い物リストを返す', async () => {
+    listMenusInRangeMock.mockResolvedValue([]);
+
+    const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      from: '2026-05-22',
+      to: '2026-05-24',
+      items: [],
+    });
+    expect(listMenusInRangeMock).toHaveBeenCalledWith('user-123', '2026-05-22', '2026-05-24');
+    expect(findRecipeWithIngredientsMock).not.toHaveBeenCalled();
+  });
+
+  it('複数献立を小数倍率で集計し、単位と文字列quantityを区別する', async () => {
+    listMenusInRangeMock.mockResolvedValue([
+      menu('menu-1', '2026-05-22', 'recipe-1', 1),
+      menu('menu-2', '2026-05-23', 'recipe-1', 2),
+      menu('menu-3', '2026-05-24', 'recipe-2', 1),
+    ]);
+
+    findRecipeWithIngredientsMock.mockImplementation(async (_userId, recipeId) => {
+      if (recipeId === 'recipe-1') {
+        return {
+          recipe: {
+            recipeId: 'recipe-1',
+            userId: 'user-123',
+            name: 'Recipe 1',
+            baseServings: 2,
+            createdAt: '2026-05-20T00:00:00.000Z',
+            updatedAt: '2026-05-20T00:00:00.000Z',
+          },
+          ingredients: [
+            { recipeId: 'recipe-1', ingredientName: 'Flour', quantity: 2, unit: 'g' },
+            { recipeId: 'recipe-1', ingredientName: 'Salt', quantity: 2, unit: 'g' },
+          ],
+        };
+      }
+      if (recipeId === 'recipe-2') {
+        return {
+          recipe: {
+            recipeId: 'recipe-2',
+            userId: 'user-123',
+            name: 'Recipe 2',
+            baseServings: 4,
+            createdAt: '2026-05-20T00:00:00.000Z',
+            updatedAt: '2026-05-20T00:00:00.000Z',
+          },
+          ingredients: [
+            { recipeId: 'recipe-2', ingredientName: 'Flour', quantity: 4, unit: 'g' },
+            { recipeId: 'recipe-2', ingredientName: 'Flour', quantity: 1, unit: 'kg' },
+            {
+              recipeId: 'recipe-2',
+              ingredientName: 'Salt',
+              quantity: '適量',
+              unit: 'g',
+            },
+            {
+              recipeId: 'recipe-2',
+              ingredientName: 'Salt',
+              quantity: '少々',
+              unit: 'g',
+            },
+            {
+              recipeId: 'recipe-2',
+              ingredientName: 'Salt',
+              quantity: '適量',
+              unit: 'g',
+            },
+          ],
+        };
+      }
+      return null;
+    });
+
+    const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      from: '2026-05-22',
+      to: '2026-05-24',
+      items: [
+        { ingredientName: 'Flour', totalQuantity: 4, unit: 'g' },
+        { ingredientName: 'Flour', totalQuantity: 0.25, unit: 'kg' },
+        { ingredientName: 'Salt', totalQuantity: '3 + 少々 + 適量', unit: 'g' },
+      ],
+    });
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledTimes(2);
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-1');
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-2');
+  });
+
+  it.each([
+    {
+      caseName: 'fromが未指定',
+      path: '/api/shopping-list?to=2026-05-24',
+      message: '"from" query parameter is required',
+    },
+    {
+      caseName: 'toが未指定',
+      path: '/api/shopping-list?from=2026-05-22',
+      message: '"to" query parameter is required',
+    },
+    {
+      caseName: 'fromの形式が不正',
+      path: '/api/shopping-list?from=2026-5-22&to=2026-05-24',
+      message: 'Invalid "from" date format. Use YYYY-MM-DD',
+    },
+    {
+      caseName: 'toの形式が不正',
+      path: '/api/shopping-list?from=2026-05-22&to=2026/05/24',
+      message: 'Invalid "to" date format. Use YYYY-MM-DD',
+    },
+    {
+      caseName: 'fromが実在しない日付',
+      path: '/api/shopping-list?from=2026-02-30&to=2026-03-01',
+      message: 'Invalid "from" date format. Use YYYY-MM-DD',
+    },
+    {
+      caseName: 'toが実在しない日付',
+      path: '/api/shopping-list?from=2026-02-01&to=2026-02-30',
+      message: 'Invalid "to" date format. Use YYYY-MM-DD',
+    },
+    {
+      caseName: 'fromがtoより後',
+      path: '/api/shopping-list?from=2026-05-25&to=2026-05-24',
+      message: '"from" date must not be after "to" date',
+    },
+  ])('$caseNameの場合は400を返しrepositoryを呼ばない', async ({ path, message }) => {
+    const response = await app.request(path);
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
       error: {
         code: 'BAD_REQUEST',
-        message: '"from" date must not be after "to" date',
+        message,
         details: null,
       },
     });
     expect(listMenusInRangeMock).not.toHaveBeenCalled();
+    expect(findRecipeWithIngredientsMock).not.toHaveBeenCalled();
   });
 
   it('献立が参照するレシピが見つからない場合は 500 を返す', async () => {
@@ -169,5 +308,43 @@ describe('GET /api/shopping-list', () => {
         details: null,
       },
     });
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-missing');
+  });
+
+  it('献立repository例外時は500を返す', async () => {
+    listMenusInRangeMock.mockRejectedValue(new Error('database error'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const response = await getShoppingListRequest('2026-05-22', '2026-05-24');
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to compute shopping list',
+        details: null,
+      },
+    });
+    expect(findRecipeWithIngredientsMock).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalled();
+  });
+
+  it('レシピrepository例外時は500を返す', async () => {
+    listMenusInRangeMock.mockResolvedValue([menu('menu-1', '2026-05-22', 'recipe-1', 2)]);
+    findRecipeWithIngredientsMock.mockRejectedValue(new Error('database error'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const response = await getShoppingListRequest('2026-05-22', '2026-05-22');
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to compute shopping list',
+        details: null,
+      },
+    });
+    expect(findRecipeWithIngredientsMock).toHaveBeenCalledWith('user-123', 'recipe-1');
+    expect(consoleError).toHaveBeenCalled();
   });
 });
