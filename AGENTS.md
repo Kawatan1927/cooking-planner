@@ -99,7 +99,7 @@ cd docs && bun install --frozen-lockfile && cd ..
 **② すべての変更共通（リポジトリルートから実行）:**
 
 ```bash
-bun run lint && bun run format:check && bun run type-check && bun run build:all
+bun run lint && bun run format:check && bun run type-check && bun run build:all && bun run test
 ```
 
 **③ `docs/` を変更した場合（追加で実行）:**
