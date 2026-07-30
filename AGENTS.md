@@ -116,6 +116,8 @@ cd docs && bun install --frozen-lockfile && bun run format:check && bun run buil
 - `bun run format:check`
 - `bun run type-check`
 - `bun run build:all`
+- `bun run frontend:test`
+- `bun run backend:test`
 - `bun run test`
 
 ## 領域別ルール

@@ -60,6 +60,13 @@ bun run build:all
 bun run test
 ```
 
+`bun run test`はフロントエンドとバックエンドの単体テストを順次実行します。領域ごとに確認する場合は、次のコマンドを使用します。
+
+```bash
+bun run frontend:test
+bun run backend:test
+```
+
 ## トラブルシューティング
 
 - DB 接続に失敗する場合は、PostgreSQL の起動状態と `DATABASE_URL` を確認する。

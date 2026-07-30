@@ -81,6 +81,8 @@ bun run frontend:build
 bun run frontend:lint
 bun run frontend:format
 bun run frontend:format:check
+bun run frontend:type-check
+bun run frontend:test
 
 # バックエンド
 bun run backend:dev
@@ -104,7 +106,7 @@ bun run docs:format:check
 
 - **pre-commit**: コミットに含める `frontend/` と `backend/` 配下の staged ファイルに対してフォーマットチェックと lint を実行
 - **pre-push**: `frontend/**` または `backend/**` の変更があるときだけ、ビルドとテストを実行
-- **test**: `bun run backend:test` を実行
+- **test**: `bun run frontend:test` と `bun run backend:test` を順次実行
 
 フックをスキップする場合:
 
@@ -119,8 +121,9 @@ git push --no-verify
 
 GitHub Actions では以下を確認します。
 
-- フロントエンドの lint、フォーマットチェック、型チェック、ビルド
+- フロントエンドの lint、フォーマットチェック、型チェック、ビルド、テスト
 - バックエンドの lint、フォーマットチェック、型チェック、テスト
+- ルートの `bun run test` によるフロントエンド・バックエンド単体テストの統合実行
 - ドキュメントのフォーマットチェック、Docusaurus ビルド
 
 ## 起動と公開
