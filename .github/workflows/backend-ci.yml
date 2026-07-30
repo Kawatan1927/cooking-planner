@@ -51,8 +51,7 @@ jobs:
       run: bun run format:check
 
     - name: テストの実行
-      working-directory: ./backend
-      run: bun run test
+      run: bun run backend:test
 
     - name: /health 疎通スモークテスト
       working-directory: ./backend
