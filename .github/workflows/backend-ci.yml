@@ -5,11 +5,15 @@ on:
     branches: [ main, develop ]
     paths:
       - 'backend/**'
+      - 'package.json'
+      - 'bun.lock'
       - '.github/workflows/backend-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'backend/**'
+      - 'package.json'
+      - 'bun.lock'
       - '.github/workflows/backend-ci.yml'
 
 jobs:
