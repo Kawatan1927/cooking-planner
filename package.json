@@ -15,6 +15,7 @@
     "frontend:lint": "cd frontend && bun run lint",
     "frontend:format": "cd frontend && bun run format",
     "frontend:format:check": "cd frontend && bun run format:check",
+    "frontend:test": "cd frontend && bun run test",
     "backend:install": "cd backend && bun install",
     "backend:dev": "cd backend && bun run dev",
     "backend:start": "cd backend && bun run start",
@@ -32,7 +33,7 @@
     "format:check": "bun run frontend:format:check && bun run backend:format:check && bun run docs:format:check",
     "type-check": "bun run frontend:type-check && bun run backend:type-check",
     "build:all": "bun run frontend:build && bun run backend:type-check && bun run docs:build",
-    "test": "bun run backend:test"
+    "test": "bun run frontend:test && bun run backend:test"
   },
   "devDependencies": {
     "lefthook": "^2.1.4",

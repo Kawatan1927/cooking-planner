@@ -16,8 +16,9 @@
 
 ## よく使うコマンド
 
-- `npm run frontend:dev`
-- `npm run frontend:lint`
-- `npm run frontend:format:check`
-- `npm run frontend:type-check`
-- `npm run frontend:build`
+- `bun run frontend:dev`
+- `bun run frontend:lint`
+- `bun run frontend:format:check`
+- `bun run frontend:type-check`
+- `bun run frontend:build`
+- `bun run frontend:test`

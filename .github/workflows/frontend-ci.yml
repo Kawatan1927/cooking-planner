@@ -5,11 +5,15 @@ on:
     branches: [ main, develop ]
     paths:
       - 'frontend/**'
+      - 'package.json'
+      - 'bun.lock'
       - '.github/workflows/frontend-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'frontend/**'
+      - 'package.json'
+      - 'bun.lock'
       - '.github/workflows/frontend-ci.yml'
 
 jobs:
@@ -49,6 +53,9 @@ jobs:
     - name: Prettier のチェック
       working-directory: ./frontend
       run: bun run format:check
+
+    - name: テストの実行
+      run: bun run frontend:test
 
     - name: ビルドの実行
       working-directory: ./frontend

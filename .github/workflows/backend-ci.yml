@@ -5,11 +5,15 @@ on:
     branches: [ main, develop ]
     paths:
       - 'backend/**'
+      - 'package.json'
+      - 'bun.lock'
       - '.github/workflows/backend-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'backend/**'
+      - 'package.json'
+      - 'bun.lock'
       - '.github/workflows/backend-ci.yml'
 
 jobs:
@@ -51,8 +55,7 @@ jobs:
       run: bun run format:check
 
     - name: テストの実行
-      working-directory: ./backend
-      run: bun run test
+      run: bun run backend:test
 
     - name: /health 疎通スモークテスト
       working-directory: ./backend
