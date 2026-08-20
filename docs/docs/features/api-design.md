@@ -4,60 +4,46 @@ title: API 設計
 sidebar_position: 3
 ---
 
-このドキュメントでは、フロントエンド（SPA）から呼び出す
-**HTTP API の設計**を定義する。
+このドキュメントでは、フロントエンド（SPA）から呼び出す HTTP API の設計を定義する。
 
-バックエンド構成は以下の通り：
+バックエンド構成は Bun + Hono と PostgreSQL。認証は Cloudflare Access による Zero Trust アクセス制御で行い、Hono の認証ミドルウェアが `Cf-Access-Jwt-Assertion` を検証する。
 
-- Hono (Bun ランタイム)
-- PostgreSQL
+## 共通仕様
 
-認証は Cloudflare Access による Zero Trust アクセス制御で行い、
-Hono の認証ミドルウェアが `Cf-Access-Jwt-Assertion` を検証する。
+### ベース URL
 
----
-
-## 1. 共通仕様
-
-### 1.1 ベース URL
-
-- `https://<cloudflare-tunnel-domain>/api` を想定
-  - Cloudflare Tunnel → ローカル PC 上の Hono サーバーへ転送
-  - フロントエンドと API は同一 Hono サーバーで配信するため、同一ドメイン
+- `https://<cloudflare-tunnel-domain>/api` を想定する。
+  - Cloudflare Tunnel からローカル PC 上の Hono server へ転送する。
+  - フロントエンドと API は同一 Hono server で配信するため、同一ドメインになる。
 - フロントエンドからは `.env` などで `VITE_API_BASE_URL` として指定する。
 
-### 1.2 HTTP ヘッダ
+### HTTP ヘッダ
 
 - リクエスト
   - `Content-Type: application/json`（ボディがある場合）
   - `Cf-Access-Jwt-Assertion`（Cloudflare Access がオリジンへの転送時に付与）
-
 - レスポンス
   - `Content-Type: application/json; charset=utf-8`
 
-### 1.3 認証
+### 認証
 
-- 認証方式：**Cloudflare Access（Zero Trust）**
-  - Cloudflare Access がアクセス制御の境界となり、認証済みリクエストのみ Hono サーバーに到達する
-  - フロントエンドは JWT を保持せず、API 呼び出し時に `Authorization` ヘッダを付与しない
+- 認証方式は Cloudflare Access（Zero Trust）。
+- Cloudflare Access がアクセス制御の境界となり、認証済みリクエストのみ Hono server に到達する。
+- フロントエンドは JWT を保持せず、API 呼び出し時に `Authorization` ヘッダを付与しない。
+- Hono 側では `Cf-Access-Jwt-Assertion` を Cloudflare Access の公開鍵で検証する。
+- 検証後、JWT の `email`（なければ `sub`）を `userId` として扱う。
+- ローカル開発では `DEV_USER_ID` を設定すると JWT なしで動作する。
+- すべての業務エンドポイントは認証必須。
 
-- Hono 側設定：
-  - `Cf-Access-Jwt-Assertion` を Cloudflare Access の公開鍵で検証する
-  - JWT の `email`（なければ `sub`）を `userId` として扱う
-  - ローカル開発では `DEV_USER_ID` を設定すると JWT なしで動作する
-  - すべての業務エンドポイントは **認証必須**
+### 日付・時刻
 
-### 1.4 日付・時刻の扱い
+- 日付文字列: `YYYY-MM-DD`
+- 日時文字列: ISO 8601（例: `2025-11-21T12:34:56.789Z`）
+- PostgreSQL に保存する日時は UTC を基本とする。
 
-- 日付文字列：`YYYY-MM-DD`（例：`2025-11-21`）
-- 日時文字列（ISO8601）：
-  - `2025-11-21T12:34:56.789Z`
-- タイムゾーン：
-  - PostgreSQL に保存する日時は UTC を基本とする（`Z`）
+### エラーレスポンス
 
-### 1.5 エラーレスポンス形式
-
-基本形は以下の通り：
+基本形は以下の通り。
 
 ```json
 {
@@ -69,37 +55,27 @@ Hono の認証ミドルウェアが `Cf-Access-Jwt-Assertion` を検証する。
 }
 ```
 
-代表的なステータスコード：
+代表的なステータスコード:
 
-- `400 Bad Request`
-  - バリデーションエラーなど
-- `401 Unauthorized`
-  - Cloudflare Access JWT 不正・欠如
-- `403 Forbidden`
-  - 認証は通っているが、対象リソースの `userId` が異なるなど
-- `404 Not Found`
-  - 該当リソースが存在しない
-- `500 Internal Server Error`
-  - 予期せぬ例外
+- `400 Bad Request`: バリデーションエラーなど
+- `401 Unauthorized`: Cloudflare Access JWT 不正・欠如
+- `403 Forbidden`: 認証は通っているが、対象リソースの `userId` が異なる
+- `404 Not Found`: 該当リソースが存在しない
+- `500 Internal Server Error`: 予期せぬ例外
 
-※ 最初は雑でもよくて、必要に応じて `code` を増やす。
+最初は必要最小限の `code` で運用し、必要に応じて増やす。
 
----
+## Recipes API
 
-## 2. Recipes API
+### `GET /recipes`
 
-### 2.1 GET /recipes
-
-**概要**
-
-- ログインユーザーの全レシピ一覧を取得する。
-- 初期段階ではページングなしで全件返す（件数が増えたら対応検討）。
+ログインユーザーの全レシピ一覧を取得する。初期段階ではページングなしで全件返す。件数が増えたらページングを検討する。
 
 **Request**
 
 - Method: `GET`
 - Path: `/recipes`
-- Query Parameters: なし（将来的にキーワード検索等の追加はあり）
+- Query Parameters: なし（将来的にキーワード検索等を追加してもよい）
 
 **Response 200**
 
@@ -117,14 +93,9 @@ Hono の認証ミドルウェアが `Cf-Access-Jwt-Assertion` を検証する。
 ]
 ```
 
----
+### `POST /recipes`
 
-### 2.2 POST /recipes
-
-**概要**
-
-- 新しいレシピを登録する。
-- 材料も一緒に登録する。
+新しいレシピを登録する。材料も一緒に登録する。
 
 **Request**
 
@@ -157,6 +128,8 @@ Hono の認証ミドルウェアが `Cf-Access-Jwt-Assertion` を検証する。
 }
 ```
 
+`quantity` は正の数値（`number`）または空でない文字列（`string`）を受け付ける。数値で表せない分量（例: 「適量」）は文字列として指定する。
+
 **Response 201**
 
 ```json
@@ -165,16 +138,11 @@ Hono の認証ミドルウェアが `Cf-Access-Jwt-Assertion` を検証する。
 }
 ```
 
-※ 必要に応じて作成したレシピ全体を返してもよい。
+必要に応じて、作成したレシピ全体を返してもよい。
 
----
+### `GET /recipes/{recipeId}`
 
-### 2.3 GET /recipes/\{recipeId\}
-
-**概要**
-
-- 特定のレシピの詳細情報を取得する。
-- レシピ本体＋材料一覧を含めて返す。
+特定のレシピの詳細情報を取得する。レシピ本体と材料一覧を含めて返す。
 
 **Request**
 
@@ -222,14 +190,9 @@ Hono の認証ミドルウェアが `Cf-Access-Jwt-Assertion` を検証する。
 }
 ```
 
----
+### `PUT /recipes/{recipeId}`
 
-### 2.4 PUT /recipes/\{recipeId\}
-
-**概要**
-
-- 既存レシピの情報を更新する。
-- 材料リストも含めて全体更新（差分更新ではなく置き換え）とする。
+既存レシピの情報を更新する。材料リストも含めて全体更新とし、差分更新ではなく置き換えとする。
 
 **Request**
 
@@ -238,7 +201,7 @@ Hono の認証ミドルウェアが `Cf-Access-Jwt-Assertion` を検証する。
 
 **Request Body**
 
-POST `/recipes` と同じ構造：
+POST `/recipes` と同じ構造。
 
 ```json
 {
@@ -266,16 +229,35 @@ POST `/recipes` と同じ構造：
 }
 ```
 
----
+**Response 400**
 
-## 3. Menus API（献立）
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Recipe name is required",
+    "details": null
+  }
+}
+```
 
-### 3.1 GET /menus
+**Response 404**
 
-**概要**
+```json
+{
+  "error": {
+    "code": "RECIPE_NOT_FOUND",
+    "message": "Recipe not found",
+    "details": null
+  }
+}
+```
 
-- 指定期間内の献立を取得する。
-- 初期は簡易に `from` / `to` を指定し、返り値は「日付＋食事区分ごとの配列」とする。
+## Menus API
+
+### `GET /menus`
+
+指定期間内の献立を取得する。初期は簡易に `from` / `to` を指定し、返り値は日付＋食事区分ごとの配列とする。
 
 **Request**
 
@@ -285,9 +267,7 @@ POST `/recipes` と同じ構造：
   - `from` (optional, `YYYY-MM-DD`)
   - `to` (optional, `YYYY-MM-DD`)
 
-`from` / `to` 未指定時の挙動：
-
-- 未指定の場合は「今日から 7日分」など適当なデフォルトを決める。
+`from` / `to` 未指定の場合は「今日から7日分」（今日〜6日後）をデフォルトとする。
 
 **Response 200**
 
@@ -314,14 +294,26 @@ POST `/recipes` と同じ構造：
 }
 ```
 
----
+**Response 400**
 
-### 3.2 POST /menus
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Invalid \"from\" date format. Use YYYY-MM-DD",
+    "details": null
+  }
+}
+```
 
-**概要**
+バリデーションエラーになるケース:
 
-- ある日付・食事区分に、レシピを紐付ける献立を登録する。
-- 同じ日付・食事区分に複数レシピを登録可能。
+- `from` / `to` が `YYYY-MM-DD` 形式でない。
+- `from` が `to` より後の日付。
+
+### `POST /menus`
+
+ある日付・食事区分に、レシピを紐付ける献立を登録する。同じ日付・食事区分に複数レシピを登録可能。
 
 **Request**
 
@@ -329,6 +321,14 @@ POST `/recipes` と同じ構造：
 - Path: `/menus`
 
 **Request Body**
+
+| フィールド | 型                      | 必須 | 説明                                                  |
+| ---------- | ----------------------- | ---- | ----------------------------------------------------- |
+| `date`     | `string` (`YYYY-MM-DD`) | yes  | 献立の日付                                            |
+| `mealType` | `string`                | yes  | `BREAKFAST` / `LUNCH` / `DINNER` / `OTHER` のいずれか |
+| `recipeId` | `string`                | yes  | 紐付けるレシピの ID                                   |
+| `servings` | `number`                | yes  | 人数（正の数値）                                      |
+| `memo`     | `string` \| `null`      | no   | メモ（任意）                                          |
 
 ```json
 {
@@ -348,14 +348,30 @@ POST `/recipes` と同じ構造：
 }
 ```
 
----
+**Response 400**
 
-### 3.3 PUT /menus/\{menuId\}
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Invalid \"mealType\". Must be one of: BREAKFAST, LUNCH, DINNER, OTHER",
+    "details": null
+  }
+}
+```
 
-**概要**
+バリデーションエラーになる代表的なケース:
 
-- 既存の献立（1件）を更新する。
-- 主に `servings` や `recipeId` の変更。
+- リクエストボディが存在しない。
+- リクエストボディが JSON として不正。
+- `date` が `YYYY-MM-DD` 形式でない。
+- `mealType` が有効値以外。
+- `recipeId` が空または文字列でない。
+- `servings` が正の数値でない。
+
+### `PUT /menus/{menuId}`
+
+既存の献立（1件）を更新する。主に `servings` や `recipeId` の変更に使う。
 
 **Request**
 
@@ -363,6 +379,8 @@ POST `/recipes` と同じ構造：
 - Path: `/menus/{menuId}`
 
 **Request Body**
+
+POST `/menus` と同じ構造。
 
 ```json
 {
@@ -374,6 +392,8 @@ POST `/recipes` と同じ構造：
 }
 ```
 
+`date` または `mealType` を変更した場合も、PostgreSQL トランザクション内で旧レコードの更新を実行する。
+
 **Response 200**
 
 ```json
@@ -382,13 +402,33 @@ POST `/recipes` と同じ構造：
 }
 ```
 
----
+**Response 400**
 
-### 3.4 DELETE /menus/\{menuId\}
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Invalid \"mealType\". Must be one of: BREAKFAST, LUNCH, DINNER, OTHER",
+    "details": null
+  }
+}
+```
 
-**概要**
+**Response 404**
 
-- 献立から 1件のレシピを削除する。
+```json
+{
+  "error": {
+    "code": "MENU_NOT_FOUND",
+    "message": "Menu not found",
+    "details": null
+  }
+}
+```
+
+### `DELETE /menus/{menuId}`
+
+献立から1件のレシピを削除する。
 
 **Request**
 
@@ -397,25 +437,33 @@ POST `/recipes` と同じ構造：
 
 **Response 204**
 
-- ボディなし。
+ボディなし。
 
----
+**Response 404**
 
-## 4. Shopping List API（買い物リスト）
+```json
+{
+  "error": {
+    "code": "MENU_NOT_FOUND",
+    "message": "Menu not found",
+    "details": null
+  }
+}
+```
 
-### 4.1 GET /shopping-list
+## Shopping List API
 
-**概要**
+### `GET /shopping-list`
 
-- 指定期間の献立から、必要な材料の合計量を計算して返す。
+指定期間の献立から、必要な材料の合計量を計算して返す。
 
 **Request**
 
 - Method: `GET`
 - Path: `/shopping-list`
 - Query Parameters:
-  - `from` (required) `YYYY-MM-DD`
-  - `to` (required) `YYYY-MM-DD`
+  - `from` (required, `YYYY-MM-DD`)
+  - `to` (required, `YYYY-MM-DD`)
 
 **Response 200**
 
@@ -438,33 +486,22 @@ POST `/recipes` と同じ構造：
 }
 ```
 
-> **注意（`quantity` が文字列の場合）**:
->
-> - `RecipeIngredients.quantity` は数値だけでなく、`"少々"` のような文字列も許容している。
-> - `GET /shopping-list` では材料ごと（`ingredientName + unit`）に集計するが、
->   文字列 quantity は人数比でスケーリングできないため **スケーリングせず**、同一キー内では `+` で連結して返す。
-> - 数値と文字列が混在する場合は `"<数値> + <文字列>"` のような **文字列** として `totalQuantity` を返す。
+`RecipeIngredients.quantity` は数値だけでなく、`"少々"` のような文字列も許容する。`GET /shopping-list` では材料ごと（`ingredientName + unit`）に集計するが、文字列 quantity は人数比でスケーリングできないためスケーリングせず、同一キー内では `+` で連結して返す。数値と文字列が混在する場合は `"<数値> + <文字列>"` のような文字列として `totalQuantity` を返す。
 
-**処理概要（Hono / サーバー側）**
+**処理概要**
 
-1. `menus` テーブルから `from`〜`to` の献立を取得
-2. 各 `menu_item` について：
-   - `recipes` から `base_servings` を取得
-   - `recipe_ingredients` から材料一覧を取得
-   - `servings / baseServings` で分量をスケーリング
-3. `ingredientName + unit` 単位で合計値を集計
-4. 上記形式でレスポンスに整形
+1. `menus` テーブルから `from`〜`to` の献立を取得する。
+2. 各 `menu_item` について `recipes` から `base_servings` を取得する。
+3. `recipe_ingredients` から材料一覧を取得する。
+4. `servings / base_servings` で分量をスケーリングする。
+5. `ingredient_name + unit` 単位で合計値を集計する。
+6. レスポンス形式へ整形する。
 
----
+## Health Check API
 
-## 5. Health Check API（任意）
+### `GET /health`
 
-### 5.1 GET /health
-
-**概要**
-
-- デバッグ・疎通確認用の簡易エンドポイント。
-- 認証不要 or 認証必須のどちらでもよい（個人用なので好み）。
+デバッグ・疎通確認用の簡易エンドポイント。認証不要か認証必須かは、個人用のため運用に合わせて決める。
 
 **Request**
 
@@ -480,12 +517,10 @@ POST `/recipes` と同じ構造：
 }
 ```
 
----
+## 今後の拡張余地
 
-## 6. 今後の拡張余地（メモ）
-
-- `Recipes` 一覧にページング・ソートを追加
-- フリーテキスト検索（名前・出典本など）
-- `Menus` の取得形式を「日付ごとにネストした形」に変える or オプション化
-- `PantryItems` に関連する API の追加（常備品管理）
-- バリデーションエラー時の詳細な `details` 構造の設計
+- `Recipes` 一覧にページング・ソートを追加する。
+- フリーテキスト検索（名前・出典本など）を追加する。
+- `Menus` の取得形式を日付ごとにネストした形に変える、またはオプション化する。
+- `PantryItems` に関連する API を追加する。
+- バリデーションエラー時の詳細な `details` 構造を設計する。

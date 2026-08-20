@@ -53,7 +53,7 @@ bun run test
 ```
 
 - ポートは環境変数 `PORT`（デフォルト `3000`）で変更可能。
-- サーバーは **127.0.0.1（ループバック）にのみバインド**します（`docs/05-architecture-notes.md` §6.1）。
+- サーバーは **127.0.0.1（ループバック）にのみバインド**します（`docs/docs/architecture/backend.md`）。
 - 開発フロント（Vite `http://localhost:5173`）からの CORS を許可します。許可オリジンは
   環境変数 `FRONTEND_ORIGIN`（デフォルト `http://localhost:5173`）で変更可能。
 

@@ -13,7 +13,7 @@ import { authMiddleware } from './shared/auth';
  * 開発フロント（Vite dev server）のオリジン。
  * 本番はフロントと API が同一オリジンのため CORS は不要だが、
  * ローカル開発（フロント :5173 / API :3000）では必要。
- * @see docs/05-architecture-notes.md §8.1
+ * @see docs/docs/architecture/backend.md
  */
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173';
 const FRONTEND_DIST_DIR = process.env.FRONTEND_DIST_DIR ?? '../frontend/dist';
@@ -68,7 +68,7 @@ app.get('*', async (c, next) => {
   return spaFallback(c, next);
 });
 
-// 未定義ルートは docs/04-api-design.md のエラー形式で 404 を返す
+// 未定義ルートは docs/docs/features/api-design.md のエラー形式で 404 を返す
 app.notFound(() => resultToResponse(notFound('Endpoint not found')));
 
 // 想定外の例外は 500 に集約する

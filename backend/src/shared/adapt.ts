@@ -6,7 +6,7 @@ const JSON_CONTENT_TYPE = 'application/json; charset=utf-8';
 /**
  * `HandlerResult` を Hono の `Response` に変換する。
  *
- * `Content-Type` は `docs/04-api-design.md` のレスポンス仕様に合わせて
+ * `Content-Type` は `docs/docs/features/api-design.md` のレスポンス仕様に合わせて
  * `application/json; charset=utf-8` を明示する。
  */
 export const resultToResponse = (result: HandlerResult): Response =>

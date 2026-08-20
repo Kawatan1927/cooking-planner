@@ -1,7 +1,7 @@
 /**
  * レシピ関連の型定義
  *
- * docs/03-domain-and-data-model.md および docs/04-api-design.md に基づく
+ * docs/docs/architecture/data-model.md および docs/docs/features/api-design.md に基づく
  */
 
 /**

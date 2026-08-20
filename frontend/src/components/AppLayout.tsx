@@ -8,7 +8,7 @@
  *   - "default"  : 通常レイアウト（ヘッダー + コンテンツ）
  *   - "focus"    : 買い物リストなどチェック操作向け（将来の拡張用）
  *
- * @see docs/02-features-and-screens.md
+ * @see docs/docs/features/screens.md
  */
 
 import { Outlet } from 'react-router-dom';

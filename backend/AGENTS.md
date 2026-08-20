@@ -4,9 +4,9 @@
 
 ## 参照する docs
 
-- データモデルは `docs/03-domain-and-data-model.md`
-- API の入出力は `docs/04-api-design.md`
-- 環境変数や構成変更は必要に応じて `docs/05-architecture-notes.md`
+- データモデルは `docs/docs/architecture/data-model.md`
+- API の入出力は `docs/docs/features/api-design.md`
+- 環境変数や構成変更は必要に応じて `docs/docs/development/environment-variables.mdx` と `docs/docs/architecture/backend.md`
 
 ## 実装ルール
 
@@ -26,13 +26,13 @@
 - `recipes` / `menus` のクエリは必ず `user_id` でスコープしてください。`recipe_ingredients` は `recipe_id` 経由でユーザーコンテキストを継承します（独自の userId カラムは持ちません）。
 - API 上の `recipeId` / `menuId` は DB の `id` 列、`quantity` は `quantity_value` / `quantity_text` に対応します。変換はリポジトリ層に閉じてください。
 - レスポンス・エラーは `shared/http.ts` のヘルパー（`jsonResponse` / `badRequest` / `notFound` ほか）を使い、
-  `docs/04-api-design.md` の形式（エラーは `{ error: { code, message, details } }`）に合わせてください。
+  `docs/docs/features/api-design.md` の形式（エラーは `{ error: { code, message, details } }`）に合わせてください。
 - CORS はローカルフロント（`http://localhost:5173`）を許可します（`src/app.ts`）。
-- サーバーは **127.0.0.1（ループバック）にのみバインド**してください（`docs/05-architecture-notes.md` §6.1）。
+- サーバーは **127.0.0.1（ループバック）にのみバインド**してください（`docs/docs/architecture/backend.md`）。
   `0.0.0.0` でバインドしないこと。
-- 既存 API のエンドポイント・レスポンス形式（`docs/04-api-design.md`）を変えないでください。
+- 既存 API のエンドポイント・レスポンス形式（`docs/docs/features/api-design.md`）を変えないでください。
 - AWS SDK（`@aws-sdk/*`）を新たに追加しないでください。
-- スキーマ変更時は `bun run db:generate` でマイグレーションを生成し、`docs/03-domain-and-data-model.md` も更新してください。
+- スキーマ変更時は `bun run db:generate` でマイグレーションを生成し、`docs/docs/architecture/data-model.md` も更新してください。
 
 ## よく使うコマンド
 

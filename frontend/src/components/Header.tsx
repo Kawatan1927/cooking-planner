@@ -4,7 +4,7 @@
  * 主要ナビゲーション（ダッシュボード・レシピ・献立・買い物リスト）を提供します。
  * sticky 配置で常に画面上部に固定されます。
  *
- * @see docs/02-features-and-screens.md
+ * @see docs/docs/features/screens.md
  */
 
 import { NavLink } from 'react-router-dom';
