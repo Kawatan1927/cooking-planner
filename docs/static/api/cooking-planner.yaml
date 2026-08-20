@@ -9,11 +9,11 @@ info:
 
     ## 認証
 
-    `/health` を除くすべての業務エンドポイントは **Bearer Token（JWT）** による認証が必要です。
-    Amazon Cognito User Pool で発行した ID トークンまたはアクセストークンを使用します。
+    `/health` を除くすべての業務エンドポイントは **Cloudflare Access** による認証が必要です。
+    Cloudflare Access が認証済みリクエストのみを Hono server に転送し、オリジンへの転送時に `Cf-Access-Jwt-Assertion` ヘッダを付与します。
 
     ```
-    Authorization: Bearer <JWT>
+    Cf-Access-Jwt-Assertion: <Cloudflare Access JWT>
     ```
 
     ## エラーレスポンス
@@ -32,22 +32,22 @@ info:
 
     代表的なステータスコード:
     - `400 Bad Request` — バリデーションエラー等
-    - `401 Unauthorized` — JWT 不正・欠如
+    - `401 Unauthorized` — Cloudflare Access JWT 不正・欠如
     - `403 Forbidden` — 他ユーザーのリソースへのアクセス
     - `404 Not Found` — リソースが存在しない
     - `500 Internal Server Error` — 予期せぬ例外
   version: 1.0.0
 
 servers:
-  - url: https://{cloudfront_domain}/api
-    description: Production
+  - url: https://{cloudflare_tunnel_domain}/api
+    description: Cloudflare Tunnel endpoint
     variables:
-      cloudfront_domain:
-        default: example.cloudfront.net
-        description: CloudFront ディストリビューションドメイン
+      cloudflare_tunnel_domain:
+        default: example.com
+        description: Cloudflare Tunnel で公開するアプリケーションドメイン
 
 security:
-  - BearerAuth: []
+  - CloudflareAccess: []
 
 tags:
   - name: recipes
@@ -446,13 +446,13 @@ paths:
 
 components:
   securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+    CloudflareAccess:
+      type: apiKey
+      in: header
+      name: Cf-Access-Jwt-Assertion
       description: |-
-        Amazon Cognito User Pool から取得した JWT（ID トークンまたはアクセストークン）。
-        `Authorization: Bearer <token>` の形式で送信する。
+        Cloudflare Access が認証済みリクエストをオリジンへ転送する際に付与する JWT。
+        Hono server はこのヘッダを Cloudflare Access の公開鍵で検証し、JWT の `email`（なければ `sub`）を `userId` として扱う。
 
   schemas:
     HealthResponse:
@@ -747,7 +747,7 @@ components:
               details: null
 
     Unauthorized:
-      description: 認証エラー（JWT 不正・欠如）
+      description: 認証エラー（Cloudflare Access JWT 不正・欠如）
       content:
         application/json:
           schema:
@@ -755,7 +755,7 @@ components:
           example:
             error:
               code: UNAUTHORIZED
-              message: Authorization token is missing or invalid
+              message: Cloudflare Access JWT is missing or invalid
               details: null
 
     Forbidden:
