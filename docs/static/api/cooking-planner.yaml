@@ -5,7 +5,7 @@ info:
   description: |-
     個人用料理レシピ／献立／買い物リスト管理アプリの REST API 仕様。
 
-    詳細な設計意図は [docs/04-api-design.md](https://github.com/Kawatan1927/cooking-planner/blob/main/docs/04-api-design.md) を参照してください。
+    詳細な設計意図は [API 設計](https://github.com/Kawatan1927/cooking-planner/blob/main/docs/docs/features/api-design.md) を参照してください。
 
     ## 認証
 
@@ -69,15 +69,15 @@ paths:
       operationId: getHealth
       security: []
       responses:
-        '200':
+        "200":
           description: 正常
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
+                $ref: "#/components/schemas/HealthResponse"
               example:
                 status: ok
-                time: '2025-11-21T12:34:56.789Z'
+                time: "2025-11-21T12:34:56.789Z"
 
   /recipes:
     get:
@@ -87,24 +87,24 @@ paths:
       description: ログインユーザーの全レシピ一覧を取得する。初期段階ではページングなしで全件返す。
       operationId: listRecipes
       responses:
-        '200':
+        "200":
           description: 成功
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/RecipeSummary'
+                  $ref: "#/components/schemas/RecipeSummary"
               example:
                 - recipeId: c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11
                   name: 鶏の照り焼き
                   sourceBook: 週末の定番おかず
                   sourcePage: 34
                   baseServings: 2
-                  createdAt: '2025-11-21T12:00:00.000Z'
-                  updatedAt: '2025-11-21T12:00:00.000Z'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                  createdAt: "2025-11-21T12:00:00.000Z"
+                  updatedAt: "2025-11-21T12:00:00.000Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       tags:
         - recipes
@@ -116,7 +116,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RecipeInput'
+              $ref: "#/components/schemas/RecipeInput"
             example:
               name: 鶏の照り焼き
               sourceBook: 週末の定番おかず
@@ -133,18 +133,18 @@ paths:
                   unit: 大さじ
                   note: null
       responses:
-        '201':
+        "201":
           description: 作成成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RecipeIdResponse'
+                $ref: "#/components/schemas/RecipeIdResponse"
               example:
                 recipeId: c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /recipes/{recipeId}:
     parameters:
@@ -163,12 +163,12 @@ paths:
       description: 特定のレシピの詳細情報（材料一覧含む）を取得する。
       operationId: getRecipe
       responses:
-        '200':
+        "200":
           description: 成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RecipeDetail'
+                $ref: "#/components/schemas/RecipeDetail"
               example:
                 recipeId: c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11
                 name: 鶏の照り焼き
@@ -176,8 +176,8 @@ paths:
                 sourcePage: 34
                 baseServings: 2
                 memo: 少し甘めなので砂糖控えめが好み
-                createdAt: '2025-11-21T12:00:00.000Z'
-                updatedAt: '2025-11-21T12:00:00.000Z'
+                createdAt: "2025-11-21T12:00:00.000Z"
+                updatedAt: "2025-11-21T12:00:00.000Z"
                 ingredients:
                   - ingredientName: 鶏もも肉
                     quantity: 300
@@ -187,12 +187,12 @@ paths:
                     quantity: 2
                     unit: 大さじ
                     note: null
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - recipes
@@ -207,7 +207,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RecipeInput'
+              $ref: "#/components/schemas/RecipeInput"
             example:
               name: 鶏の照り焼き（甘さ控えめ）
               sourceBook: 週末の定番おかず
@@ -220,22 +220,22 @@ paths:
                   unit: g
                   note: null
       responses:
-        '200':
+        "200":
           description: 更新成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RecipeIdResponse'
+                $ref: "#/components/schemas/RecipeIdResponse"
               example:
                 recipeId: c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /menus:
     get:
@@ -256,7 +256,7 @@ paths:
             type: string
             format: date
           description: 開始日（YYYY-MM-DD）
-          example: '2025-11-21'
+          example: "2025-11-21"
         - name: to
           in: query
           required: false
@@ -264,30 +264,30 @@ paths:
             type: string
             format: date
           description: 終了日（YYYY-MM-DD）
-          example: '2025-11-23'
+          example: "2025-11-23"
       responses:
-        '200':
+        "200":
           description: 成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MenuListResponse'
+                $ref: "#/components/schemas/MenuListResponse"
               example:
-                from: '2025-11-21'
-                to: '2025-11-23'
+                from: "2025-11-21"
+                to: "2025-11-23"
                 items:
-                  - date: '2025-11-21'
+                  - date: "2025-11-21"
                     mealType: DINNER
                     menuId: 5b5af0bb-3c10-45e7-8f5e-6f541b2da111
                     recipeId: c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11
                     servings: 1
-                  - date: '2025-11-22'
+                  - date: "2025-11-22"
                     mealType: DINNER
                     menuId: d8aa570f-b827-4f08-8a40-e9ac7644a911
                     recipeId: 9f365a0e-57bc-4fa5-9664-a66a8d6736d9
                     servings: 2
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       tags:
         - menus
@@ -302,26 +302,26 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MenuInput'
+              $ref: "#/components/schemas/MenuInput"
             example:
-              date: '2025-11-21'
+              date: "2025-11-21"
               mealType: DINNER
               recipeId: c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11
               servings: 1
               memo: null
       responses:
-        '201':
+        "201":
           description: 作成成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MenuIdResponse'
+                $ref: "#/components/schemas/MenuIdResponse"
               example:
                 menuId: 5b5af0bb-3c10-45e7-8f5e-6f541b2da111
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /menus/{menuId}:
     parameters:
@@ -347,30 +347,30 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MenuInput'
+              $ref: "#/components/schemas/MenuInput"
             example:
-              date: '2025-11-21'
+              date: "2025-11-21"
               mealType: DINNER
               recipeId: c5b4a271-4dc4-4f30-9b61-1e5b10cbfd11
               servings: 2
               memo: 友達が一人来る
       responses:
-        '200':
+        "200":
           description: 更新成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MenuIdResponse'
+                $ref: "#/components/schemas/MenuIdResponse"
               example:
                 menuId: 5b5af0bb-3c10-45e7-8f5e-6f541b2da111
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     delete:
       tags:
         - menus
@@ -381,14 +381,14 @@ paths:
         **注意:** 現在このエンドポイントはバックエンド未実装のため、呼び出すと `404 Not Found` が返ります。将来の実装予定を示すための仕様です。
       operationId: deleteMenu
       responses:
-        '204':
+        "204":
           description: 削除成功（レスポンスボディなし）
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /shopping-list:
     get:
@@ -413,7 +413,7 @@ paths:
             type: string
             format: date
           description: 開始日（YYYY-MM-DD）
-          example: '2025-11-21'
+          example: "2025-11-21"
         - name: to
           in: query
           required: true
@@ -421,17 +421,17 @@ paths:
             type: string
             format: date
           description: 終了日（YYYY-MM-DD）
-          example: '2025-11-23'
+          example: "2025-11-23"
       responses:
-        '200':
+        "200":
           description: 成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ShoppingListResponse'
+                $ref: "#/components/schemas/ShoppingListResponse"
               example:
-                from: '2025-11-21'
-                to: '2025-11-23'
+                from: "2025-11-21"
+                to: "2025-11-23"
                 items:
                   - ingredientName: 玉ねぎ
                     totalQuantity: 1.5
@@ -439,10 +439,10 @@ paths:
                   - ingredientName: 鶏もも肉
                     totalQuantity: 400
                     unit: g
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
 components:
   securitySchemes:
@@ -467,7 +467,7 @@ components:
         time:
           type: string
           format: date-time
-          example: '2025-11-21T12:34:56.789Z'
+          example: "2025-11-21T12:34:56.789Z"
 
     RecipeSummary:
       type: object
@@ -499,11 +499,11 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: '2025-11-21T12:00:00.000Z'
+          example: "2025-11-21T12:00:00.000Z"
         updatedAt:
           type: string
           format: date-time
-          example: '2025-11-21T12:00:00.000Z'
+          example: "2025-11-21T12:00:00.000Z"
 
     RecipeIngredient:
       type: object
@@ -555,11 +555,11 @@ components:
         ingredients:
           type: array
           items:
-            $ref: '#/components/schemas/RecipeIngredient'
+            $ref: "#/components/schemas/RecipeIngredient"
 
     RecipeDetail:
       allOf:
-        - $ref: '#/components/schemas/RecipeSummary'
+        - $ref: "#/components/schemas/RecipeSummary"
         - type: object
           properties:
             memo:
@@ -568,7 +568,7 @@ components:
             ingredients:
               type: array
               items:
-                $ref: '#/components/schemas/RecipeIngredient'
+                $ref: "#/components/schemas/RecipeIngredient"
 
     RecipeIdResponse:
       type: object
@@ -601,9 +601,9 @@ components:
         date:
           type: string
           format: date
-          example: '2025-11-21'
+          example: "2025-11-21"
         mealType:
-          $ref: '#/components/schemas/MealType'
+          $ref: "#/components/schemas/MealType"
         menuId:
           type: string
           format: uuid
@@ -626,15 +626,15 @@ components:
         from:
           type: string
           format: date
-          example: '2025-11-21'
+          example: "2025-11-21"
         to:
           type: string
           format: date
-          example: '2025-11-23'
+          example: "2025-11-23"
         items:
           type: array
           items:
-            $ref: '#/components/schemas/MenuItem'
+            $ref: "#/components/schemas/MenuItem"
 
     MenuInput:
       type: object
@@ -647,9 +647,9 @@ components:
         date:
           type: string
           format: date
-          example: '2025-11-21'
+          example: "2025-11-21"
         mealType:
-          $ref: '#/components/schemas/MealType'
+          $ref: "#/components/schemas/MealType"
         recipeId:
           type: string
           format: uuid
@@ -700,15 +700,15 @@ components:
         from:
           type: string
           format: date
-          example: '2025-11-21'
+          example: "2025-11-21"
         to:
           type: string
           format: date
-          example: '2025-11-23'
+          example: "2025-11-23"
         items:
           type: array
           items:
-            $ref: '#/components/schemas/ShoppingListItem'
+            $ref: "#/components/schemas/ShoppingListItem"
 
     ErrorDetail:
       type: object
@@ -731,7 +731,7 @@ components:
         - error
       properties:
         error:
-          $ref: '#/components/schemas/ErrorDetail'
+          $ref: "#/components/schemas/ErrorDetail"
 
   responses:
     BadRequest:
@@ -739,10 +739,10 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
-              code: VALIDATION_ERROR
+              code: BAD_REQUEST
               message: Invalid request body
               details: null
 
@@ -751,7 +751,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: UNAUTHORIZED
@@ -763,7 +763,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: FORBIDDEN
@@ -775,7 +775,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: RESOURCE_NOT_FOUND

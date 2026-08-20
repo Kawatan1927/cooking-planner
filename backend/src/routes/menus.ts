@@ -4,7 +4,7 @@ import { getMenus, createMenu, updateMenu, deleteMenu } from '../menus';
 
 /**
  * /menus 配下のルーター。
- * @see docs/04-api-design.md §3
+ * @see docs/docs/features/api-design.md
  */
 const menus = new Hono();
 

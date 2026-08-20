@@ -4,7 +4,7 @@ import app from './app';
  * Bun サーバーのエントリーポイント。
  *
  * - ポートは環境変数 `PORT`（デフォルト 3000）で設定可能。
- * - `docs/05-architecture-notes.md` §6.1 のセキュリティ方針に従い、
+ * - `docs/docs/architecture/backend.md` のセキュリティ方針に従い、
  *   ループバック（127.0.0.1）にのみバインドする。0.0.0.0 でバインドすると
  *   同一 LAN 内から Cloudflare Access を経由せず直接アクセスできてしまうため。
  *

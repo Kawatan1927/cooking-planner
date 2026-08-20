@@ -10,7 +10,7 @@
 
 #### 概要
 
-`docs/04-api-design.md` で規定された `GET /recipes` エンドポイントを処理します。
+`docs/docs/features/api-design.md` で規定された `GET /recipes` エンドポイントを処理します。
 
 #### 現在の実装（Drizzle/PostgreSQL）
 
@@ -39,7 +39,7 @@
 ]
 ```
 
-エラーレスポンスは `docs/04-api-design.md` で規定されたフォーマットに従います：
+エラーレスポンスは `docs/docs/features/api-design.md` で規定されたフォーマットに従います：
 
 - 401: Unauthorized (JWT が無効または欠如)
 - 500: Internal Server Error
@@ -52,7 +52,7 @@
 
 #### 概要
 
-`docs/04-api-design.md` で規定された Menus API の全エンドポイントを処理します。
+`docs/docs/features/api-design.md` で規定された Menus API の全エンドポイントを処理します。
 
 #### 現在の実装（Drizzle/PostgreSQL）
 

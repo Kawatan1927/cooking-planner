@@ -4,7 +4,7 @@ import { getShoppingList } from '../shoppingList';
 
 /**
  * /shopping-list 配下のルーター。
- * @see docs/04-api-design.md §4
+ * @see docs/docs/features/api-design.md
  */
 const shoppingList = new Hono();
 

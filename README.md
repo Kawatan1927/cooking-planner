@@ -147,15 +147,14 @@ GitHub Actions では以下を確認します。
 
 ## ドキュメント
 
-詳細な仕様とアーキテクチャについては、`docs/` ディレクトリを参照してください。
+詳細な仕様とアーキテクチャについては、Docusaurus サイト向け文書の `docs/docs/` 配下を参照してください。
 
-- `docs/01-vision-and-scope.md` - ビジョンとスコープ
-- `docs/02-features-and-screens.md` - 機能と画面
-- `docs/03-domain-and-data-model.md` - ドメインモデルとデータモデル
-- `docs/04-api-design.md` - API設計
-- `docs/05-architecture-notes.md` - アーキテクチャノート
-
-Docusaurus サイト向けの文書は `docs/docs/` 配下にあります。
+- `docs/docs/features/vision-and-scope.md` - ビジョンとスコープ
+- `docs/docs/features/screens.md` - 機能と画面
+- `docs/docs/features/api-design.md` - API 設計
+- `docs/docs/architecture/data-model.md` - ドメインモデルとデータモデル
+- `docs/docs/architecture/overview.md` - アーキテクチャ概要
+- `docs/docs/architecture/infrastructure.md` - インフラストラクチャ
 
 ## ライセンス
 

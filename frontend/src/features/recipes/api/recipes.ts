@@ -2,7 +2,7 @@
  * レシピAPI呼び出しのラッパー関数
  *
  * apiFetch を使用して、レシピ関連のAPIエンドポイントを呼び出します。
- * docs/04-api-design.md の仕様に基づいています。
+ * docs/docs/features/api-design.md の仕様に基づいています。
  */
 
 import { apiFetch } from '@/lib/apiClient';

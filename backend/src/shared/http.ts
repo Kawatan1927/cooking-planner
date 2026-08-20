@@ -7,7 +7,7 @@
  * そのまま維持できる。
  *
  * - `body` が `undefined` の場合はボディなし（例: 204 No Content）。
- * - エラー形式は `docs/04-api-design.md` の `{ error: { code, message, details } }` に準拠。
+ * - エラー形式は `docs/docs/features/api-design.md` の `{ error: { code, message, details } }` に準拠。
  */
 export interface HandlerResult {
   status: number;

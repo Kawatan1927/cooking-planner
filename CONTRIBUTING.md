@@ -77,12 +77,12 @@ bun run prepare
 
 コミットに含める `frontend/` と `backend/` 配下の staged ファイルに対して以下のチェックを並列実行します。
 
-| フック名          | 対象                                      | 内容               |
-| ----------------- | ----------------------------------------- | ------------------ |
+| フック名          | 対象                                             | 内容              |
+| ----------------- | ------------------------------------------------ | ----------------- |
 | `frontend-format` | `frontend/**/*.{ts,tsx,js,jsx,json,css,md,html}` | Prettier チェック |
-| `frontend-lint`   | `frontend/**/*.{ts,tsx,js,jsx}`           | ESLint             |
-| `backend-format`  | `backend/**/*.{ts,js,json,md}`            | Prettier チェック |
-| `backend-lint`    | `backend/**/*.ts`                         | ESLint             |
+| `frontend-lint`   | `frontend/**/*.{ts,tsx,js,jsx}`                  | ESLint            |
+| `backend-format`  | `backend/**/*.{ts,js,json,md}`                   | Prettier チェック |
+| `backend-lint`    | `backend/**/*.ts`                                | ESLint            |
 
 #### pre-push フック（プッシュ前）
 
@@ -224,27 +224,28 @@ docs: 開発手順をバックエンド構成に更新
 
 ## ドキュメント
 
-詳細な仕様とアーキテクチャについては、`docs/` ディレクトリを参照してください。
+詳細な仕様とアーキテクチャについては、Docusaurus サイト向け文書の `docs/docs/` 配下を参照してください。
 
-- `docs/01-vision-and-scope.md` - ビジョンとスコープ
-- `docs/02-features-and-screens.md` - 機能と画面
-- `docs/03-domain-and-data-model.md` - ドメインモデルとデータモデル
-- `docs/04-api-design.md` - API 設計
-- `docs/05-architecture-notes.md` - アーキテクチャノート
+- `docs/docs/features/vision-and-scope.md` - ビジョンとスコープ
+- `docs/docs/features/screens.md` - 機能と画面
+- `docs/docs/features/api-design.md` - API 設計
+- `docs/docs/architecture/data-model.md` - ドメインモデルとデータモデル
+- `docs/docs/architecture/overview.md` - アーキテクチャ概要
+- `docs/docs/architecture/infrastructure.md` - インフラストラクチャ
 
 ## ドキュメント変更ガイドライン
 
 ### どの文書をどこに書くか
 
-| 変更内容                         | 追記先ファイル                  |
-| -------------------------------- | ------------------------------- |
-| アプリのビジョン・スコープ       | `docs/01-vision-and-scope.md`   |
-| 機能定義・画面仕様               | `docs/02-features-and-screens.md` |
-| ドメインモデル・データモデル     | `docs/03-domain-and-data-model.md` |
-| API 設計（エンドポイント・スキーマ） | `docs/04-api-design.md`          |
-| アーキテクチャ・インフラ構成     | `docs/05-architecture-notes.md` |
-| 開発環境・コーディング規約       | `CONTRIBUTING.md`               |
-| Docusaurus サイト向けコンテンツ  | `docs/docs/` 配下の対応ディレクトリ |
+| 変更内容                             | 追記先ファイル                            |
+| ------------------------------------ | ----------------------------------------- |
+| アプリのビジョン・スコープ           | `docs/docs/features/vision-and-scope.md`  |
+| 機能定義・画面仕様                   | `docs/docs/features/screens.md`           |
+| ドメインモデル・データモデル         | `docs/docs/architecture/data-model.md`    |
+| API 設計（エンドポイント・スキーマ） | `docs/docs/features/api-design.md`        |
+| アーキテクチャ・インフラ構成         | `docs/docs/architecture/overview.md` など |
+| 開発環境・コーディング規約           | `CONTRIBUTING.md`                         |
+| Docusaurus サイト向けコンテンツ      | `docs/docs/` 配下の対応ディレクトリ       |
 
 Docusaurus サイト（`docs/docs/`）は以下のカテゴリに分かれています。
 

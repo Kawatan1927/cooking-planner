@@ -9,7 +9,7 @@ sidebar_position: 1
 Cooking Planner バックエンドが提供する REST API の概要をまとめます。  
 インタラクティブな試用は **[Swagger UI](/api-reference/swagger-ui)** ページから行えます。
 
-> 詳細な設計意図・背景は [`docs/04-api-design.md`](https://github.com/Kawatan1927/cooking-planner/blob/main/docs/04-api-design.md) を参照してください。  
+> 詳細な設計意図・背景は [API 設計](../features/api-design.md) を参照してください。  
 > OpenAPI 仕様ファイル: [`static/api/cooking-planner.yaml`](https://github.com/Kawatan1927/cooking-planner/blob/main/docs/static/api/cooking-planner.yaml)
 
 ---

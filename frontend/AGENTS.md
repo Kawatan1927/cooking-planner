@@ -2,9 +2,9 @@
 
 ## 参照する docs
 
-- 画面と振る舞いは `docs/02-features-and-screens.md`
-- API の入出力は `docs/04-api-design.md`
-- 環境変数や全体構成は必要に応じて `docs/05-architecture-notes.md`
+- 画面と振る舞いは `docs/docs/features/screens.md`
+- API の入出力は `docs/docs/features/api-design.md`
+- 環境変数や全体構成は必要に応じて `docs/docs/development/environment-variables.mdx` と `docs/docs/architecture/overview.md`
 
 ## 実装ルール
 

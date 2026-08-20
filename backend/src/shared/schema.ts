@@ -14,7 +14,7 @@ import {
 
 /**
  * recipes テーブル。API 上の recipeId は本テーブルの id（UUID）。
- * @see docs/03-domain-and-data-model.md §3
+ * @see docs/docs/architecture/data-model.md
  */
 export const recipes = pgTable(
   'recipes',
@@ -35,7 +35,7 @@ export const recipes = pgTable(
 /**
  * recipe_ingredients テーブル。user_id は持たず recipe_id 経由で継承。
  * quantity_value / quantity_text はどちらか一方のみ設定（CHECK 制約）。
- * @see docs/03-domain-and-data-model.md §4
+ * @see docs/docs/architecture/data-model.md
  */
 export const recipeIngredients = pgTable(
   'recipe_ingredients',
@@ -62,7 +62,7 @@ export const recipeIngredients = pgTable(
 /**
  * menus テーブル。API 上の menuId は本テーブルの id（UUID）。
  * meal_type は CHECK 制約で許可値に限定。
- * @see docs/03-domain-and-data-model.md §5
+ * @see docs/docs/architecture/data-model.md
  */
 export const menus = pgTable(
   'menus',

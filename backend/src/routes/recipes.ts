@@ -4,7 +4,7 @@ import { getRecipes, createRecipe, getRecipeById, updateRecipe } from '../recipe
 
 /**
  * /recipes 配下のルーター。
- * @see docs/04-api-design.md §2
+ * @see docs/docs/features/api-design.md
  */
 const recipes = new Hono();
 

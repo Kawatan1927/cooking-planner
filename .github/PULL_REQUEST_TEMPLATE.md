@@ -6,37 +6,42 @@ gh pr create 時に --label フラグで適切なラベルを付ける
 -->
 
 ## 概要（必須）
+
 - このPRの目的：
 - 主な変更点：
 - ユーザーに見える変更：あり / なし（ありの場合、どこがどう変わるか一言）
 
 ## 背景 / 関連（必須）
+
 - 関連Issue/タスク：#
-- 参照ドキュメント（docs/*.md）：
-    - docs/01-vision-and-scope.md（該当箇所：）
-    - docs/02-features-and-screens.md（該当画面：）
-    - docs/03-domain-and-data-model.md（該当モデル/テーブル：）
-    - docs/04-api-design.md（該当エンドポイント：）
-    - docs/05-architecture-notes.md（該当事項：）
+- 参照ドキュメント：
+  - docs/docs/features/vision-and-scope.md（該当箇所：）
+  - docs/docs/features/screens.md（該当画面：）
+  - docs/docs/architecture/data-model.md（該当モデル/テーブル：）
+  - docs/docs/features/api-design.md（該当エンドポイント：）
+  - docs/docs/architecture/overview.md / backend.md / frontend.md / infrastructure.md（該当事項：）
 
 ## 変更内容（必須）
+
 - フロントエンド：
-    - 追加/変更した画面・コンポーネント：
-    - API 呼び出し（features/<domain>/api/*.ts）の追加/変更：
-    - React Query フック（hooks/use*.ts）の追加/変更：
+  - 追加/変更した画面・コンポーネント：
+  - API 呼び出し（features/<domain>/api/*.ts）の追加/変更：
+  - React Query フック（hooks/use*.ts）の追加/変更：
 - バックエンド（Bun + Hono）：
-    - エンドポイント（パス + メソッド）：
-    - PostgreSQL 操作（テーブル・トランザクション・クエリ等）：
-    - レスポンス形式（docs/04 に準拠）：
+  - エンドポイント（パス + メソッド）：
+  - PostgreSQL 操作（テーブル・トランザクション・クエリ等）：
+  - レスポンス形式（docs/docs/features/api-design.md に準拠）：
 - 公開/認証：
-    - Cloudflare Access / Tunnel 設定への影響：
-    - 環境変数：
+  - Cloudflare Access / Tunnel 設定への影響：
+  - 環境変数：
 
 ## 仕様との整合性（必須）
+
 - どの仕様に基づいているか：
 - 仕様との差分がある場合：理由 / 追随計画（Issue化するなら番号も）
 
 ## 影響範囲（必須）
+
 - フロントエンド：ルーティング/状態管理/ビルド設定 等への影響
 - バックエンド：既存APIとの互換性、エラーコード、スループット/レイテンシ影響
 - データ：PostgreSQL スキーマ・マイグレーション・バックフィルの必要性
@@ -44,28 +49,33 @@ gh pr create 時に --label フラグで適切なラベルを付ける
 - 公開/運用コスト：Cloudflare Tunnel 設定、ローカル常時起動への影響
 
 ## 移行・リリース・ロールバック（必要な場合）
+
 - データ移行/バックフィル：
 - フィーチャーフラグ/段階的リリース：
 - ロールバック方針（戻し方を1行で）：
 
 ## 動作確認 / テスト（必須）
+
 - 確認環境：開発 / ステージング / 本番相当（該当なし可）
 - 手動確認手順：
-    1.
-    2.
+  1. 手順を記載
+  2. 期待結果を確認
 - 期待結果：
 - 追加したテスト：
 - 既存テストへの影響：
 
 ## スクリーンショット / 動画（UI変更がある場合）
+
 <画像や録画を貼る>
 
 ## 破壊的変更
+
 - あり / なし（ありの場合：影響、回避策、移行手順）
 
 ---
 
 ## チェックリスト（全て日本語で記載すること）
+
 - [ ] すべての記述（タイトル/本文/コメント/チェックリスト等）は日本語で記載した
 - [ ] 対応する Issue を起点に作業し、必要なラベルを設定した
 - [ ] 変更は小さめで、スコープが明確（関係ない整形を混ぜない）
@@ -73,28 +83,33 @@ gh pr create 時に --label フラグで適切なラベルを付ける
 - [ ] 仕様とコードに齟齬がある場合の判断/補足を本文に記載した（必要ならIssue化）
 
 ### フロントエンド
+
 - [ ] API呼び出しは fetch 直叩きせず、lib/apiClient.ts 経由
 - [ ] features/<domain>/api/*.ts にラッパーを追加/更新
 - [ ] React Query のカスタムフック（hooks/use*.ts）を用意/更新
 - [ ] 未ログイン時の挙動が既存方針（例：/login リダイレクト）に反しない
 
 ### バックエンド（Bun + Hono）
+
 - [ ] Hono のルーティング・ミドルウェア構成に沿って実装
 - [ ] PostgreSQL のクエリ条件にユーザー識別子を含める（Cloudflare Access JWT の email / sub または DEV_USER_ID）
-- [ ] レスポンスは docs/04-api-design.md のエラー形式（statusCode, error.code, error.message）に準拠
+- [ ] レスポンスは docs/docs/features/api-design.md のエラー形式（statusCode, error.code, error.message）に準拠
 
 ### データ/公開
-- [ ] PostgreSQL テーブル/インデックス変更は docs/03 と整合
-- [ ] Cloudflare Access / Tunnel や環境変数の変更は docs/05 と整合
+
+- [ ] PostgreSQL テーブル/インデックス変更は docs/docs/architecture/data-model.md と整合
+- [ ] Cloudflare Access / Tunnel や環境変数の変更は docs/docs/architecture/infrastructure.md と整合
 - [ ] Hono サーバーの公開範囲と認証境界を確認
 
 ### 品質
+
 - [ ] ESLint / 型チェックを通過
 - [ ] コンソールエラー/警告を解消
 - [ ] パフォーマンス/コストに影響しうる点を本文に明記
 - [ ] セキュリティ（認証/認可/入力バリデーション/秘匿情報）を確認
 
 ### ドキュメント/運用
+
 - [ ] AGENTS.md の更新が必要な変更なら反映した
 - [ ] README や docs の更新が必要なら反映
 - [ ] 動作確認手順と期待結果を本文に明記
