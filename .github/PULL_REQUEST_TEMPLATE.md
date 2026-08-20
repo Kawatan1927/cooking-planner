@@ -14,12 +14,11 @@ gh pr create 時に --label フラグで適切なラベルを付ける
 ## 背景 / 関連（必須）
 
 - 関連Issue/タスク：#
-- 参照ドキュメント：
-  - docs/docs/features/vision-and-scope.md（該当箇所：）
-  - docs/docs/features/screens.md（該当画面：）
-  - docs/docs/architecture/data-model.md（該当モデル/テーブル：）
-  - docs/docs/features/api-design.md（該当エンドポイント：）
-  - docs/docs/architecture/overview.md / backend.md / frontend.md / infrastructure.md（該当事項：）
+- 参照ドキュメント（`docs/docs/**` の該当するページのみ記載）：
+  - 機能・画面（`features/`）：
+  - API（`api-reference/` / `features/api-design.md`）：
+  - アーキテクチャ・データ（`architecture/`）：
+  - 開発・デプロイ・運用（`getting-started/` / `development/` / `deployment/` / `operations/` / `maintenance/`）：
 
 ## 変更内容（必須）
 
@@ -79,7 +78,7 @@ gh pr create 時に --label フラグで適切なラベルを付ける
 - [ ] すべての記述（タイトル/本文/コメント/チェックリスト等）は日本語で記載した
 - [ ] 対応する Issue を起点に作業し、必要なラベルを設定した
 - [ ] 変更は小さめで、スコープが明確（関係ない整形を混ぜない）
-- [ ] 関連する docs/*.md を確認し、実装はドキュメントを優先した
+- [ ] 関連する `docs/docs/**` のページを確認し、実装はドキュメントを優先した
 - [ ] 仕様とコードに齟齬がある場合の判断/補足を本文に記載した（必要ならIssue化）
 
 ### フロントエンド
@@ -111,6 +110,6 @@ gh pr create 時に --label フラグで適切なラベルを付ける
 ### ドキュメント/運用
 
 - [ ] AGENTS.md の更新が必要な変更なら反映した
-- [ ] README や docs の更新が必要なら反映
+- [ ] README や `docs/docs/**` の更新が必要なら反映した
 - [ ] 動作確認手順と期待結果を本文に明記
 - [ ] UI変更はスクショ/動画を添付
