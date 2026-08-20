@@ -742,7 +742,7 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
-              code: VALIDATION_ERROR
+              code: BAD_REQUEST
               message: Invalid request body
               details: null
 
