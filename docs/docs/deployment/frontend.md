@@ -36,8 +36,8 @@ bun run start
 1. `bun run frontend:build` で `frontend/dist/` を生成する。
 2. `bun run backend:start` で Hono server を起動する。
 3. Hono server が API と静的ファイルを同じ port で配信する。
-4. Cloudflare Tunnel がその port へリクエストを転送する。
-5. Cloudflare Access が許可ユーザーを制限する。
+4. Tailscale Serve がその port へリクエストを転送する。
+5. tailnet に参加している端末だけが `https://<device>.<tailnet>.ts.net` へ到達できる。
 
 ## 環境変数
 
@@ -46,8 +46,7 @@ bun run start
 | `VITE_API_BASE_URL` | API のベース URL | `http://localhost:3000/api` または `/api` |
 
 `bun run start` では frontend build 後に同じ Hono server から SPA と API を配信するため、
-root `.env` では `/api` を指定します。Cloudflare Tunnel 経由の外部ブラウザでも、
-同一オリジンの Hono server にリクエストできます。
+root `.env` では `/api` を指定します。Tailscale Serve 経由でもフロントエンドと API は同じ `https://<device>.<tailnet>.ts.net` の配下になるため、`/api` の相対パスを使います。
 
 Vite dev server から backend を直接呼ぶローカル開発では、`frontend/.env.local` など
 frontend 側の環境変数ファイルで `http://localhost:3000/api` を指定します。

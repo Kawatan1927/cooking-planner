@@ -23,7 +23,7 @@ Vite の環境変数機能を使用します。ブラウザに公開されるた
 | ------------------- | ---------------- | ----------------------------------------- |
 | `VITE_API_BASE_URL` | API のベース URL | `http://localhost:3000/api` または `/api` |
 
-フロントエンドは Cloudflare Access の JWT を保持せず、認証サービスの秘密情報も使用しません。
+フロントエンドは JWT を保持せず、認証サービスの秘密情報も使用しません。Tailscale Serve 構成では tailnet 参加端末であることをアクセス境界にします。
 
 ```bash
 # frontend/.env.local（Vite dev server から backend を直接呼ぶ例）
@@ -31,21 +31,21 @@ VITE_API_BASE_URL=http://localhost:3000/api
 ```
 
 root `.env` を `bun run start` で使う場合は、frontend build 時に値が SPA へ埋め込まれます。
-Cloudflare Tunnel 経由の本番相当では、外部ブラウザが利用者自身の localhost を見に行かないよう
+Tailscale Serve 経由の本番相当では、別端末のブラウザが利用者自身の localhost を見に行かないよう
 `VITE_API_BASE_URL=/api` を指定します。
 
 ---
 
 ## Hono バックエンド（`backend/.env`）
 
-| 変数名                        | 説明                                                                 | 例                                                                 |
-| ----------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `PORT`                        | Hono サーバーのリッスンポート（デフォルト `3000`）                   | `3000`                                                             |
-| `FRONTEND_ORIGIN`             | ローカル開発時に CORS で許可するフロントエンド origin                | `http://localhost:5173`                                            |
-| `DATABASE_URL`                | PostgreSQL 接続文字列                                                | `postgresql://user:pass@localhost:5432/cooking_planner`            |
-| `DEV_USER_ID`                 | ローカル開発用 userId。設定時は Cloudflare Access JWT 検証をスキップ | `local-dev-user`                                                   |
-| `CLOUDFLARE_ACCESS_TEAM_NAME` | Cloudflare Access チーム名                                           | `my-team`                                                          |
-| `CLOUDFLARE_ACCESS_AUD`       | Cloudflare Access Application Audience (AUD)                         | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
+| 変数名                        | 説明                                                            | 例                                                                 |
+| ----------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `PORT`                        | Hono サーバーのリッスンポート（デフォルト `3000`）              | `3000`                                                             |
+| `FRONTEND_ORIGIN`             | ローカル開発時に CORS で許可するフロントエンド origin           | `http://localhost:5173`                                            |
+| `DATABASE_URL`                | PostgreSQL 接続文字列                                           | `postgresql://user:pass@localhost:5432/cooking_planner`            |
+| `DEV_USER_ID`                 | Tailscale Serve / ローカル開発で使う単一ユーザー用 userId       | `local-dev-user`                                                   |
+| `CLOUDFLARE_ACCESS_TEAM_NAME` | Cloudflare Access を代替案として使う場合のチーム名              | `my-team`                                                          |
+| `CLOUDFLARE_ACCESS_AUD`       | Cloudflare Access を代替案として使う場合の Application Audience | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
 
 ```bash
 # backend/.env（ローカル開発例）
@@ -55,7 +55,10 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/cooking_planner
 DEV_USER_ID=local-dev-user
 ```
 
-Cloudflare Tunnel 経由で利用する場合は、`DEV_USER_ID` を外し、
+Tailscale Serve 経由で利用する場合も、当面は `DEV_USER_ID=local-dev-user` を固定します。
+この値を変えると DB 上の `user_id` スコープが変わり、既存データが見えなくなるため注意してください。
+
+Cloudflare Tunnel / Access を代替案として使う場合は、`DEV_USER_ID` を外し、
 `CLOUDFLARE_ACCESS_TEAM_NAME` と `CLOUDFLARE_ACCESS_AUD` を設定します。
 Hono は `Cf-Access-Jwt-Assertion` を Cloudflare Access の公開鍵で検証し、
 JWT の `email`（なければ `sub`）を `userId` として扱います。
@@ -64,10 +67,10 @@ JWT の `email`（なければ `sub`）を `userId` として扱います。
 
 ## 環境別の運用方針
 
-| 環境         | 説明                                                                                             |
-| ------------ | ------------------------------------------------------------------------------------------------ |
-| ローカル開発 | `frontend/.env.local` と `backend/.env` にローカル用の値を設定し、`DEV_USER_ID` で認証をバイパス |
-| 本番相当     | Hono サーバーを 127.0.0.1 にバインドし、Cloudflare Tunnel + Cloudflare Access 経由で公開         |
+| 環境         | 説明                                                                                                     |
+| ------------ | -------------------------------------------------------------------------------------------------------- |
+| ローカル開発 | `frontend/.env.local` と `backend/.env` にローカル用の値を設定し、`DEV_USER_ID` で単一ユーザーとして扱う |
+| 本番相当     | Hono サーバーを 127.0.0.1 にバインドし、Tailscale Serve 経由で tailnet 内に限定公開                      |
 
 :::tip
 環境変数を追加・変更した際は、このページと [バックエンド](../architecture/backend.md) / [インフラストラクチャ](../architecture/infrastructure.md) もあわせて更新してください。

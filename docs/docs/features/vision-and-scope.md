@@ -17,7 +17,7 @@ Cooking Planner は、料理本ベースのレシピを献立と買い物リス�
 - 書籍に載っているレシピをデータとして登録し直す。
 - 日付ごとに「この日の朝・昼・夜に何を作るか」を決める。
 - 複数日の献立から「足りない材料だけ」をまとめて買い物リストとして取得する。
-- アプリはインターネット上に公開するが、Cloudflare Access で認証した自分だけが利用できる。
+- アプリは Tailscale tailnet 内に限定公開し、Tailscale 導入済みの自分の端末だけから利用できる。
 
 ## 背景・課題
 
@@ -61,7 +61,7 @@ Cooking Planner は、料理本ベースのレシピを献立と買い物リス�
 - 指定期間の献立から必要な材料の総量を算出し、買い物リストとして表示できる。
   - 同じ材料は合算した数量で表示する。
   - チェックボックスで「買った／家にある」を管理できる。
-- 外部からアクセスできる URL でホストするが、Cloudflare Access で認証済みの自分以外は使えない。
+- tailnet 内からアクセスできる HTTPS URL でホストし、Tailscale 導入済みの自分の端末だけから使える。
 
 ## 非ゴール
 
@@ -89,11 +89,11 @@ Cooking Planner は、料理本ベースのレシピを献立と買い物リス�
   - 材料名ごとに必要量を集約したリストを返す
   - スマホから閲覧可能なチェックリスト UI
 - 認証
-  - Cloudflare Access によるアクセス制御
-  - Cloudflare Access を通過したリクエストのみ API にアクセスできる
+  - Tailscale tailnet によるアクセス制御
+  - 当面は `DEV_USER_ID=local-dev-user` による単一ユーザー運用
 - デプロイ
-  - Cloudflare Tunnel によるインターネット公開
-  - HTTPS 対応（Cloudflare が終端）
+  - Tailscale Serve による tailnet 内限定公開
+  - HTTPS 対応（Tailscale Serve が終端）
 
 ### Should
 
@@ -116,7 +116,7 @@ Cooking Planner は、料理本ベースのレシピを献立と買い物リス�
 - Vite + React + TypeScript の SPA
 - React Router によるクライアントサイドルーティング
 - TanStack Query によるサーバー状態管理
-- Hono server が静的ファイルとして配信（Cloudflare Tunnel 経由）
+- Hono server が静的ファイルとして配信（Tailscale Serve 経由）
 
 ### バックエンド / インフラ
 
@@ -126,11 +126,11 @@ Cooking Planner は、料理本ベースのレシピを献立と買い物リス�
 - PostgreSQL
   - ローカル PC 上で起動
   - `recipes`, `recipe_ingredients`, `menus` などのテーブルを管理
-- Cloudflare Tunnel
-  - ローカル PC の Hono server をインターネットに公開
-  - HTTPS 終端は Cloudflare 側で処理
-- Cloudflare Access
-  - Zero Trust によるアクセス制御
+- Tailscale Serve
+  - ローカル PC の Hono server を tailnet 内に限定公開
+  - HTTPS 終端は Tailscale 側で処理
+- Tailscale tailnet
+  - Tailscale 導入済み端末だけにアクセスを制限
 
 ## 非機能要件
 
@@ -141,8 +141,8 @@ Cooking Planner は、料理本ベースのレシピを献立と買い物リス�
   - ローカル PC で常時起動するため、コールドスタートはない。
   - PC の再起動やスリープ後の復帰に伴うダウンタイムは許容する。
 - セキュリティ
-  - 外部からアクセスするには Cloudflare Access による認証を必須にする。
-  - HTTPS 通信のみとし、Cloudflare Tunnel + Cloudflare が HTTPS を終端する。
+  - 外部からアクセスするには Tailscale tailnet への参加を必須にする。
+  - HTTPS 通信のみとし、Tailscale Serve が HTTPS を終端する。
 - 運用
   - Hono server の標準出力で最低限のログを確認できること。
   - 個人利用のため、アラートは必須ではない。必要になったら追加する。

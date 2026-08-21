@@ -6,14 +6,14 @@ sidebar_position: 3
 
 このドキュメントでは、フロントエンド（SPA）から呼び出す HTTP API の設計を定義する。
 
-バックエンド構成は Bun + Hono と PostgreSQL。認証は Cloudflare Access による Zero Trust アクセス制御で行い、Hono の認証ミドルウェアが `Cf-Access-Jwt-Assertion` を検証する。
+バックエンド構成は Bun + Hono と PostgreSQL。第一候補の認証境界は Tailscale tailnet で、Hono は当面 `DEV_USER_ID=local-dev-user` を単一ユーザーの `userId` として扱う。Cloudflare Access は独自ドメインやインターネット公開が必要になった場合の代替案とする。
 
 ## 共通仕様
 
 ### ベース URL
 
-- `https://<cloudflare-tunnel-domain>/api` を想定する。
-  - Cloudflare Tunnel からローカル PC 上の Hono server へ転送する。
+- `https://<device>.<tailnet>.ts.net/api` を想定する。
+  - Tailscale Serve からローカル PC 上の Hono server へ転送する。
   - フロントエンドと API は同一 Hono server で配信するため、同一ドメインになる。
 - フロントエンドからは `.env` などで `VITE_API_BASE_URL` として指定する。
 
@@ -21,18 +21,18 @@ sidebar_position: 3
 
 - リクエスト
   - `Content-Type: application/json`（ボディがある場合）
-  - `Cf-Access-Jwt-Assertion`（Cloudflare Access がオリジンへの転送時に付与）
+  - `Cf-Access-Jwt-Assertion`（Cloudflare Access 代替構成でオリジンへの転送時に付与）
 - レスポンス
   - `Content-Type: application/json; charset=utf-8`
 
 ### 認証
 
-- 認証方式は Cloudflare Access（Zero Trust）。
-- Cloudflare Access がアクセス制御の境界となり、認証済みリクエストのみ Hono server に到達する。
+- 第一候補の認証境界は Tailscale tailnet。
+- tailnet に参加している端末からのリクエストのみ Hono server に到達する。
 - フロントエンドは JWT を保持せず、API 呼び出し時に `Authorization` ヘッダを付与しない。
-- Hono 側では `Cf-Access-Jwt-Assertion` を Cloudflare Access の公開鍵で検証する。
-- 検証後、JWT の `email`（なければ `sub`）を `userId` として扱う。
-- ローカル開発では `DEV_USER_ID` を設定すると JWT なしで動作する。
+- Hono 側では当面 `DEV_USER_ID=local-dev-user` を固定し、単一ユーザーの `userId` として扱う。
+- `DEV_USER_ID` を変えると DB 上の `user_id` スコープが変わり、既存データが見えなくなる。
+- Cloudflare Access を代替案として使う場合は、`Cf-Access-Jwt-Assertion` を Cloudflare Access の公開鍵で検証し、JWT の `email`（なければ `sub`）を `userId` として扱う。
 - すべての業務エンドポイントは認証必須。
 
 ### 日付・時刻
@@ -58,7 +58,7 @@ sidebar_position: 3
 代表的なステータスコード:
 
 - `400 Bad Request`: バリデーションエラーなど
-- `401 Unauthorized`: Cloudflare Access JWT 不正・欠如
+- `401 Unauthorized`: 認証情報の不正・欠如、または userId を確定できない
 - `403 Forbidden`: 認証は通っているが、対象リソースの `userId` が異なる
 - `404 Not Found`: 該当リソースが存在しない
 - `500 Internal Server Error`: 予期せぬ例外

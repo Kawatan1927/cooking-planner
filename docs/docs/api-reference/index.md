@@ -19,25 +19,27 @@ Cooking Planner バックエンドが提供する REST API の概要をまとめ
 ### ベース URL
 
 ```text
-https://<cloudflare-tunnel-domain>/api
+https://<device>.<tailnet>.ts.net/api
 ```
 
-Cloudflare Tunnel がローカル PC 上の Hono server へリクエストを転送します。フロントエンドと API は同じ Hono server から配信するため、本番相当では `/api` の相対パスを使用できます。
+Tailscale Serve がローカル PC 上の Hono server へリクエストを転送します。フロントエンドと API は同じ Hono server から配信するため、本番相当では `/api` の相対パスを使用できます。
 
 ### HTTP ヘッダ
 
-| ヘッダ                           | 説明                                             |
-| -------------------------------- | ------------------------------------------------ |
-| `Content-Type: application/json` | リクエストボディがある場合に必須                 |
-| `Cf-Access-Jwt-Assertion`        | Cloudflare Access がオリジン転送時に付与する JWT |
+| ヘッダ                           | 説明                                                     |
+| -------------------------------- | -------------------------------------------------------- |
+| `Content-Type: application/json` | リクエストボディがある場合に必須                         |
+| `Cf-Access-Jwt-Assertion`        | Cloudflare Access 代替構成でオリジン転送時に付与する JWT |
 
 ---
 
 ## 認証
 
-方式は Cloudflare Access です。Cloudflare Access がアクセス制御の境界となり、認証済みリクエストのみ Hono server に到達します。
+第一候補の方式は Tailscale Serve です。Tailscale tailnet への参加状態をアクセス境界とし、tailnet 内端末からのリクエストだけが Hono server に到達します。
 
-Hono 側では `Cf-Access-Jwt-Assertion` を検証し、JWT の `email` または `sub` を `userId` として扱います。ローカル開発では `DEV_USER_ID` を設定すると JWT 検証をスキップできます。
+Hono 側では当面 `DEV_USER_ID=local-dev-user` を固定し、単一ユーザーの `userId` として扱います。`DEV_USER_ID` を変えると DB 上の `user_id` スコープが変わり、既存データが見えなくなるため注意してください。
+
+Cloudflare Access を代替案として使う場合は、`Cf-Access-Jwt-Assertion` を検証し、JWT の `email` または `sub` を `userId` として扱います。
 
 `/health` を除くすべての業務エンドポイントは認証が必須です。
 

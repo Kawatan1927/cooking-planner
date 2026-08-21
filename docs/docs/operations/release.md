@@ -20,7 +20,7 @@ flowchart TD
     E -->|frontend/** / backend/**| G[ローカルで再起動]
     G --> H[frontend build]
     H --> I[Hono server 起動]
-    I --> J[Cloudflare Tunnel 経由で確認]
+    I --> J[Tailscale Serve 経由で確認]
 ```
 
 ## 手順
@@ -32,7 +32,9 @@ flowchart TD
 5. 必要に応じて依存関係を更新する。
 6. PostgreSQL を起動する。
 7. `bun run start` で frontend build 後に Hono server を起動する。
-8. Cloudflare Tunnel 経由で主要画面と API を確認する。
+8. ローカル PC で `http://127.0.0.1:3000/` と `/health` を確認する。
+9. `tailscale serve --bg 3000` または既存の Serve 設定を確認する。
+10. Tailscale Serve 経由で主要画面と API を確認する。
 
 ## ホットフィックス
 
@@ -49,5 +51,5 @@ git checkout -b fix/<Issue番号>-<説明>
 - [ ] 主要画面（レシピ一覧、献立、買い物リスト）が正常に表示される。
 - [ ] `/health` が正常に応答する。
 - [ ] 業務 API が正常に応答する。
-- [ ] Cloudflare Access の認証フローが正常に動作する。
+- [ ] tailnet 内端末から Tailscale Serve 経由でアクセスできる。
 - [ ] Hono server のログに想定外のエラーがない。

@@ -4,7 +4,7 @@ title: アーキテクチャ概要
 sidebar_position: 1
 ---
 
-Cooking Planner は、ローカル PC 上で動く Hono server を Cloudflare Tunnel で公開する個人用 Web アプリです。API と静的ファイル配信を1つの Bun + Hono プロセスで担い、データはローカル PostgreSQL に保存します。
+Cooking Planner は、ローカル PC 上で動く Hono server を Tailscale Serve で tailnet 内に限定公開する個人用 Web アプリです。API と静的ファイル配信を1つの Bun + Hono プロセスで担い、データはローカル PostgreSQL に保存します。
 
 ## システム構成
 
@@ -18,12 +18,12 @@ Cooking Planner は、ローカル PC 上で動く Hono server を Cloudflare Tu
   - PostgreSQL
   - `recipes`, `recipe_ingredients`, `menus` などを保持
 - ネットワーク公開
-  - Cloudflare Tunnel
-  - ローカル PC の Hono server をインターネットに公開
-  - HTTPS 終端は Cloudflare 側で処理
+  - Tailscale Serve
+  - tailnet に参加している PC / スマホ / タブレットだけからアクセス
+  - HTTPS 終端と tailnet 内 DNS は Tailscale 側で処理
 - 認証
-  - Cloudflare Access
-  - 未認証リクエストは Hono server に到達しない
+  - Tailscale tailnet をアクセス境界にする
+  - 当面は `DEV_USER_ID=local-dev-user` による単一ユーザー運用を許容する
 
 ```mermaid
 flowchart LR
@@ -31,19 +31,17 @@ flowchart LR
     UI["React SPA"]
   end
 
-  subgraph Cloudflare
-    ACCESS["Cloudflare Access\n(Zero Trust)"]
-    TUNNEL["Cloudflare Tunnel"]
+  subgraph Tailnet["Tailscale tailnet"]
+    TS["Tailscale Serve\nHTTPS"]
   end
 
   subgraph LocalPC["ローカル PC"]
-    HONO["Hono Server\n(Bun)"]
+    HONO["Hono Server\n(Bun / 127.0.0.1:3000)"]
     PG[("PostgreSQL")]
   end
 
-  UI -->|"HTTPS"| ACCESS
-  ACCESS -->|"認証済みリクエスト"| TUNNEL
-  TUNNEL -->|"HTTP (ローカル)"| HONO
+  UI -->|"HTTPS\nhttps://<device>.<tailnet>.ts.net"| TS
+  TS -->|"HTTP\nhttp://127.0.0.1:3000"| HONO
   HONO --> PG
 ```
 
@@ -70,17 +68,23 @@ flowchart LR
 - ローカル PC で動かすため、マネージドサービス固有の制約を受けない。
 - ACID トランザクションを標準で利用できる。
 
-### Cloudflare Access / Tunnel
+### Tailscale Serve
 
 - 一般公開サービスではなく、自分専用アプリとしてアクセス制御したい。
-- Cloudflare Access により、認証ポリシーを Cloudflare dashboard で管理できる。
-- メール OTP や Google SSO などの認証方法をコードなしで設定できる。
-- Cloudflare Tunnel により、ルーターのポート開放や固定 IP なしでローカル server を公開できる。
-- HTTPS 証明書管理は Cloudflare 側に任せる。
+- 既に Tailscale を導入済みの PC / スマホ / タブレットだけから使えればよい。
+- Tailscale Serve により、Hono server を `127.0.0.1` bind のまま tailnet 内 HTTPS として公開できる。
+- 独自ドメイン、ルーターのポート開放、インターネット一般公開を当面不要にできる。
+- tailnet 外からは URL を知っていても到達できないため、アプリ側のログイン画面を追加せずに運用を始められる。
+
+### Cloudflare Access / Tunnel（代替案）
+
+- 独自ドメインでインターネット公開したい場合は、Cloudflare Tunnel + Cloudflare Access を代替案として使える。
+- その場合も Hono server は `127.0.0.1` に bind し、Tunnel から loopback へ転送する。
+- Cloudflare Access の JWT 検証に必要な環境変数を設定し、`DEV_USER_ID` を外す。
 
 ## 環境構成
 
-- ローカル PC 上で Hono server と PostgreSQL を起動し、Cloudflare Tunnel で公開する構成のみを想定する。
+- ローカル PC 上で Hono server と PostgreSQL を起動し、Tailscale Serve で tailnet 内に公開する構成を第一候補とする。
 - クラウド環境に dev / prod のような分離は設けない。
 - 個人開発のため、本番相当環境はローカル PC とする。
 
@@ -91,4 +95,4 @@ flowchart LR
 | [フロントエンド](frontend)             | React SPA と静的ファイル配信                     |
 | [バックエンド](backend)                | Hono routing・認証・PostgreSQL・トランザクション |
 | [データモデル](data-model)             | PostgreSQL テーブル設計・型定義                  |
-| [インフラストラクチャ](infrastructure) | ローカル起動・Cloudflare 設定・運用              |
+| [インフラストラクチャ](infrastructure) | ローカル起動・Tailscale Serve・運用              |

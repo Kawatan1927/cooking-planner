@@ -9,12 +9,11 @@ info:
 
     ## 認証
 
-    `/health` を除くすべての業務エンドポイントは **Cloudflare Access** による認証が必要です。
-    Cloudflare Access が認証済みリクエストのみを Hono server に転送し、オリジンへの転送時に `Cf-Access-Jwt-Assertion` ヘッダを付与します。
+    `/health` を除くすべての業務エンドポイントは認証境界を通過したリクエストだけを想定します。
+    第一候補の Tailscale Serve 構成では、tailnet に参加している端末だけが Hono server に到達できます。
+    Hono server は当面 `DEV_USER_ID=local-dev-user` を単一ユーザーの `userId` として扱います。
 
-    ```
-    Cf-Access-Jwt-Assertion: <Cloudflare Access JWT>
-    ```
+    Cloudflare Access を代替案として使う場合は、オリジンへの転送時に `Cf-Access-Jwt-Assertion` ヘッダを付与します。
 
     ## エラーレスポンス
 
@@ -32,22 +31,22 @@ info:
 
     代表的なステータスコード:
     - `400 Bad Request` — バリデーションエラー等
-    - `401 Unauthorized` — Cloudflare Access JWT 不正・欠如
+    - `401 Unauthorized` — 認証情報の不正・欠如、または userId を確定できない
     - `403 Forbidden` — 他ユーザーのリソースへのアクセス
     - `404 Not Found` — リソースが存在しない
     - `500 Internal Server Error` — 予期せぬ例外
   version: 1.0.0
 
 servers:
-  - url: https://{cloudflare_tunnel_domain}/api
-    description: Cloudflare Tunnel endpoint
+  - url: https://{tailscale_device}.{tailnet}.ts.net/api
+    description: Tailscale Serve endpoint
     variables:
-      cloudflare_tunnel_domain:
-        default: example.com
-        description: Cloudflare Tunnel で公開するアプリケーションドメイン
-
-security:
-  - CloudflareAccess: []
+      tailscale_device:
+        default: cooking-pc
+        description: Tailscale のデバイス名
+      tailnet:
+        default: example
+        description: Tailscale の tailnet 名
 
 tags:
   - name: recipes
@@ -451,7 +450,7 @@ components:
       in: header
       name: Cf-Access-Jwt-Assertion
       description: |-
-        Cloudflare Access が認証済みリクエストをオリジンへ転送する際に付与する JWT。
+        Cloudflare Access を代替案として使う場合に、認証済みリクエストをオリジンへ転送する際に付与する JWT。
         Hono server はこのヘッダを Cloudflare Access の公開鍵で検証し、JWT の `email`（なければ `sub`）を `userId` として扱う。
 
   schemas:
@@ -747,7 +746,7 @@ components:
               details: null
 
     Unauthorized:
-      description: 認証エラー（Cloudflare Access JWT 不正・欠如）
+      description: 認証エラー（認証情報の不正・欠如、または userId を確定できない）
       content:
         application/json:
           schema:
@@ -755,7 +754,7 @@ components:
           example:
             error:
               code: UNAUTHORIZED
-              message: Cloudflare Access JWT is missing or invalid
+              message: Authentication context is missing or invalid
               details: null
 
     Forbidden:

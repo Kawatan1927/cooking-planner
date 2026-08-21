@@ -82,4 +82,4 @@ bun run test
 
 - `bun.lock` の変更を確認する。
 - DB 周りの依存を更新した場合は migration と接続確認を行う。
-- Cloudflare Access や Tunnel の手動設定を変えた場合は、変更内容を Issue や運用メモに残す。
+- Tailscale Serve、または Cloudflare Access / Tunnel 代替構成の手動設定を変えた場合は、変更内容を Issue や運用メモに残す。

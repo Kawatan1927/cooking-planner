@@ -9,8 +9,8 @@
 - フロントエンドは Vite + React + TypeScript です。
 - バックエンドは Bun + Hono です。
 - データストアは PostgreSQL です。
-- 認証は Cloudflare Access を前提とします。
-- 公開は Cloudflare Tunnel 経由で行います。
+- 認証境界は Tailscale tailnet を第一候補とし、当面は `DEV_USER_ID` による単一ユーザー運用を許容します。
+- 公開は Tailscale Serve 経由の tailnet 内限定公開を第一候補とします。
 
 ## 作業前の確認
 

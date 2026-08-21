@@ -42,7 +42,7 @@ sidebar_position: 3
 ### バックエンド固有のルール
 
 - ルーティングは Hono の宣言的ルーターで定義する。
-- `userId` は Cloudflare Access JWT または `DEV_USER_ID` から取得する。
+- `userId` は Tailscale Serve 構成では `DEV_USER_ID` から取得し、Cloudflare Access 代替構成では Cloudflare Access JWT から取得する。
 - PostgreSQL 操作は repository 層に集約する。
 - `recipes` / `menus` のクエリは必ず `user_id` でスコープする。
 - エラーレスポンスは [API 設計](../features/api-design.md) の形式に従う。
