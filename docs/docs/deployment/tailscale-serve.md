@@ -35,6 +35,8 @@ frontend build 後に Hono server を起動します。
 bun run start
 ```
 
+このコマンドは初回の手動確認に使用します。Windows へのログオン時にバックグラウンドで常駐させる場合は、初回 build 後に [Windows自動起動](../operations/windows-scheduled-task.md) のタスクを登録します。
+
 ローカル PC で同一オリジン配信を確認します。
 
 ```text
@@ -83,10 +85,12 @@ Cloudflare Access を使う場合は、Cloudflare Tunnel + Access を代替案�
 PC を再起動した後は、次の順に確認します。
 
 1. PostgreSQL が起動している。
-2. `bun run start` で Hono server が `127.0.0.1:3000` に応答している。
-3. `tailscale serve status` で Serve 設定が残っている。
-4. Serve 設定がない場合は `tailscale serve --bg 3000` を再実行する。
-5. tailnet 内端末から `https://<device>.<tailnet>.ts.net` を開ける。
+2. Windows へログオンしている。
+3. `pwsh ./scripts/windows/cooking-planner-task.ps1 Status` で `CookingPlanner` タスクが `Running` である。
+4. Hono server が `http://127.0.0.1:3000/health` に応答している。
+5. `tailscale serve status` で Serve 設定が残っている。
+6. Serve 設定がない場合は `tailscale serve --bg 3000` を再実行する。
+7. tailnet 内端末から `https://<device>.<tailnet>.ts.net` を開ける。
 
 ## トラブルシューティング
 
@@ -101,7 +105,7 @@ PC を再起動した後は、次の順に確認します。
 
 - `VITE_API_BASE_URL=/api` で frontend を build しているか確認する。
 - `DEV_USER_ID=local-dev-user` が Hono server の実行環境に設定されているか確認する。
-- Hono server の標準出力に DB 接続エラーや認証エラーが出ていないか確認する。
+- `logs/cooking-planner/` の最新ログに DB 接続エラーや認証エラーが出ていないか確認する。
 
 ### LAN から直接アクセスできてしまう
 

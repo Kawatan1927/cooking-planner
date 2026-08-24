@@ -2,6 +2,7 @@
 /tmp
 /out-tsc
 /dist/
+/logs/
 
 # 依存ディレクトリとパッケージマネージャ生成物
 /node_modules
