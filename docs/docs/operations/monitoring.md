@@ -12,7 +12,9 @@ sidebar_position: 1
 
 ### Hono server
 
-Hono server の `console.log` / `console.error` は標準出力に出ます。
+Hono server の `console.log` / `console.error` は標準出力と標準エラー出力に出ます。
+Windows タスクスケジューラで常駐させる場合は、起動単位のファイルとして
+`logs/cooking-planner/` に保存します。
 
 各 API リクエストで最低限以下を確認できるようにします。
 
@@ -27,6 +29,26 @@ Hono server の `console.log` / `console.error` は標準出力に出ます。
 
 ### 確認コマンド
 
+常駐中のタスク状態と最新ログを確認します。
+
+```powershell
+pwsh ./scripts/windows/cooking-planner-task.ps1 Status
+
+$stdoutLog = Get-ChildItem ./logs/cooking-planner/*.stdout.log |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
+$stderrLog = Get-ChildItem ./logs/cooking-planner/*.stderr.log |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
+
+Get-Content $stdoutLog -Tail 100
+Get-Content $stderrLog -Tail 100
+```
+
+ログは次回起動時に整理され、更新日時が7日より古いファイルを削除します。
+
+前景で起動して診断する場合は次のコマンドを使用します。
+
 ```bash
 bun run backend:start
 bun run dev
@@ -37,9 +59,12 @@ bun run dev
 初期段階では細かいアラートは設定しません。問題が発生した場合は以下を手動で確認します。
 
 - Hono server の標準出力
+- `CookingPlanner` タスクの状態と最終実行結果
 - PostgreSQL の起動状態と接続数
 - `tailscale serve status` の転送設定
 - Tailscale client の接続状態
+
+Windows 自動起動の登録・再起動・解除については、[Windows自動起動](./windows-scheduled-task.md)を参照してください。
 
 ## コスト管理
 

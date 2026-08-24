@@ -12,6 +12,7 @@ sidebar_position: 2
 
 - Bun 1.x 以上
 - Node.js 20.x 以上
+- PowerShell 7
 - PostgreSQL
 - Tailscale
 - 利用する PC / スマホ / タブレットが同じ tailnet に参加していること
@@ -82,6 +83,18 @@ https://<device>.<tailnet>.ts.net/api/recipes
 
 主要画面、`/health`、主要 API が開ければ、本番相当構成の確認は完了です。
 
+### 7. Windows 自動起動を登録する
+
+手動起動と Tailscale Serve 経由の確認が完了したら、前景で実行している `bun run start` を停止します。その後、Windows ログオン時にバックグラウンドで起動するタスクを登録します。
+
+```powershell
+pwsh ./scripts/windows/cooking-planner-task.ps1 Register
+pwsh ./scripts/windows/cooking-planner-task.ps1 Start
+pwsh ./scripts/windows/cooking-planner-task.ps1 Status
+```
+
+登録後にローカルの `/health` と Tailscale Serve 経由の主要画面をもう一度確認します。詳細な操作、ログ、トラブルシューティングは [Windows自動起動](../operations/windows-scheduled-task.md) を参照してください。
+
 ## 確認項目
 
 - [ ] PostgreSQL が起動している。
@@ -92,6 +105,9 @@ https://<device>.<tailnet>.ts.net/api/recipes
 - [ ] `tailscale serve status` で Hono server の port に向いている。
 - [ ] Tailscale Serve 経由でスマホまたはタブレットから主要画面を開ける。
 - [ ] `/health` と主要 API が Tailscale 経由でも疎通する。
+- [ ] `CookingPlanner` タスクを登録している。
+- [ ] `CookingPlanner` タスクの状態が `Running` になっている。
+- [ ] `logs/cooking-planner/` から stdout / stderr を確認できる。
 
 ## 関連ページ
 
@@ -100,3 +116,4 @@ https://<device>.<tailnet>.ts.net/api/recipes
 - [バックエンド起動](../deployment/backend.md)
 - [フロントエンド配信](../deployment/frontend.md)
 - [Tailscale Serve](../deployment/tailscale-serve.md)
+- [Windows自動起動](../operations/windows-scheduled-task.md)
