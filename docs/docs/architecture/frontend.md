@@ -35,10 +35,11 @@ sidebar_position: 2
 
 ## 認証
 
-- フロントエンドは Cloudflare Access のセッション Cookie によるアクセス制御を利用する。
+- Tailscale Serve 構成では、フロントエンドは tailnet 参加端末からだけ到達できる URL で配信される。
+- 当面はアプリ内ログインを持たず、API 側の `DEV_USER_ID=local-dev-user` で単一ユーザーとして扱う。
 - JWT をブラウザ側で保持しない。
 - API 呼び出し時に `Authorization` ヘッダを付与しない。
-- 未認証時のリダイレクトやログイン画面は Cloudflare Access 側の設定に従う。
+- Cloudflare Access を代替案として使う場合は、未認証時のリダイレクトやログイン画面は Cloudflare Access 側の設定に従う。
 
 ## 環境変数
 
@@ -46,4 +47,4 @@ sidebar_position: 2
 | ------------------- | ---------------- | ----------------------------------------- |
 | `VITE_API_BASE_URL` | API のベース URL | `http://localhost:3000/api` または `/api` |
 
-本番相当ではフロントエンドと API を同じ Hono server から配信するため、相対パスの `/api` を使用できる。
+本番相当ではフロントエンドと API を同じ Hono server から配信し、Tailscale Serve でも同一オリジンになるため、相対パスの `/api` を使用できる。

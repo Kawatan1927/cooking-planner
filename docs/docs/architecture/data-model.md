@@ -326,4 +326,4 @@ export type ShoppingList = {
 
 - `recipe_ingredients` の `quantity_value` / `quantity_text` は、API レスポンスでは `quantity: number | string` に統合するため、変換ロジックをどこに置くか設計する。
 - `menus` の期間検索は `(user_id, date)` インデックスで十分か、件数が増えたら見直す。
-- 将来的に複数ユーザー対応する場合、`user_id` を Cloudflare Access JWT から取得するロジックを追加する。
+- 将来的に複数ユーザー対応する場合、`user_id` を Tailscale identity / header または Cloudflare Access JWT から取得するロジックを追加する。

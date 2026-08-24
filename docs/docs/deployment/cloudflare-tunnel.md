@@ -1,13 +1,15 @@
 ---
 id: deployment-cloudflare-tunnel
-title: Cloudflare Tunnel
+title: Cloudflare Tunnel（代替案）
 sidebar_position: 4
 ---
 
 ## 概要
 
-Cloudflare Tunnel を使い、ローカル PC 上で動く Hono サーバーをインターネットへ公開する。
+Cloudflare Tunnel を使い、ローカル PC 上で動く Hono サーバーをインターネットへ公開する代替案です。
 外部からのアクセスは Cloudflare Access のメール認証ポリシーで制御し、自分のメールアドレスだけを許可する。
+
+Cooking Planner の第一候補は [Tailscale Serve](./tailscale-serve.md) による tailnet 内限定公開です。独自ドメインや tailnet 外からのアクセスが必要になった場合だけ、この手順を使います。
 
 この手順では、リポジトリに含まれる `cloudflare/config.yml.example` をテンプレートとして使う。
 実際の Tunnel UUID、認証情報 JSON、`cert.pem` はコミットしない。

@@ -24,7 +24,7 @@ cd docs && bun install --frozen-lockfile && cd ..
 
 ## 環境変数
 
-ローカル開発では `DEV_USER_ID` を設定すると Cloudflare Access JWT 検証をスキップできます。
+ローカル開発では `DEV_USER_ID` を設定し、単一ユーザーの `userId` として扱います。
 
 ```bash
 DATABASE_URL=postgresql://user:password@localhost:5432/cooking_planner

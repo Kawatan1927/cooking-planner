@@ -32,7 +32,7 @@ bun run backend:test
 
 - Hono handler のユニットテストを優先する。
 - repository 層は PostgreSQL との境界を明確にし、必要に応じて DB を分離して検証する。
-- 認証まわりは `DEV_USER_ID` と Cloudflare Access JWT 検証の両方を確認する。
+- 認証まわりは Tailscale Serve 構成の `DEV_USER_ID` と、Cloudflare Access 代替構成の JWT 検証を確認する。
 
 ## CI との連携
 

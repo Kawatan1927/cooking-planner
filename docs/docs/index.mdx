@@ -21,9 +21,8 @@ slug: /
 
 ```mermaid
 flowchart LR
-  Browser["Browser / React SPA"] --> Access["Cloudflare Access"]
-  Access --> Tunnel["Cloudflare Tunnel"]
-  Tunnel --> Hono["Local Hono Server"]
+  Browser["Browser / React SPA"] --> Serve["Tailscale Serve"]
+  Serve --> Hono["Local Hono Server"]
   Hono --> Postgres[("PostgreSQL")]
 ```
 
@@ -32,5 +31,5 @@ flowchart LR
 - **フロントエンド**: Vite + React + TypeScript
 - **バックエンド**: Bun + Hono
 - **データベース**: PostgreSQL
-- **認証**: Cloudflare Access
-- **公開**: Cloudflare Tunnel
+- **認証境界**: Tailscale tailnet
+- **公開**: Tailscale Serve

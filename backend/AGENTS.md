@@ -19,8 +19,8 @@
   - クエリ: `c.req.query('from')`
   - ボディ: `await c.req.json()`
 - `userId` は `shared/auth.ts` の `getUserId(c)` から一貫して取得してください。
-  - `authMiddleware()` が Cloudflare Access JWT を検証し、JWT の `email`（なければ `sub`）を userId として Hono context に設定します。
-  - ローカル開発では `DEV_USER_ID` を userId として使えます。
+  - Tailscale Serve 構成では tailnet 参加端末であることをアクセス境界とし、`DEV_USER_ID` を userId として使う単一ユーザー運用を許容します。
+  - Cloudflare Access を代替案として使う場合は、`authMiddleware()` が Cloudflare Access JWT を検証し、JWT の `email`（なければ `sub`）を userId として Hono context に設定します。
 - DB アクセスは Drizzle ORM（`drizzle-orm/postgres-js`）で行い、ドメインごとの `repository.ts`（`recipes/` `menus/`）に集約してください。ハンドラーから直接 SQL/クライアントを呼ばないでください。
 - スキーマ定義は `src/shared/schema.ts`、接続は `src/shared/db.ts`（`DATABASE_URL`）です。
 - `recipes` / `menus` のクエリは必ず `user_id` でスコープしてください。`recipe_ingredients` は `recipe_id` 経由でユーザーコンテキストを継承します（独自の userId カラムは持ちません）。
@@ -29,6 +29,7 @@
   `docs/docs/features/api-design.md` の形式（エラーは `{ error: { code, message, details } }`）に合わせてください。
 - CORS はローカルフロント（`http://localhost:5173`）を許可します（`src/app.ts`）。
 - サーバーは **127.0.0.1（ループバック）にのみバインド**してください（`docs/docs/architecture/backend.md`）。
+  Tailscale Serve が loopback の Hono server へ転送するため、tailnet 公開時も `0.0.0.0` は不要です。
   `0.0.0.0` でバインドしないこと。
 - 既存 API のエンドポイント・レスポンス形式（`docs/docs/features/api-design.md`）を変えないでください。
 - AWS SDK（`@aws-sdk/*`）を新たに追加しないでください。

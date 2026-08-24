@@ -6,7 +6,7 @@ sidebar_position: 2
 
 ## 概要
 
-ローカル PC 上の Hono server、PostgreSQL、Cloudflare Tunnel / Access で問題が発生した場合の確認ポイントをまとめます。
+ローカル PC 上の Hono server、PostgreSQL、Tailscale Serve で問題が発生した場合の確認ポイントをまとめます。
 
 ## フロントエンドが表示されない
 
@@ -14,14 +14,14 @@ sidebar_position: 2
 
 1. Hono server が起動しているか確認する。
 2. `bun run start` 実行時に frontend build が成功しているか確認する。
-3. Cloudflare Tunnel の転送先が Hono server の port と一致しているか確認する。
+3. `tailscale serve status` の転送先が Hono server の port と一致しているか確認する。
 4. ブラウザのコンソールにエラーがないか確認する。
 
 ### よくある原因
 
 - `frontend/dist/` が生成されていない。
 - Hono server が停止している。
-- Tunnel の転送先 port が `.env` の `PORT` と一致していない。
+- Tailscale Serve の転送先 port が `.env` の `PORT` と一致していない。
 - `VITE_API_BASE_URL` が意図しない URL を指している。
 
 ## API が 401 / 403 エラーを返す
@@ -29,16 +29,16 @@ sidebar_position: 2
 ### 確認手順
 
 1. 開発時は `DEV_USER_ID` が設定されているか確認する。
-2. 本番相当では Cloudflare Access のセッションが有効か確認する。
-3. `CLOUDFLARE_ACCESS_TEAM_NAME` と `CLOUDFLARE_ACCESS_AUD` が正しいか確認する。
-4. Hono server のログに JWT 検証エラーが出ていないか確認する。
+2. 本番相当では `DEV_USER_ID=local-dev-user` が Hono server の実行環境に残っているか確認する。
+3. Cloudflare Access を代替案として使う場合は、`CLOUDFLARE_ACCESS_TEAM_NAME` と `CLOUDFLARE_ACCESS_AUD` が正しいか確認する。
+4. Hono server のログに userId 取得や JWT 検証のエラーが出ていないか確認する。
 
 ### よくある原因
 
 - ローカル開発で `DEV_USER_ID` が未設定。
-- Cloudflare Access の許可ポリシーにユーザーが含まれていない。
-- Access Application Audience と環境変数が一致していない。
-- Cloudflare Access を通らずに直接 Hono server へアクセスしている。
+- Tailscale Serve 構成なのに `DEV_USER_ID` を外している。
+- Cloudflare Access の代替構成では、許可ポリシーにユーザーが含まれていない。
+- Cloudflare Access の代替構成では、Access Application Audience と環境変数が一致していない。
 
 ## API が 500 エラーを返す
 
@@ -56,14 +56,15 @@ sidebar_position: 2
 - 必要なテーブルが作成されていない。
 - アプリケーションコードのバリデーションや DB 操作にバグがある。
 
-## Cloudflare Tunnel から接続できない
+## Tailscale Serve から接続できない
 
 ### 確認手順
 
-1. `cloudflared` のプロセスが起動しているか確認する。
-2. Tunnel の転送先が `http://127.0.0.1:<PORT>` になっているか確認する。
+1. Tailscale client が接続済みか確認する。
+2. `tailscale serve status` の転送先が `http://127.0.0.1:<PORT>` になっているか確認する。
 3. Hono server が同じ port で起動しているか確認する。
-4. Cloudflare のダッシュボードで Tunnel の状態を確認する。
+4. 確認端末が同じ tailnet に参加しているか確認する。
+5. Serve 設定が消えている場合は `tailscale serve --bg 3000` を再実行する。
 
 ## ドキュメントサイトが更新されない
 

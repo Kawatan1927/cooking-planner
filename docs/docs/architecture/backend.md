@@ -8,8 +8,7 @@ sidebar_position: 3
 
 - Bun + Hono
 - PostgreSQL
-- Cloudflare Access
-- Cloudflare Tunnel
+- Tailscale Serve
 
 ## 設計方針
 
@@ -19,7 +18,7 @@ sidebar_position: 3
 - API は `/api` 配下に集約し、Hono routing でドメインごとのルートへ分割する。
 - 本番相当では `bun run start` が frontend build 後に Hono server を起動する。
 - 開発時は `bun run dev` で frontend/backend を起動する。
-- ローカル PC 上で常時起動し、Cloudflare Tunnel から転送されるリクエストを受ける。
+- ローカル PC 上で常時起動し、Tailscale Serve から `http://127.0.0.1:<PORT>` へ転送されるリクエストを受ける。
 
 ## PostgreSQL
 
@@ -29,20 +28,21 @@ sidebar_position: 3
 - 買い物リストは保存せず、指定期間の献立と材料から動的に生成する。
 - 件数が増えた場合は、`menus(user_id, date)` などのインデックスを見直す。
 
-## Cloudflare Access 認証
+## 認証境界と userId
 
-- Cloudflare Access が外部公開 URL へのアクセス制御を担当する。
-- 未認証リクエストは Cloudflare Access でブロックされ、Hono server に到達しない。
-- Hono middleware は `Cf-Access-Jwt-Assertion` を Cloudflare Access の公開鍵で検証する。
-- JWT の `email`（なければ `sub`）をリクエストコンテキストの `userId` として扱う。
-- ローカル開発では `DEV_USER_ID` を設定すると Cloudflare Access JWT なしで動作する。
+- Tailscale Serve 構成では、tailnet 参加端末であることをアクセス境界にする。
+- 当面は `DEV_USER_ID=local-dev-user` を固定し、単一ユーザーの `userId` として扱う。
+- `DEV_USER_ID` を変えると既存データの `user_id` スコープが変わり、登録済みデータが見えなくなるため値を固定する。
+- tailnet に参加できる端末・ユーザーは Tailscale 側で管理する。
+- Cloudflare Access を代替案として使う場合は、Hono middleware が `Cf-Access-Jwt-Assertion` を Cloudflare Access の公開鍵で検証し、JWT の `email`（なければ `sub`）を `userId` として扱う。
 - 個人利用のためロール管理は不要だが、`recipes` / `menus` は必ず `user_id` でスコープする。
 
 ## セキュリティ・アクセス制御
 
-- 外部公開は Cloudflare Tunnel 経由に限定する。
+- 公開は Tailscale Serve 経由の tailnet 内限定公開を第一候補とする。
 - Hono server は `127.0.0.1` にバインドし、LAN から直接アクセスできないようにする。
-- `0.0.0.0` でバインドすると、同一 LAN 内のデバイスから Cloudflare Access を経由せず直接アクセスできる可能性があるため避ける。
+- `tailscale serve --bg 3000` は loopback の Hono server へ転送できるため、Hono server を `0.0.0.0` で bind する必要はない。
+- `0.0.0.0` でバインドすると、同一 LAN 内のデバイスから Tailscale の境界を経由せず直接アクセスできる可能性があるため避ける。
 - 業務データへのクエリは必ず `user_id` で絞り込む。
 - 機微情報をログに出さない。
 
@@ -70,18 +70,19 @@ PostgreSQL は ACID トランザクションをサポートしているため、
 
 ## 環境変数
 
-| 変数名                        | 説明                                                                 |
-| ----------------------------- | -------------------------------------------------------------------- |
-| `PORT`                        | Hono server のリッスンポート                                         |
-| `FRONTEND_ORIGIN`             | ローカル開発時に CORS で許可するフロントエンド origin                |
-| `DATABASE_URL`                | PostgreSQL 接続文字列                                                |
-| `DEV_USER_ID`                 | ローカル開発用 userId。設定時は Cloudflare Access JWT 検証をスキップ |
-| `CLOUDFLARE_ACCESS_TEAM_NAME` | Cloudflare Access チーム名                                           |
-| `CLOUDFLARE_ACCESS_AUD`       | Cloudflare Access Application Audience                               |
+| 変数名                        | 説明                                                            |
+| ----------------------------- | --------------------------------------------------------------- |
+| `PORT`                        | Hono server のリッスンポート                                    |
+| `FRONTEND_ORIGIN`             | ローカル開発時に CORS で許可するフロントエンド origin           |
+| `DATABASE_URL`                | PostgreSQL 接続文字列                                           |
+| `DEV_USER_ID`                 | Tailscale Serve / ローカル開発で使う単一ユーザー用 userId       |
+| `CLOUDFLARE_ACCESS_TEAM_NAME` | Cloudflare Access を代替案として使う場合のチーム名              |
+| `CLOUDFLARE_ACCESS_AUD`       | Cloudflare Access を代替案として使う場合の Application Audience |
 
 ## 今後の拡張余地
 
-- Cloudflare Access のポリシーや `DEV_USER_ID` と DB 上の `user_id` の運用整理
+- Tailscale identity / header を userId に使う必要があるかの検討
+- Cloudflare Access の代替公開案と `DEV_USER_ID` と DB 上の `user_id` の運用整理
 - PostgreSQL の接続プール設定
 - PWA 対応時のオフライン用 API 設計
 - 家族など複数ユーザー利用を見据えた role ベースの権限管理
