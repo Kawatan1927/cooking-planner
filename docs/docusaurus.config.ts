@@ -13,7 +13,6 @@ const config: Config = {
   projectName: "cooking-planner",
 
   onBrokenLinks: "throw",
-  onBrokenMarkdownLinks: "warn",
 
   i18n: {
     defaultLocale: "ja",
@@ -22,6 +21,9 @@ const config: Config = {
 
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: "warn",
+    },
   },
 
   themes: ["@docusaurus/theme-mermaid"],
